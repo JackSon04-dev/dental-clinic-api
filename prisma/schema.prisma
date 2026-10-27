@@ -1,0 +1,556 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+// ============================================================================
+// LEVEL 0: CÁC BẢNG GỐC ĐỘC LẬP (MASTER DATA)
+// ============================================================================
+
+// 01. TÀI KHOẢN (Level 0)
+model TaiKhoan {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username         String    @unique @db.VarChar(100)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  googleId         String?   @unique @map("google_id") @db.VarChar(255)
+  loaiTaiKhoan     String    @map("loai_tai_khoan") @db.VarChar(20)
+  trangThai        String    @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  refreshTokenHash String?   @map("refresh_token_hash") @db.VarChar(500)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-1
+  nhaSi            NhaSi?
+  nhanVien         NhanVien?
+  benhNhan         BenhNhan?
+
+  // Quan hệ 1-N
+  auditLogs        AuditLog[]
+  lichHenHuy       LichHen[]  @relation("NguoiHuyLichHen")
+
+  @@map("tai_khoan")
+}
+
+// 02. DỊCH VỤ NHA KHOA (Level 0)
+model DichVu {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maDichVu            String?          @unique @map("ma_dich_vu") @db.VarChar(20)
+  tenDichVu           String           @map("ten_dich_vu") @db.VarChar(255)
+  moTa                String?          @map("mo_ta") @db.Text
+  thongTinQuyTrinh    String?          @map("thong_tin_quy_trinh") @db.Text
+  thoiGianDuKienPhut  Int?             @default(30) @map("thoi_gian_du_kien_phut")
+  trangThai           String           @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-N
+  chiTietDichVu       ChiTietDichVu[]
+  sanPham             SanPham[]
+  lichHen             LichHen[]
+
+  @@map("dich_vu")
+}
+
+// 03. SẢN PHẨM & VẬT TƯ TIÊU HAO (Level 0)
+model SanPham {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maSanPham       String?        @unique @map("ma_san_pham") @db.VarChar(30)
+  tenSanPham      String         @map("ten_san_pham") @db.VarChar(200)
+  loai            String         @db.VarChar(50)
+  donViTinh       String         @map("don_vi_tinh") @db.VarChar(50)
+  giaBan          Decimal        @default(0) @map("gia_ban") @db.Decimal(18, 2)
+  soLuongTon      Int            @default(0) @map("so_luong_ton")
+  mucTonToiThieu  Int            @default(0) @map("muc_ton_toi_thieu")
+  dichVuId        String?        @map("dich_vu_id") @db.Uuid
+  moTa            String?        @map("mo_ta") @db.Text
+  trangThai       String         @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  dichVu          DichVu?        @relation(fields: [dichVuId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  vatTuSuDung     VatTuSuDung[]
+
+  @@map("san_pham")
+}
+
+// 04. PHÁC ĐỒ MẪU (Level 0)
+model PhacDoMau {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maPhacDoMau    String?                @unique @map("ma_phac_do_mau") @db.VarChar(30)
+  tenPhacDoMau   String                 @map("ten_phac_do_mau") @db.VarChar(200)
+  moTa           String?                @map("mo_ta") @db.Text
+  trangThai      String                 @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-N
+  giaiDoanMau    GiaiDoanPhacDoMau[]
+  phacDoDieuTri  PhacDoDieuTri[]
+
+  @@map("phac_do_mau")
+}
+
+// 05. KHUYẾN MÃI / VOUCHER (Level 0)
+model KhuyenMai {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maKhuyenMai        String     @unique @map("ma_khuyen_mai") @db.VarChar(30)
+  tenChuongTrinh     String     @map("ten_chuong_trinh") @db.VarChar(200)
+  loaiGiam           String     @map("loai_giam") @db.VarChar(20)
+  giaTriGiam         Decimal    @map("gia_tri_giam") @db.Decimal(18, 2)
+  ngayBatDau         DateTime   @map("ngay_bat_dau") @db.Date
+  ngayKetThuc        DateTime   @map("ngay_ket_thuc") @db.Date
+  soLanSuDungToiDa   Int?       @map("so_lan_su_dung_toi_da")
+  soLanDaSuDung      Int        @default(0) @map("so_lan_da_su_dung")
+  trangThai          String     @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-N
+  hoaDon             HoaDon[]
+
+  @@map("khuyen_mai")
+}
+
+// 06. PHÒNG ĐIỀU TRỊ (Level 0)
+model PhongDieuTri {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maPhong    String?      @unique @map("ma_phong") @db.VarChar(20)
+  tenPhong   String       @map("ten_phong") @db.VarChar(150)
+  trangThai  String       @default("san_sang") @map("trang_thai") @db.VarChar(20)
+  ghiChu     String?      @map("ghi_chu") @db.VarChar(500)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-N
+  caLamViec  CaLamViec[]
+
+  @@map("phong_dieu_tri")
+}
+
+// ============================================================================
+// LEVEL 1: HỒ SƠ NHÂN SỰ, BỆNH NHÂN & CHI TIẾT DANH MỤC
+// ============================================================================
+
+// 07. CHI TIẾT DỊCH VỤ (Level 1)
+model ChiTietDichVu {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dichVuId       String          @map("dich_vu_id") @db.Uuid
+  maChiTiet      String?         @unique @map("ma_chi_tiet") @db.VarChar(20)
+  tenChiTiet     String          @map("ten_chi_tiet") @db.VarChar(200)
+  gia            Decimal         @default(0) @map("gia") @db.Decimal(18, 2)
+  donViTinh      String?         @map("don_vi_tinh") @db.VarChar(50)
+  trangThai      String          @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  dichVu         DichVu          @relation(fields: [dichVuId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  dichVuDieuTri  DichVuDieuTri[]
+
+  @@map("chi_tiet_dich_vu")
+}
+
+// 08. BỆNH NHÂN (Level 1)
+model BenhNhan {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taiKhoanId   String?         @unique @map("tai_khoan_id") @db.Uuid
+  maBenhNhan   String?         @unique @map("ma_benh_nhan") @db.VarChar(30)
+  hoTen        String          @map("ho_ten") @db.VarChar(150)
+  ngaySinh     DateTime?       @map("ngay_sinh") @db.Date
+  gioiTinh     String?         @map("gioi_tinh") @db.VarChar(10)
+  sdt          String?         @unique @db.VarChar(20)
+  email        String?         @unique @db.VarChar(150)
+  diaChi       String?         @map("dia_chi") @db.VarChar(500)
+  hinhAnhUrl   String?         @map("hinh_anh_url") @db.VarChar(500)
+  tienSuBenh   String?         @map("tien_su_benh") @db.Text
+  diUng        String?         @map("di_ung") @db.Text
+  ghiChu       String?         @map("ghi_chu") @db.Text
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  taiKhoan     TaiKhoan?       @relation(fields: [taiKhoanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  phacDoDieuTri PhacDoDieuTri[]
+  lichHen       LichHen[]
+
+  @@map("benh_nhan")
+}
+
+// 09. NHA SĨ (Level 1)
+model NhaSi {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taiKhoanId   String          @unique @map("tai_khoan_id") @db.Uuid
+  maNhaSi      String?         @unique @map("ma_nha_si") @db.VarChar(30)
+  hoTen        String          @map("ho_ten") @db.VarChar(150)
+  ngaySinh     DateTime?       @map("ngay_sinh") @db.Date
+  gioiTinh     String?         @map("gioi_tinh") @db.VarChar(10)
+  sdt          String?         @unique @db.VarChar(20)
+  email        String?         @unique @db.VarChar(150)
+  diaChi       String?         @map("dia_chi") @db.VarChar(500)
+  hinhAnhUrl   String?         @map("hinh_anh_url") @db.VarChar(500)
+  chuyenKhoa   String?         @map("chuyen_khoa") @db.VarChar(100)
+  gioiThieu    String?         @map("gioi_thieu") @db.Text
+  soGiayPhep   String?         @map("so_giay_phep") @db.VarChar(100)
+  trangThai    String          @default("dang_lam_viec") @map("trang_thai") @db.VarChar(20)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  taiKhoan     TaiKhoan        @relation(fields: [taiKhoanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  caLamViec    CaLamViec[]
+  phacDoDieuTri PhacDoDieuTri[]
+  donThuoc     DonThuoc[]
+
+  @@map("nha_si")
+}
+
+// 10. NHÂN VIÊN LỄ TÂN / THU NGÂN (Level 1)
+model NhanVien {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taiKhoanId   String          @unique @map("tai_khoan_id") @db.Uuid
+  maNhanVien   String?         @unique @map("ma_nhan_vien") @db.VarChar(30)
+  hoTen        String          @map("ho_ten") @db.VarChar(150)
+  ngaySinh     DateTime?       @map("ngay_sinh") @db.Date
+  gioiTinh     String?         @map("gioi_tinh") @db.VarChar(10)
+  sdt          String?         @unique @db.VarChar(20)
+  email        String?         @unique @db.VarChar(150)
+  diaChi       String?         @map("dia_chi") @db.VarChar(500)
+  hinhAnhUrl   String?         @map("hinh_anh_url") @db.VarChar(500)
+  chucVu       String          @map("chuc_vu") @db.VarChar(30)
+  trangThai    String          @default("dang_lam_viec") @map("trang_thai") @db.VarChar(20)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  taiKhoan     TaiKhoan        @relation(fields: [taiKhoanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  hoaDon       HoaDon[]
+
+  @@map("nhan_vien")
+}
+
+// 11. GIAI ĐOẠN PHÁC ĐỒ MẪU (Level 1)
+model GiaiDoanPhacDoMau {
+  id                    String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phacDoMauId           String      @map("phac_do_mau_id") @db.Uuid
+  buocSo                Int         @map("buoc_so")
+  tenGiaiDoan           String      @map("ten_giai_doan") @db.VarChar(200)
+  tenDichVu             String?     @map("ten_dich_vu") @db.VarChar(255)
+  moTa                  String?     @map("mo_ta") @db.Text
+  thoiGianNghiGiuaBuoc  String?     @map("thoi_gian_nghi_giua_buoc") @db.VarChar(100)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  phacDoMau             PhacDoMau   @relation(fields: [phacDoMauId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([phacDoMauId, buocSo])
+  @@map("giai_doan_phac_do_mau")
+}
+
+// 12. AUDIT LOG (Level 1)
+model AuditLog {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nguoiThucHien   String?     @map("nguoi_thuc_hien") @db.Uuid
+  bangBiThayDoi   String      @map("bang_bi_thay_doi") @db.VarChar(100)
+  banGhiId        String      @map("ban_ghi_id") @db.Uuid
+  hanhDong        String      @map("hanh_dong") @db.VarChar(20)
+  duLieuCu        Json?       @map("du_lieu_cu")
+  duLieuMoi       Json?       @map("du_lieu_moi")
+  thoiDiem        DateTime    @default(now()) @map("thoi_diem") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  taiKhoan        TaiKhoan?   @relation(fields: [nguoiThucHien], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("audit_log")
+}
+
+// ============================================================================
+// LEVEL 2: CA LÀM VIỆC & PHÁC ĐỒ ĐIỀU TRỊ
+// ============================================================================
+
+// 13. CA LÀM VIỆC (Level 2)
+model CaLamViec {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nhaSiId         String        @map("nha_si_id") @db.Uuid
+  phongDieuTriId  String        @map("phong_dieu_tri_id") @db.Uuid
+  ngay            DateTime      @db.Date
+  gioBatDau       DateTime      @map("gio_bat_dau") @db.Time(6)
+  gioKetThuc      DateTime      @map("gio_ket_thuc") @db.Time(6)
+  trangThai       String        @default("trong") @map("trang_thai") @db.VarChar(20)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  nhaSi           NhaSi         @relation(fields: [nhaSiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  phongDieuTri    PhongDieuTri  @relation(fields: [phongDieuTriId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  lichHen         LichHen[]
+
+  @@map("ca_lam_viec")
+}
+
+// 14. PHÁC ĐỒ ĐIỀU TRỊ (Level 2)
+model PhacDoDieuTri {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maPhacDo              String?           @unique @map("ma_phac_do") @db.VarChar(30)
+  benhNhanId            String            @map("benh_nhan_id") @db.Uuid
+  nhaSiId               String            @map("nha_si_id") @db.Uuid
+  phacDoMauId           String?           @map("phac_do_mau_id") @db.Uuid
+  tenPhacDo             String            @map("ten_phac_do") @db.VarChar(200)
+  chanDoanBanDau        String?           @map("chan_doan_ban_dau") @db.Text
+  hinhThucThanhToan     String            @default("tung_giai_doan") @map("hinh_thuc_thanh_toan") @db.VarChar(20)
+  trangThai             String            @default("dang_dieu_tri") @map("trang_thai") @db.VarChar(20)
+  ngayBatDau            DateTime?         @map("ngay_bat_dau") @db.Date
+  ngayDuKienHoanThanh   DateTime?         @map("ngay_du_kien_hoan_thanh") @db.Date
+  ngayHoanThanhThucTe   DateTime?         @map("ngay_hoan_thanh_thuc_te") @db.Date
+  lyDoHuy               String?           @map("ly_do_huy") @db.Text
+  ghiChu                String?           @map("ghi_chu") @db.Text
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  benhNhan              BenhNhan          @relation(fields: [benhNhanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nhaSi                 NhaSi             @relation(fields: [nhaSiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  phacDoMau             PhacDoMau?        @relation(fields: [phacDoMauId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  giaiDoanPhacDo        GiaiDoanPhacDo[]
+  hoaDon                HoaDon[]
+
+  @@map("phac_do_dieu_tri")
+}
+
+// ============================================================================
+// LEVEL 3: LỊCH HẸN KHÁM
+// ============================================================================
+
+// 15. LỊCH HẸN (Level 3)
+model LichHen {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maLichHen          String?          @unique @map("ma_lich_hen") @db.VarChar(30)
+  benhNhanId         String           @map("benh_nhan_id") @db.Uuid
+  caLamViecId        String           @map("ca_lam_viec_id") @db.Uuid
+  dichVuId           String           @map("dich_vu_id") @db.Uuid
+  ngayHen            DateTime         @map("ngay_hen") @db.Date
+  gioHen             DateTime         @map("gio_hen") @db.Time(6)
+  gioKetThucDuKien   DateTime         @map("gio_ket_thuc_du_kien") @db.Time(6)
+  trangThai          String           @default("cho_xac_nhan") @map("trang_thai") @db.VarChar(20)
+  lyDoHuy            String?          @map("ly_do_huy") @db.Text
+  nguoiHuyId         String?          @map("nguoi_huy_id") @db.Uuid
+  ngayHuy            DateTime?        @map("ngay_huy") @db.Timestamptz(6)
+  ghiChu             String?          @map("ghi_chu") @db.Text
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  benhNhan           BenhNhan         @relation(fields: [benhNhanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  caLamViec          CaLamViec        @relation(fields: [caLamViecId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  dichVu             DichVu           @relation(fields: [dichVuId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nguoiHuy           TaiKhoan?        @relation("NguoiHuyLichHen", fields: [nguoiHuyId], references: [id])
+
+  // Quan hệ 1-1
+  hoSoBenhAn         HoSoBenhAn?
+  giaiDoanPhacDo     GiaiDoanPhacDo?
+
+  // Quan hệ 1-N
+  hoaDon             HoaDon[]
+
+  @@map("lich_hen")
+}
+
+// ============================================================================
+// LEVEL 4: HỒ SƠ BỆNH ÁN, HÓA ĐƠN & GIAI ĐOẠN PHÁC ĐỒ
+// ============================================================================
+
+// 16. HỒ SƠ BỆNH ÁN (Level 4)
+model HoSoBenhAn {
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maHoSo               String?         @unique @map("ma_ho_so") @db.VarChar(30)
+  lichHenId            String          @unique @map("lich_hen_id") @db.Uuid
+  chanDoan             String?         @map("chan_doan") @db.Text
+  phuongPhapDieuTri    String?         @map("phuong_phap_dieu_tri") @db.Text
+  ketQua               String?         @map("ket_qua") @db.Text
+  loiDan               String?         @map("loi_dan") @db.Text
+  ngayKham             DateTime        @map("ngay_kham") @db.Date
+  ngayTaiKham          DateTime?       @map("ngay_tai_kham") @db.Date
+  tinhTrangRangMieng   String?         @map("tinh_trang_rang_mieng") @db.Text
+  ghiChu               String?         @map("ghi_chu") @db.Text
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại 1-1
+  lichHen              LichHen         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  dichVuDieuTri        DichVuDieuTri[]
+  donThuoc             DonThuoc[]
+  vatTuSuDung          VatTuSuDung[]
+
+  @@map("ho_so_benh_an")
+}
+
+// 17. HÓA ĐƠN (Level 4)
+model HoaDon {
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maHoaDon             String?         @unique @map("ma_hoa_don") @db.VarChar(30)
+  lichHenId            String          @map("lich_hen_id") @db.Uuid
+  phacDoDieuTriId      String?         @map("phac_do_dieu_tri_id") @db.Uuid
+  nhanVienId           String          @map("nhan_vien_id") @db.Uuid
+  khuyenMaiId          String?         @map("khuyen_mai_id") @db.Uuid
+  phuongThucThanhToan  String?         @map("phuong_thuc_thanh_toan") @db.VarChar(20)
+  trangThaiThanhToan   String          @default("chua_thanh_toan") @map("trang_thai_thanh_toan") @db.VarChar(30)
+  lyDoHuy              String?         @map("ly_do_huy") @db.Text
+  ghiChu               String?         @map("ghi_chu") @db.Text
+  ngayLap              DateTime        @default(now()) @map("ngay_lap") @db.Timestamptz(6)
+  ngayThanhToan        DateTime?       @map("ngay_thanh_toan") @db.Timestamptz(6)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  lichHen              LichHen         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  phacDoDieuTri        PhacDoDieuTri?  @relation(fields: [phacDoDieuTriId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nhanVien             NhanVien        @relation(fields: [nhanVienId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  khuyenMai            KhuyenMai?      @relation(fields: [khuyenMaiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("hoa_don")
+}
+
+// 18. GIAI ĐOẠN PHÁC ĐỒ (Level 4)
+model GiaiDoanPhacDo {
+  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phacDoId              String           @map("phac_do_id") @db.Uuid
+  buocChaId             String?          @map("buoc_cha_id") @db.Uuid
+  buocSo                Int              @map("buoc_so")
+  tenGiaiDoan           String           @map("ten_giai_doan") @db.VarChar(200)
+  moTa                  String?          @map("mo_ta") @db.Text
+  moTaVatTuDichVu       String?          @map("mo_ta_vat_tu_dich_vu") @db.Text
+  chiPhi                Decimal          @default(0) @map("chi_phi") @db.Decimal(18, 2)
+  trangThaiThanhToan    String           @default("chua_thanh_toan") @map("trang_thai_thanh_toan") @db.VarChar(20)
+  lichHenId             String?          @unique @map("lich_hen_id") @db.Uuid
+  trangThai             String           @default("chua_thuc_hien") @map("trang_thai") @db.VarChar(20)
+  ngayDuKien            DateTime?        @map("ngay_du_kien") @db.Date
+  ngayThucHien          DateTime?        @map("ngay_thuc_hien") @db.Date
+  coPhatSinh            Boolean          @default(false) @map("co_phat_sinh")
+  ghiChu                String?          @map("ghi_chu") @db.Text
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  phacDoDieuTri         PhacDoDieuTri    @relation(fields: [phacDoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  buocCha               GiaiDoanPhacDo?  @relation("GiaiDoanHierarchy", fields: [buocChaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cacBuocCon            GiaiDoanPhacDo[] @relation("GiaiDoanHierarchy")
+  lichHen               LichHen?         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([phacDoId, buocSo])
+  @@map("giai_doan_phac_do")
+}
+
+// ============================================================================
+// LEVEL 5: CHI TIẾT THỰC THI LÂM SÀNG, ĐƠN THUỐC & VẬT TƯ TIÊU HAO
+// ============================================================================
+
+// 19. DỊCH VỤ ĐIỀU TRỊ (Level 5)
+model DichVuDieuTri {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hoSoId            String         @map("ho_so_id") @db.Uuid
+  chiTietDichVuId   String         @map("chi_tiet_dich_vu_id") @db.Uuid
+  soLuong           Int            @default(1) @map("so_luong")
+  donGia            Decimal        @map("don_gia") @db.Decimal(18, 2)
+  viTriRang         String?        @map("vi_tri_rang") @db.VarChar(50)
+  ghiChu            String?        @map("ghi_chu") @db.Text
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  hoSoBenhAn        HoSoBenhAn     @relation(fields: [hoSoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  chiTietDichVu     ChiTietDichVu  @relation(fields: [chiTietDichVuId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("dich_vu_dieu_tri")
+}
+
+// 20. ĐƠN THUỐC (Level 5)
+model DonThuoc {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maDonThuoc        String?             @unique @map("ma_don_thuoc") @db.VarChar(30)
+  hoSoId            String              @map("ho_so_id") @db.Uuid
+  nhaSiId           String              @map("nha_si_id") @db.Uuid
+  ngayKe            DateTime            @map("ngay_ke") @db.Date
+  soNgayDung        Int?                @map("so_ngay_dung")
+  chanDoan          String?             @map("chan_doan") @db.Text
+  loiDan            String?             @map("loi_dan") @db.Text
+  ghiChu            String?             @map("ghi_chu") @db.Text
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  hoSoBenhAn        HoSoBenhAn          @relation(fields: [hoSoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nhaSi             NhaSi               @relation(fields: [nhaSiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Quan hệ 1-N
+  chiTietDonThuoc   ChiTietDonThuoc[]
+
+  @@map("don_thuoc")
+}
+
+// 21. VẬT TƯ SỬ DỤNG (Level 5)
+model VatTuSuDung {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hoSoId       String       @map("ho_so_id") @db.Uuid
+  sanPhamId    String       @map("san_pham_id") @db.Uuid
+  soLuong      Int          @map("so_luong")
+  donGia       Decimal      @default(0) @map("don_gia") @db.Decimal(18, 2)
+  ghiChu       String?      @map("ghi_chu") @db.VarChar(500)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  hoSoBenhAn   HoSoBenhAn   @relation(fields: [hoSoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sanPham      SanPham      @relation(fields: [sanPhamId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("vat_tu_su_dung")
+}
+
+// ============================================================================
+// LEVEL 6: CHI TIẾT TỪNG DÒNG ĐƠN THUỐC
+// ============================================================================
+
+// 22. CHI TIẾT ĐƠN THUỐC (Level 6)
+model ChiTietDonThuoc {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  donThuocId     String       @map("don_thuoc_id") @db.Uuid
+  tenThuoc       String       @map("ten_thuoc") @db.VarChar(200)
+  hoatChat       String?      @map("hoat_chat") @db.VarChar(200)
+  hamLuong       String?      @map("ham_luong") @db.VarChar(100)
+  dangBaoChe     String?      @map("dang_bao_che") @db.VarChar(100)
+  lieuDung       String?      @map("lieu_dung") @db.VarChar(200)
+  soLuong        Int          @map("so_luong")
+  donViTinh      String?      @map("don_vi_tinh") @db.VarChar(50)
+  soLanNgay      Int?         @map("so_lan_ngay")
+  thoiDiemUong   String?      @map("thoi_diem_uong") @db.VarChar(100)
+  huongDan       String?      @map("huong_dan") @db.Text
+  ghiChu         String?      @map("ghi_chu") @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  donThuoc       DonThuoc     @relation(fields: [donThuocId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("chi_tiet_don_thuoc")
+}

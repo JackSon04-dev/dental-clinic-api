@@ -1,0 +1,76 @@
+# CHANGELOG - Lịch sử Cập nhật & Tiến độ Codebase
+
+Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và tính năng đã triển khai trên `DentalClinicApp`.
+
+---
+
+## [2026-10-27] - Triển khai Toàn diện 22 Bảng CSDL (Level 0 – 6) sang Prisma ORM & PostgreSQL Container
+
+### Đã hoàn thành:
+1. **Hoàn thiện `prisma/schema.prisma` với đầy đủ 22 Models & Relations:**
+   - **Level 0 (Master Data):** `TaiKhoan`, `DichVu`, `SanPham`, `PhacDoMau`, `KhuyenMai`, `PhongDieuTri`.
+   - **Level 1 (Hồ sơ & Chi tiết):** `ChiTietDichVu`, `BenhNhan`, `NhaSi`, `NhanVien`, `GiaiDoanPhacDoMau`, `AuditLog`.
+   - **Level 2 (Lịch làm việc & Kế hoạch):** `CaLamViec`, `PhacDoDieuTri`.
+   - **Level 3 (Đặt lịch hẹn):** `LichHen`.
+   - **Level 4 (Hồ sơ điều trị, Hóa đơn & Giai đoạn):** `HoSoBenhAn`, `HoaDon`, `GiaiDoanPhacDo`.
+   - **Level 5 (Thực thi lâm sàng & Vật tư):** `DichVuDieuTri`, `DonThuoc`, `VatTuSuDung`.
+   - **Level 6 (Chi tiết dòng thuốc):** `ChiTietDonThuoc`.
+   - Toàn bộ models được định nghĩa đầy đủ quan hệ 1-1, 1-N, Self-relation (`buocCha` / `cacBuocCon`), `@map` / `@@map` chuẩn hóa sang `camelCase`, và `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]`.
+2. **Triển khai CSDL PostgreSQL (`dentaldb`):**
+   - Đã thực thi trọn vẹn toàn bộ 22 bảng, extensions (`uuid-ossp`, `btree_gist`), functions (`fn_cap_nhat_updated_at`), triggers cập nhật `updated_at`, check constraints và exclusion constraints (`no_overlap_nha_si_ca`, `no_overlap_phong_ca`, `no_overlap_lich_hen`) vào container `dentaldb`.
+3. **Sinh Prisma Client & Kiểm thử Đồng bộ:**
+   - Đã biên dịch `npx prisma generate` thành công trên cả môi trường Host (Windows) và Container (`dental_clinic_api`).
+   - Kiểm thử truy vấn toàn bộ 22 model thành công 100% không phát sinh lỗi.
+   - API server hoạt động ổn định trên `http://localhost:5000` và Prisma Studio sẵn sàng tại `http://localhost:5555`.
+
+---
+
+## [2026-10-27] - Chuyển đổi Toàn diện sang Prisma ORM & Dọn sạch Tầng Thừa
+
+### Đã hoàn thành:
+1. **Tích hợp Prisma ORM (v5.22.0):**
+   - Khởi tạo `prisma/schema.prisma` định nghĩa 4 bảng cốt lõi (`tai_khoan`, `nha_si`, `nhan_vien`, `benh_nhan`) với các thuộc tính `@map` ánh xạ `snake_case` sang `camelCase` và `@relation` tự động.
+   - Tạo `src/config/prisma.js` khởi tạo Prisma Client Singleton instance duy nhất.
+2. **Dọn dẹp Triệt để Tầng Thừa (Clean Architecture Optimization):**
+   - **Xóa bỏ hoàn toàn tầng `src/models/`:** Không cần class `DepartmentUser` hay hàm `fromDatabase()` viết tay; chuyển logic trích xuất hồ sơ trực tiếp vào `extractDepartmentProfile()` trong `src/dtos/auth/authDepartmentDto.js`.
+   - **Xóa bỏ hoàn toàn tầng `src/repositories/`:** Tầng `src/services/auth/authDepartment.js` gọi trực tiếp `prisma.taiKhoan` với cú pháp hướng đối tượng trực quan và an toàn.
+   - **Xóa bỏ `src/config/db.js` (`pg.Pool`):** Ứng dụng Express chính thức chỉ sử dụng kết nối của Prisma. Tách biệt script migration `scripts/migrate_schema.js` tự khởi tạo kết nối riêng.
+3. **Đồng bộ Tài liệu Quy chuẩn:**
+   - Cập nhật `agents/ARCHITECTURE.md` và `agents/MEMORY.md` chuyển sang quy chuẩn Prisma Service-Centric.
+
+---
+
+## [2026-10-27] - Chuẩn hóa Toàn diện Codebase, Loại bỏ Fallbacks || & Đồng bộ Agents Documentation
+
+### Đã hoàn thành:
+1. **Loại bỏ toán tử Fallback `||` (Direct Field Referencing):**
+   - Đã quy chuẩn toàn bộ field name giữa CSDL, Model, DTO và Payload.
+   - Loại bỏ các biểu thức fallback rườm rà trong `controllers/auth/authDepartment.js` (`req.user.userId`, `req.body.refreshToken`).
+   - Loại bỏ các giá trị fallback mặc định không cần thiết trong `models/auth/departmentUser.js` (`constructor` và `fromDatabase`).
+   - Dọn sạch fallback token extraction trong `common/validateMiddleware.js`, biến middleware validation thành thuần túy theo schema.
+   - Chuẩn hóa `middlewares/auth/authGuard.js` kiểm tra header `req.headers['authorization']` và RBAC trực tiếp (`role`, `loai_tai_khoan`, `chuc_vu`).
+2. **Đồng bộ Cấu trúc & Tinh gọn Middleware:**
+   - Xóa bỏ file middleware bọc thừa `src/middlewares/auth/authDepartment.js`, quy chuẩn gắn trực tiếp `validate(loginRequestSchema)` và `validate(refreshTokenRequestSchema)` ngay tại `routes/auth/authDepartment.js`.
+   - Quy chuẩn duy nhất một canonical endpoint `POST /refresh`, loại bỏ route alias rườm rà.
+   - Triển khai cơ chế Tolerant Token Parsing tại `middlewares/auth/authGuard.js`: linh hoạt bóc tách token (chấp nhận `Bearer <token>`, `Bearer\n<token>`, `Bearer<token>` hoặc raw token `ey...`).
+   - Thêm runtime Type Guard (`if (!decoded || typeof decoded === 'string')`) trong `authDepartment.js` và `authGuard.js` xử lý triệt để cảnh báo TypeScript TS2339 trong môi trường `checkJs: true`.
+   - Quy chuẩn Kiến trúc Dual-Identity (`userId` / `id` đại diện tài khoản vs `profileId` đại diện bác sĩ `nha_si.id` hoặc nhân viên `nhan_vien.id`).
+   - Quy chuẩn Single Active Session: lưu duy nhất 1 `refresh_token_hash` trên bảng `tai_khoan`, ghi đè khi đăng nhập/làm mới để tránh phình dữ liệu và tự động vô hiệu hóa phiên cũ.
+   - Bổ sung script chạy migration `scripts/migrate_schema.js` hỗ trợ `npm run migrate` tự động thực thi 22 file schema SQL theo đúng thứ tự 7 cấp bậc phụ thuộc (Level 0 – 6).
+3. **Bảo mật & Nghiệp vụ Nhân sự:**
+   - Kiểm tra trạng thái nghỉ việc của nhân viên/bác sĩ (`user.workStatus === 'nghi_viec'`) ngay tại cổng đăng nhập và làm mới token.
+   - Cơ chế Token Rotation với `bcrypt.hash` lưu tại `refresh_token_hash` của PostgreSQL.
+   - API `logout` xóa hash refresh token trên database.
+   - API `getMe` trả về profile chuẩn hóa kèm cờ `success: true`.
+
+---
+
+## [2026-10-26] - Khởi tạo Module Auth & Thiết lập Kiến trúc Phân vai trò
+
+### Đã hoàn thành:
+1. **Kiến trúc Codebase:**
+   - Tổ chức cấu trúc thư mục phân tách theo 4 vai trò: `admin`, `dentist`, `receptionist`, `patient`.
+   - Tách module Auth thành 2 branches: `authDepartment` (nhân sự phòng khám) và `authClient` (bệnh nhân/khách hàng).
+2. **Cơ chế Validation Middleware:**
+   - Tách biệt Schemas (DTO) và Middleware Validation bằng Joi.
+   - Tích hợp Centralized Error Handling (`ApiError`, `errorHandler`, `asyncHandler`).
