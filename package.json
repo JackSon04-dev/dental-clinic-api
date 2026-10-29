@@ -8,7 +8,11 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio --hostname 0.0.0.0 --port 5555"
+    "prisma:studio": "prisma studio --hostname 0.0.0.0 --port 5555",
+    "db:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +25,7 @@
     "express": "^4.19.2",
     "joi": "^17.13.1",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.2.1",
     "pg": "^8.11.5"
   },
   "devDependencies": {

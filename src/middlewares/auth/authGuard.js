@@ -1,7 +1,5 @@
-import jwt from 'jsonwebtoken';
 import { ApiError } from '../../common/errorMiddleware.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dental_clinic_jwt_super_secret_key_2026';
+import { verifyAccessToken } from '../../utils/jwt.js';
 
 /**
  * verifyToken - Giai ma va kiem tra tinh hop le cua Access Token
@@ -24,7 +22,7 @@ export const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = verifyAccessToken(token);
     if (!decoded || typeof decoded === 'string') {
       return next(new ApiError(401, 'Access Token khong hop le hoac da bi chinh sua.'));
     }
@@ -39,28 +37,19 @@ export const verifyToken = (req, res, next) => {
 };
 
 /**
- * restrictToRoles - Kiem tra phan quyen theo dung field schema:
- * - accountType ('admin', 'nha_si', 'nhan_vien', 'benh_nhan')
- * - position ('le_tan')
- * - role ('BAC_SI', 'LE_TAN', 'ADMIN')
+ * restrictToRoles - Kiểm tra phân quyền RBAC dựa trên duy nhất 1 trường `role`:
+ * Chuẩn hóa 4 vai trò hệ thống: 'ADMIN', 'BAC_SI', 'LE_TAN', 'BENH_NHAN'
  */
 export const restrictToRoles = (...roles) => {
   return (req, res, next) => {
-    if (!req.user) {
+    if (!req.user || !req.user.role) {
       return next(new ApiError(401, 'Khong tim thay thong tin nguoi dung!'));
     }
 
-    const accountType = req.user.accountType.toLowerCase();
-    const position = req.user.position ? req.user.position.toLowerCase() : null;
-    const role = req.user.role.toLowerCase();
-    const allowedRoles = roles.flat().map((r) => r.toLowerCase());
+    const userRole = String(req.user.role).toUpperCase();
+    const allowedRoles = roles.flat().map((r) => String(r).toUpperCase());
 
-    const isAllowed =
-      allowedRoles.includes(accountType) ||
-      (position && allowedRoles.includes(position)) ||
-      allowedRoles.includes(role);
-
-    if (!isAllowed) {
+    if (!allowedRoles.includes(userRole)) {
       return next(new ApiError(403, 'Ban khong co quyen thuc hien hanh dong nay!'));
     }
 

@@ -1,17 +1,16 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import prisma from '../../config/prisma.js';
 import {
-  formatAuthResponse,
-  formatUserProfile,
+  departmentAuthResponseSchema,
+  departmentUserProfileResponseSchema,
   extractDepartmentProfile,
 } from '../../dtos/auth/authDepartmentDto.js';
 import { ApiError } from '../../common/errorMiddleware.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dental_clinic_jwt_super_secret_key_2026';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dental_clinic_jwt_refresh_super_secret_key_2026';
-const ACCESS_TOKEN_EXPIRES_IN = '1h';
-const REFRESH_TOKEN_EXPIRES_IN = '7d';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from '../../utils/jwt.js';
 
 class AuthDepartmentService {
   /**
@@ -21,18 +20,11 @@ class AuthDepartmentService {
    * @returns {string}
    */
   generateAccessToken(user, profile) {
-    return jwt.sign(
-      {
-        userId: user.id,
-        profileId: profile.profileId,
-        username: user.username,
-        accountType: user.loaiTaiKhoan,
-        position: profile.position,
-        role: profile.role,
-      },
-      JWT_SECRET,
-      { expiresIn: ACCESS_TOKEN_EXPIRES_IN }
-    );
+    return generateAccessToken({
+      userId: user.id,
+      profileId: profile.profileId,
+      role: profile.role,
+    });
   }
 
   /**
@@ -42,18 +34,11 @@ class AuthDepartmentService {
    * @returns {string}
    */
   generateRefreshToken(user, profile) {
-    return jwt.sign(
-      {
-        userId: user.id,
-        profileId: profile.profileId,
-        username: user.username,
-        accountType: user.loaiTaiKhoan,
-        position: profile.position,
-        role: profile.role,
-      },
-      JWT_REFRESH_SECRET,
-      { expiresIn: REFRESH_TOKEN_EXPIRES_IN }
-    );
+    return generateRefreshToken({
+      userId: user.id,
+      profileId: profile.profileId,
+      role: profile.role,
+    });
   }
 
   async checkPassword(plainPassword, hashedPassword) {
@@ -104,7 +89,7 @@ class AuthDepartmentService {
       data: { refreshTokenHash: hashedRefreshToken },
     });
 
-    return formatAuthResponse(user, accessToken, refreshToken, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN);
+    return departmentAuthResponseSchema(user, accessToken, refreshToken);
   }
 
   async refreshAccessToken(rawRefreshToken) {
@@ -112,7 +97,7 @@ class AuthDepartmentService {
 
     let decoded;
     try {
-      decoded = jwt.verify(rawRefreshToken, JWT_REFRESH_SECRET);
+      decoded = verifyRefreshToken(rawRefreshToken);
     } catch {
       throw new ApiError(403, 'Refresh Token da het han hoac khong hop le');
     }
@@ -154,7 +139,7 @@ class AuthDepartmentService {
       data: { refreshTokenHash: hashedNewRefreshToken },
     });
 
-    return formatAuthResponse(user, newAccessToken, newRefreshToken, ACCESS_TOKEN_EXPIRES_IN, REFRESH_TOKEN_EXPIRES_IN);
+    return departmentAuthResponseSchema(user, newAccessToken, newRefreshToken);
   }
 
   async getMe(userId) {
@@ -168,7 +153,7 @@ class AuthDepartmentService {
 
     if (!user) throw new ApiError(404, 'Nguoi dung khong ton tai trong he thong');
 
-    return { user: formatUserProfile(user) };
+    return { user: departmentUserProfileResponseSchema(user) };
   }
 
   async logout(userId) {

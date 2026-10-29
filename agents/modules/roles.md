@@ -1,6 +1,6 @@
 # Phân hệ 4 Vai trò Người dùng (Roles & RBAC)
 
-Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ chức đồng bộ trên toàn bộ các tầng thư mục (`routes/`, `controllers/`, `services/`, `repositories/`, `dtos/`):
+Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ chức đồng bộ trên toàn bộ các tầng thư mục (`routes/`, `controllers/`, `services/`, `dtos/`):
 
 * **Nhánh Phòng ban nội bộ (`departments/`):** `dentists/`, `receptionists/`, `admins/`.
 * **Nhánh Bệnh nhân / Khách hàng (`clients/`):** Phục vụ Mobile App đặt lịch và tra cứu hồ sơ.
@@ -10,13 +10,12 @@ Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ ch�
 ## 1. Vai trò Nha sĩ (`dentist`) — `BAC_SI`
 
 * **Mã định danh (Code):** `NS001`, `NS002`... (bảng `nha_si.ma_nha_si`).
-* **Định danh hệ thống:** `accountType: 'nha_si'`, `role: 'BAC_SI'`, `position: null`.
+* **Định danh hệ thống:** `role: 'BAC_SI'`.
 * **Cấu trúc thư mục:**
   * Route: `src/routes/departments/dentists/`
   * Controller: `src/controllers/departments/dentists/`
   * DTO: `src/dtos/departments/dentists/`
-  * Service: `src/services/departments/dentists/`
-  * Repository: `src/repositories/departments/dentists/`
+  * Service: `src/services/departments/dentists/` (truy vấn trực tiếp qua `prisma`)
 * **Quyền hạn & Nghiệp vụ cốt lõi:**
   * Xem lịch trực cá nhân (`ca_lam_viec`) và danh sách bệnh nhân trong ca.
   * Tiếp nhận bệnh nhân từ hàng đợi vào phòng điều trị.
@@ -31,13 +30,12 @@ Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ ch�
 ## 2. Vai trò Lễ tân & Thu ngân (`receptionist`) — `LE_TAN`
 
 * **Mã định danh (Code):** `NV001`, `NV002`... (bảng `nhan_vien.ma_nhan_vien`).
-* **Định danh hệ thống:** `accountType: 'nhan_vien'`, `role: 'LE_TAN'`, `position: 'le_tan'`.
+* **Định danh hệ thống:** `role: 'LE_TAN'`.
 * **Cấu trúc thư mục:**
   * Route: `src/routes/departments/receptionists/`
   * Controller: `src/controllers/departments/receptionists/`
   * DTO: `src/dtos/departments/receptionists/`
-  * Service: `src/services/departments/receptionists/`
-  * Repository: `src/repositories/departments/receptionists/`
+  * Service: `src/services/departments/receptionists/` (truy vấn trực tiếp qua `prisma`)
 * **Quyền hạn & Nghiệp vụ cốt lõi:**
   * Tiếp đón bệnh nhân đến khám trực tiếp (Walk-in) hoặc qua lịch hẹn online.
   * Xác nhận lịch hẹn (`da_xac_nhan`) và thực hiện Check-in (`dang_kham`), tự động khởi tạo hồ sơ bệnh án rỗng chờ Bác sĩ tiếp nhận.
@@ -51,13 +49,12 @@ Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ ch�
 ## 3. Vai trò Quản trị viên (`admin`) — `ADMIN`
 
 * **Mã định danh (Code):** `ADMIN-01`... (khởi tạo từ bảng `tai_khoan.username`).
-* **Định danh hệ thống:** `accountType: 'admin'`, `role: 'ADMIN'`, `position: 'admin'`.
+* **Định danh hệ thống:** `role: 'ADMIN'`.
 * **Cấu trúc thư mục:**
   * Route: `src/routes/departments/admins/`
   * Controller: `src/controllers/departments/admins/`
   * DTO: `src/dtos/departments/admins/`
-  * Service: `src/services/departments/admins/`
-  * Repository: `src/repositories/departments/admins/`
+  * Service: `src/services/departments/admins/` (truy vấn trực tiếp qua `prisma`)
 * **Quyền hạn & Nghiệp vụ cốt lõi:**
   * Quản lý tài khoản toàn bộ nhân sự (tạo mới, khóa/mở khóa tài khoản `tai_khoan`).
   * Phân công ca làm việc (`ca_lam_viec`) cho bác sĩ theo phòng điều trị và ngày giờ.
@@ -70,13 +67,12 @@ Hệ thống phân chia logic nghiệp vụ theo 4 vai trò rõ ràng, tổ ch�
 ## 4. Vai trò Bệnh nhân (`patient`) — `BENH_NHAN`
 
 * **Mã định danh (Code):** `BN001`, `BN002`... (bảng `benh_nhan.ma_benh_nhan`).
-* **Định danh hệ thống:** `accountType: 'benh_nhan'`, `role: 'BENH_NHAN'`, `position: null`.
+* **Định danh hệ thống:** `role: 'BENH_NHAN'`.
 * **Cấu trúc thư mục:**
   * Route: `src/routes/clients/`
   * Controller: `src/controllers/clients/`
   * DTO: `src/dtos/clients/`
-  * Service: `src/services/clients/`
-  * Repository: `src/repositories/clients/`
+  * Service: `src/services/clients/` (truy vấn trực tiếp qua `prisma`)
 * **Quyền hạn & Nghiệp vụ cốt lõi:**
   * Đăng ký tài khoản và cập nhật thông tin cá nhân, tiền sử bệnh án, dị ứng thuốc.
   * Đặt lịch hẹn khám online qua App Mobile.

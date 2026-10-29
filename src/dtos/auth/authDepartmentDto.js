@@ -1,9 +1,10 @@
 import Joi from 'joi';
 
-// ==========================================
-// 1. REQUEST SCHEMAS (Joi Validation)
-// ==========================================
-export const loginRequestSchema = Joi.object({
+// ============================================================================
+// 1. REQUEST SCHEMAS (Joi Validation for Incoming Request Payload)
+// ============================================================================
+
+export const departmentLoginRequestSchema = Joi.object({
   username: Joi.string().trim().required().messages({
     'any.required': 'Ten dang nhap khong duoc de trong',
     'string.empty': 'Ten dang nhap khong duoc de trong',
@@ -14,16 +15,17 @@ export const loginRequestSchema = Joi.object({
   }),
 });
 
-export const refreshTokenRequestSchema = Joi.object({
+export const departmentRefreshTokenRequestSchema = Joi.object({
   refreshToken: Joi.string().trim().required().messages({
     'any.required': 'Refresh token khong duoc de trong',
     'string.empty': 'Refresh token khong duoc de trong',
   }),
 });
 
-// ==========================================
-// 2. RESPONSE DTO FORMATTERS & HELPERS
-// ==========================================
+
+// ============================================================================
+// 2. RESPONSE SCHEMAS & FORMATTERS (Sanitized & Standardized Outgoing Data)
+// ============================================================================
 
 /**
  * Bóc tách thông tin hồ sơ nhân sự (Nha sĩ, Lễ tân hoặc Admin) từ Prisma object
@@ -81,10 +83,10 @@ export const extractDepartmentProfile = (user) => {
 };
 
 /**
- * Format thông tin hồ sơ người dùng trả về cho Client
+ * Format thông tin hồ sơ người dùng nhân sự trả về cho Client
  * @param {any} user - Object trả về từ Prisma
  */
-export const formatUserProfile = (user) => {
+export const departmentUserProfileResponseSchema = (user) => {
   const profile = extractDepartmentProfile(user);
   return {
     id: user.id,
@@ -102,28 +104,24 @@ export const formatUserProfile = (user) => {
 };
 
 /**
- * Format phản hồi xác thực đăng nhập / refresh token
+ * Format phản hồi xác thực đăng nhập nhân sự (Token + User Profile)
  * @param {any} user - Object trả về từ Prisma
  * @param {string} accessToken
  * @param {string} refreshToken
- * @param {string} [expiresIn='1h']
- * @param {string} [refreshExpiresIn='7d']
  */
-export const formatAuthResponse = (user, accessToken, refreshToken, expiresIn = '1h', refreshExpiresIn = '7d') => {
+export const departmentAuthResponseSchema = (user, accessToken, refreshToken) => {
   return {
     accessToken,
     refreshToken,
     tokenType: 'Bearer',
-    expiresIn,
-    refreshExpiresIn,
-    user: formatUserProfile(user),
+    user: departmentUserProfileResponseSchema(user),
   };
 };
 
 export default {
-  loginRequestSchema,
-  refreshTokenRequestSchema,
+  departmentLoginRequestSchema,
+  departmentRefreshTokenRequestSchema,
   extractDepartmentProfile,
-  formatUserProfile,
-  formatAuthResponse,
+  departmentUserProfileResponseSchema,
+  departmentAuthResponseSchema,
 };

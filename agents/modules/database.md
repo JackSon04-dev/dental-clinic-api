@@ -1,4 +1,4 @@
-# CSDL 22 Bảng & Tầng Repository (Database & Repositories)
+# CSDL 22 Bảng & Kiến trúc Quan hệ Prisma (Database & Prisma Relations)
 
 Toàn bộ nghiệp vụ của hệ sinh thái Nha khoa được xây dựng trên 22 bảng CSDL PostgreSQL, chia làm **7 cấp độ phân cấp (Level 0 đến Level 6)**, khởi tạo bằng file `00_init.sql` (chứa extensions & trigger function cập nhật `updated_at`).
 

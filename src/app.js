@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import authDepartmentRoutes from './routes/auth/authDepartment.js';
+import authClientRoutes from './routes/auth/authClient.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
 
 dotenv.config();
@@ -20,6 +21,7 @@ app.get('/', (req, res) => {
 
 // Module Routes - Phân biệt rõ rệt giữa department (phòng ban) và client (bệnh nhân)
 app.use('/api/v1/auth/department', authDepartmentRoutes);
+app.use('/api/v1/auth/client', authClientRoutes);
 
 // 404 Not Found Handler (bắt các đường dẫn không tồn tại)
 app.use((req, res, next) => {

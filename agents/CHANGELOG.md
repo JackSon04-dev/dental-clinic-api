@@ -4,6 +4,46 @@ Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và t�
 
 ---
 
+## [2026-10-29] - Chuẩn hóa Toàn diện Quy tắc Đặt tên DTOs (RequestSchema & ResponseSchema)
+
+### Đã hoàn thành:
+1. **Quy chuẩn hóa 100% Tên DTOs:**
+   - **Request Schemas (Dữ liệu đầu vào / Joi):** Bắt buộc theo mẫu `<domain><Action>RequestSchema` (ví dụ `departmentLoginRequestSchema`, `departmentRefreshTokenRequestSchema`, `clientRegisterRequestSchema`, `clientVerifyRegistrationRequestSchema`, `clientResendOtpRequestSchema`, `clientLoginRequestSchema`, `clientForgotPasswordRequestSchema`, `clientResetPasswordRequestSchema`, `clientRefreshTokenRequestSchema`).
+   - **Response Schemas (Dữ liệu đầu ra / Sanitizer & Formatter):** Bắt buộc theo mẫu `<domain><Action/Entity>ResponseSchema` (ví dụ `departmentUserProfileResponseSchema`, `departmentAuthResponseSchema`, `clientProfileResponseSchema`, `clientAuthResponseSchema`).
+2. **Cập nhật Toàn bộ Consumers & Loại bỏ Hoàn toàn Aliases Cũ:**
+   - Cập nhật các routes (`routes/auth/authDepartment.js`, `routes/auth/authClient.js`) và services (`services/auth/authDepartment.js`, `services/auth/authClient.js`).
+   - Xóa bỏ triệt để toàn bộ các biến aliases cũ, đảm bảo duy nhất 1 tên định danh chuẩn hóa cho mỗi schema trên toàn codebase.
+3. **Cập nhật Đồng bộ Bộ nhớ & Tài liệu AI Agents:**
+   - Cập nhật `agents/MEMORY.md` (Quy tắc 2), `agents/ARCHITECTURE.md`, `agents/modules/auth.md` và `agents/modules/middlewares.md`.
+4. **Quy chuẩn Nguyên tắc Tối thiểu hóa Payload Auth (Minimal UI Shell):**
+   - Loại bỏ các biến thừa `expiresIn`, `refreshExpiresIn` khỏi phản hồi Auth; FE tự decode `exp` từ JWT.
+   - Đồng bộ `clientProfileResponseSchema` với `departmentUserProfileResponseSchema`: loại bỏ `dateOfBirth`, `gender`, `address`, `status`, `createdAt`, `username` khỏi Auth Response; chỉ giữ lại các trường khung UI Shell để dựng Header/Navbar/Sidebar.
+   - Thống nhất cơ chế `GET /me` chỉ phục vụ khôi phục phiên (Session Hydration); phân tách hoàn toàn với module Profile chi tiết sau này.
+5. **Tối giản hóa JWT Payload & Phân quyền RBAC qua duy nhất 1 trường `role`:**
+   - Loại bỏ `accountType` và `position` trong `jwt.sign()` ở cả 2 phân hệ; JWT payload chỉ còn đúng 3 trường định danh: `{ userId, profileId, role }`.
+   - Cập nhật middleware `authGuard.js`: hàm `restrictToRoles` so khớp trực tiếp duy nhất trường `req.user.role` với chuẩn hóa chữ hoa an toàn.
+   - Dọn sạch toàn bộ vết tích tầng `Repository` và `Model` cũ trong `roles.md`, `auth.md`, `database.md`, `MEMORY.md`, đồng bộ 100% theo kiến trúc Prisma Service-Centric.
+
+---
+
+## [2026-10-28] - Triển khai Hoàn chỉnh Module Xác thực Bệnh nhân (Auth Client & Nodemailer OTP)
+
+### Đã hoàn thành:
+1. **Thiết kế & Tách cổng API Độc lập (`/api/v1/auth/client`):**
+   - Đảm bảo tính phân tách trách nhiệm (Separation of Concerns): Tách biệt hoàn toàn luồng người dùng Bệnh nhân với nhân sự phòng khám (`authDepartment`).
+2. **Quy trình Đăng ký 2 bước qua OTP Email (Anti-Spam Database):**
+   - **Bước 1 (`POST /register`):** Tiếp nhận thông tin bệnh nhân, hash password, sinh mã OTP 6 số lưu tạm tại `src/utils/otpStore.js` (TTL 5 phút), gửi mail qua `src/utils/emailService.js` (tích hợp `nodemailer`).
+   - **Bước 2 (`POST /verify-registration`):** Xác thực OTP hợp lệ mới chính thức thực thi `prisma.$transaction` tạo đồng thời `TaiKhoan` và `BenhNhan`, tự động sinh mã hồ sơ `BN-XXXXXX`.
+3. **Bộ Tính năng Auth Client Toàn diện:**
+   - Đăng nhập linh hoạt bằng Email hoặc SĐT (`POST /login`).
+   - Quên mật khẩu & Đặt lại mật khẩu qua OTP Email (`POST /forgot-password` & `POST /reset-password`).
+   - Gửi lại mã OTP (`POST /resend-otp`).
+   - Token Rotation (`POST /refresh`), Đăng xuất an toàn (`POST /logout`), Lấy hồ sơ cá nhân (`GET /me`).
+4. **Dev Experience Fallback:**
+   - Cơ chế fallback tự động in mã OTP ra Terminal/Console khi chưa cấu hình SMTP Gmail trong `.env`, giúp quá trình phát triển và kiểm thử diễn ra trơn tru.
+
+---
+
 ## [2026-10-27] - Triển khai Toàn diện 22 Bảng CSDL (Level 0 – 6) sang Prisma ORM & PostgreSQL Container
 
 ### Đã hoàn thành:

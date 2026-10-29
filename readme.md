@@ -61,11 +61,22 @@ docker compose up --build -d
 > 4. Tự động sinh mã Prisma Client (`npx prisma generate`).
 > 5. Khởi chạy API với Nodemon (hỗ trợ live-reload khi sửa code trên máy host). Member **không cần** vào terminal gõ lệnh migration thủ công!
 
-#### 4. Kiểm tra trạng thái hoạt động
+#### 4. Kiểm tra trạng thái hoạt động & Nạp dữ liệu mẫu (Mock Data)
 ```bash
 docker compose ps
 ```
 Nếu 2 container `dentaldb` và `dental_clinic_api` hiển thị trạng thái `Up` là thành công!
+
+**Nạp dữ liệu mẫu để kiểm thử ngay:**
+```bash
+npm run db:seed
+# hoặc: npx prisma db seed
+```
+> **Mật khẩu dùng chung cho tất cả tài khoản mẫu:** `Password123@`
+> - **Admin:** `admin_system`
+> - **Bác sĩ:** `bs_quang`, `bs_nam`, `bs_lan`, `bs_tuananh`, `bs_haidang`
+> - **Lễ tân:** `letan_lan`, `letan_hoa`
+> - **Bệnh nhân:** `bn_nguyenan`, `bn_lethibich`, `bn_trancuong`, `bn_hoangdung`
 
 ---
 
@@ -210,6 +221,50 @@ DentalClinicApp/
 ### 4. Đăng xuất
 - **Endpoint:** `POST /api/v1/auth/department/logout`
 - **Header:** `Authorization: Bearer <accessToken>`
+
+---
+
+### 5. Luồng xác thực Khách hàng / Bệnh nhân (`/api/v1/auth/client`)
+
+#### Bước 1: Gửi form Đăng ký (Nhận OTP qua Email)
+- **Endpoint:** `POST /api/v1/auth/client/register`
+- **Body (JSON):**
+```json
+{
+  "fullName": "Nguyễn Văn Bệnh Nhân",
+  "email": "patient@example.com",
+  "phone": "0987654321",
+  "password": "Password123@",
+  "confirmPassword": "Password123@",
+  "dateOfBirth": "1995-10-20",
+  "gender": "nam",
+  "address": "123 Đường Nguyễn Huệ, Q1, TP.HCM"
+}
+```
+
+#### Bước 2: Nhập mã OTP xác thực (Hoàn tất tạo tài khoản & Hồ sơ bệnh nhân)
+- **Endpoint:** `POST /api/v1/auth/client/verify-registration`
+- **Body (JSON):**
+```json
+{
+  "email": "patient@example.com",
+  "otp": "123456"
+}
+```
+
+#### Đăng nhập Bệnh nhân (Email hoặc Số điện thoại)
+- **Endpoint:** `POST /api/v1/auth/client/login`
+- **Body (JSON):**
+```json
+{
+  "identifier": "patient@example.com",
+  "password": "Password123@"
+}
+```
+
+#### Quên mật khẩu & Đặt lại mật khẩu
+- **Gửi OTP quên mật khẩu:** `POST /api/v1/auth/client/forgot-password` (`{ "email": "patient@example.com" }`)
+- **Đặt lại mật khẩu mới:** `POST /api/v1/auth/client/reset-password` (`{ "email": "patient@example.com", "otp": "123456", "newPassword": "NewPassword123@", "confirmPassword": "NewPassword123@" }`)
 
 ---
 

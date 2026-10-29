@@ -53,7 +53,8 @@ Hệ thống Backend được phân tầng rõ rệt, tận dụng sức mạnh 
 │   │
 │   ├── dtos/                                   # 1. ĐỊNH DẠNG DỮ LIỆU, JOI SCHEMAS & FORMATTERS
 │   │   └── auth/
-│   │       └── authDepartmentDto.js            # loginRequestSchema, extractDepartmentProfile, formatAuthResponse
+│   │       ├── authDepartmentDto.js            # department*RequestSchema, extractDepartmentProfile, department*ResponseSchema
+│   │       └── authClientDto.js                # client*RequestSchema, client*ResponseSchema
 │   │
 │   ├── middlewares/                            # 2. BẢO VỆ XÁC THỰC & PHÂN QUYỀN RBAC GUARDS
 │   │   └── auth/
@@ -61,15 +62,18 @@ Hệ thống Backend được phân tầng rõ rệt, tận dụng sức mạnh 
 │   │
 │   ├── controllers/                            # 3. ĐIỀU HƯỚNG HTTP (NAMED EXPORTS)
 │   │   └── auth/
-│   │       └── authDepartment.js               # login, logout, refreshToken, getMe
+│   │       ├── authDepartment.js               # login, logout, refreshToken, getMe
+│   │       └── authClient.js                   # register, verifyRegistration, login, forgot/resetPassword...
 │   │
 │   ├── routes/                                 # 4. KHAI BÁO ENDPOINTS (GẮN VALIDATE DTO TRỰC TIẾP)
 │   │   └── auth/
-│   │       └── authDepartment.js               # validate(loginRequestSchema), validate(refreshTokenRequestSchema)
+│   │       ├── authDepartment.js               # validate(departmentLoginRequestSchema), validate(departmentRefreshTokenRequestSchema)
+│   │       └── authClient.js                   # validate(clientRegisterRequestSchema)...
 │   │
 │   ├── services/                               # 5. NGHIỆP VỤ CỐT LÕI (TRUY VẤN QUA PRISMA)
 │   │   └── auth/
-│   │       └── authDepartment.js               # Login, checkPassword, JWT, token rotation, logout, getMe
+│   │       ├── authDepartment.js               # Login, checkPassword, JWT, token rotation, logout, getMe
+│   │       └── authClient.js                   # Register, OTP verify, password reset, token rotation
 │   │
 │   └── app.js                                  # Khởi chạy Express server, CORS, mount routes, 404 & errorHandler
 ```
@@ -79,9 +83,9 @@ Hệ thống Backend được phân tầng rõ rệt, tận dụng sức mạnh 
 ## 3. Luồng đi chuẩn của Tính năng Auth Department (`authDepartment.js`)
 
 1. **`Route`** (`routes/auth/authDepartment.js`):  
-   Khai báo endpoint (ví dụ: `POST /login`), import `validate` từ `common/validateMiddleware.js` và `loginRequestSchema` từ `dtos/auth/authDepartmentDto.js`. Gắn trực tiếp `validate(loginRequestSchema)` vào route.
+   Khai báo endpoint (ví dụ: `POST /login`), import `validate` từ `common/validateMiddleware.js` và `departmentLoginRequestSchema` từ `dtos/auth/authDepartmentDto.js`. Gắn trực tiếp `validate(departmentLoginRequestSchema)` vào route.
 2. **`Validation & Security Guard`**:  
-   - Payload Validation: `validate(loginRequestSchema)` dùng Joi kiểm tra `req.body`. Nếu lỗi $\rightarrow$ văng `ApiError(400)`. Nếu hợp lệ $\rightarrow$ gán dữ liệu sạch và gọi `next()`.
+   - Payload Validation: `validate(departmentLoginRequestSchema)` dùng Joi kiểm tra `req.body`. Nếu lỗi $\rightarrow$ văng `ApiError(400)`. Nếu hợp lệ $\rightarrow$ gán dữ liệu sạch và gọi `next()`.
    - Security Guard: `verifyToken` kiểm tra Bearer token từ Header `authorization`, giải mã và gán `req.user = decoded`.
 3. **`Controller`** (`controllers/auth/authDepartment.js`):  
    Nhận `req.body` đã chuẩn hóa, gọi `authDepartmentService.login(req.body)` và trả về mã HTTP 200 kèm JSON format chuẩn.
@@ -91,4 +95,4 @@ Hệ thống Backend được phân tầng rõ rệt, tận dụng sức mạnh 
    - Trích xuất profile bằng `extractDepartmentProfile(user)` và kiểm tra trạng thái làm việc (`profile.workStatus === 'nghi_viec'`).
    - Kiểm tra mật khẩu bằng `bcrypt.compare`.
    - Tạo `accessToken` và `refreshToken` (100% camelCase), băm lưu `refreshTokenHash` vào CSDL bằng `prisma.taiKhoan.update()`.
-   - Format response bằng `formatAuthResponse(user, accessToken, refreshToken)`.
+   - Format response bằng `departmentAuthResponseSchema(user, accessToken, refreshToken)`.

@@ -44,12 +44,25 @@ Mọi request khi đi vào hệ thống PHẢI đi qua đúng thứ tự:
 ```
 
 ### Quy tắc 2: Quy chuẩn Validation Schemas (DTOs) & Middleware Guards
-* **Tầng DTOs (`src/dtos/`):** Nơi duy nhất định nghĩa các Joi Schemas (ví dụ: `loginRequestSchema`, `refreshTokenRequestSchema`) và các hàm format response (`formatUserProfile`, `formatAuthResponse`).
+* **Tầng DTOs (`src/dtos/`):** Nơi duy nhất định nghĩa các Request Schemas và Response Schemas. Bắt buộc đặt tên theo quy chuẩn nhất quán:
+  1. **Request Schemas (Dữ liệu đầu vào):**
+     - Luôn có hậu tố **`RequestSchema`** (Ví dụ: `departmentLoginRequestSchema`, `clientRegisterRequestSchema`, `clientLoginRequestSchema`, `clientResetPasswordRequestSchema`).
+     - Sử dụng thư viện **Joi** để kiểm duyệt `req.body` ngay tại cửa ngõ Route.
+  2. **Response Schemas (Dữ liệu đầu ra):**
+     - Luôn có hậu tố **`ResponseSchema`** (Ví dụ: `departmentAuthResponseSchema`, `departmentUserProfileResponseSchema`, `clientAuthResponseSchema`, `clientProfileResponseSchema`).
+     - Đóng vai trò là data sanitizer & formatter trước khi Service trả dữ liệu về Controller/Client, loại bỏ các trường nhạy cảm (`passwordHash`, `refreshTokenHash`) và chuẩn hóa 100% `camelCase`.
+  3. **Nguyên tắc Tối thiểu hóa Payload Auth (Minimal UI Shell Data Policy):**
+     - Toàn bộ Response Schemas trong Auth (`departmentAuthResponseSchema`, `departmentUserProfileResponseSchema`, `clientAuthResponseSchema`, `clientProfileResponseSchema`) và API `GET /me` **CHỈ ĐƯỢC PHÉP TRẢ VỀ DỮ LIỆU KHUNG UI SHELL** để vẽ Header, Navbar, Sidebar, Avatar và phân quyền Role:
+       - Department: `id`, `profileId`, `code`, `username`, `fullName`, `role`, `roleTitle`, `email`, `phone`, `specialty`, `avatarUrl`.
+       - Client: `id`, `profileId`, `patientCode`, `fullName`, `role: 'BENH_NHAN'`, `roleTitle: 'Bệnh nhân'`, `email`, `phone`, `avatarUrl` (bỏ `username` do trùng lặp với `email`).
+     - **TUYỆT ĐỐI KHÔNG** trả về các thông tin cá nhân/chuyên môn chi tiết (`dateOfBirth`, `gender`, `address`, `soGiayPhep`, `tienSuBenh`, `diUng`, `status`, `createdAt`...) trong các API Auth (`/login`, `/register`, `/verify`, `/refresh`, `/me`).
+     - Toàn bộ thông tin cá nhân/y tế chi tiết trên **BẮT BUỘC thuộc về Module Profile chuyên biệt (`GET /api/v1/.../profile`)** khi người dùng chủ động truy cập màn hình Cài đặt hồ sơ cá nhân.
+     - API `GET /me` trong Auth đóng vai trò là cơ chế **Khôi phục phiên (Session Hydration)** khi F5/mở lại app bằng Access Token; dữ liệu trả về của nó luôn đồng nhất 100% với `user` trong phản hồi Đăng nhập.
 * **Tầng Generic Validation (`src/common/validateMiddleware.js`):** Xuất hàm factory `validate(schema)`.
 * **Tầng Route (`src/routes/`):** Import trực tiếp `validate` từ `common` và schema từ `dtos`, gắn trực tiếp vào route:
   ```javascript
-  router.post('/login', validate(loginRequestSchema), login);
-  router.post('/refresh', validate(refreshTokenRequestSchema), refreshToken);
+  router.post('/login', validate(departmentLoginRequestSchema), login);
+  router.post('/refresh', validate(departmentRefreshTokenRequestSchema), refreshToken);
   ```
   *(KHÔNG tạo các file middleware trung gian thừa thãi chỉ để bọc lại `validate(schema)`).*
 * **Tầng Middlewares (`src/middlewares/`):** Chuyên trách các Middleware bảo mật, xác thực phiên và phân quyền RBAC (ví dụ: `src/middlewares/auth/authGuard.js` với `verifyToken` và `restrictToRoles`).
@@ -62,12 +75,12 @@ Mọi request khi đi vào hệ thống PHẢI đi qua đúng thứ tự:
 
 ### Quy tắc 4: Chuẩn hóa 100% camelCase cho Tầng Ứng dụng & API
 * **Database (PostgreSQL Raw):** Sử dụng `snake_case` (`tai_khoan_id`, `loai_tai_khoan`, `chuc_vu`, `ma_nha_si`...).
-* **Ứng dụng & API (Model, JWT Payload, DTO, Controller, Client JSON):** 100% sử dụng `camelCase` (`userId`, `profileId`, `accountType`, `position`, `role`).
+* **Ứng dụng & API (JWT Payload, DTO, Controller, Client JSON):** 100% sử dụng `camelCase` (`userId`, `profileId`, `role`, `patientCode`...).
 
 ### Quy tắc 5: Mô hình Định danh Kép (Dual-Identity: `id` vs `profileId`)
 Nhân sự phòng khám có 2 cấp độ định danh cần phân biệt rạch ròi:
 * **`id` (`tai_khoan.id`):** Dùng làm Root ID cho Authentication, Session, JWT Token, đổi mật khẩu, phân quyền.
-* **`profileId` (`nha_si.id` / `nhan_vien.id`):** Dùng làm Foreign Key khi tương tác với các bảng nghiệp vụ chuyên sâu (`ca_lam_viec`, `ho_so_benh_an`, `phac_do_dieu_tri`, `don_thuoc`, `hoa_don`).
+* **`profileId` (`nha_si.id` / `nhan_vien.id` / `benh_nhan.id`):** Dùng làm Foreign Key khi tương tác với các bảng nghiệp vụ chuyên sâu (`ca_lam_viec`, `ho_so_benh_an`, `phac_do_dieu_tri`, `don_thuoc`, `hoa_don`).
 
 ### Quy tắc 6: Cơ chế Đơn phiên (Single Active Session) & Token Rotation
 * Bảng `tai_khoan` có 1 cột duy nhất `refresh_token_hash`.
@@ -75,19 +88,20 @@ Nhân sự phòng khám có 2 cấp độ định danh cần phân biệt rạch
 * Cấp lại token tại `POST /refresh` luôn đi kèm **Token Rotation** (cấp cả access token mới và refresh token mới).
 * Khi đăng xuất (`logout`), cập nhật `refresh_token_hash = NULL`.
 
-### Quy tắc 7: Cấu trúc Module Auth với 2 Branches
+### Quy tắc 7: Cấu trúc Module Auth với 2 Branches (Prisma Clean Architecture)
 Module `auth` được chia tách độc lập thành 2 nhánh:
 * **`authDepartment`**: Dành cho nhân sự các phòng ban nội bộ phòng khám (Nha sĩ, Lễ tân, Quản trị).
   * Route: `/api/v1/auth/department` (endpoints: `/login`, `/logout`, `/refresh`, `/me`).
   * Route file: `src/routes/auth/authDepartment.js`.
   * Controller: `src/controllers/auth/authDepartment.js`.
-  * Middleware Guard: `src/middlewares/auth/authGuard.js`.
-  * Service: `src/services/auth/authDepartment.js`.
-  * Repository: `src/repositories/auth/authDepartment.js`.
-  * Model: `src/models/auth/departmentUser.js` (`DepartmentUser`).
+  * Middleware Guard: `src/middlewares/auth/authGuard.js` (phân quyền theo `role: 'BAC_SI' | 'LE_TAN' | 'ADMIN'`).
+  * Service: `src/services/auth/authDepartment.js` (truy vấn trực tiếp qua `prisma.taiKhoan`).
+  * DTO: `src/dtos/auth/authDepartmentDto.js`.
 * **`authClient`**: Dành cho khách hàng/bệnh nhân sử dụng app di động.
   * Route file: `src/routes/auth/authClient.js`.
   * Controller: `src/controllers/auth/authClient.js`.
+  * Service: `src/services/auth/authClient.js` (truy vấn trực tiếp qua `prisma.taiKhoan`, `prisma.benhNhan`).
+  * DTO: `src/dtos/auth/authClientDto.js`.
 
 ### Quy tắc 8: Tách biệt Business Logic theo 4 Roles
 Hệ thống phân định 4 vai trò rõ rệt với cấu trúc thư mục đồng bộ:
@@ -97,8 +111,13 @@ Hệ thống phân định 4 vai trò rõ rệt với cấu trúc thư mục đ�
 4. **`patient`** (`BENH_NHAN`): Bệnh nhân (`src/controllers/clients/`, `src/routes/clients/`...).
 
 ### Quy tắc 9: Bảo vệ CSDL 22 bảng & Snapshot giá
-* Tuyệt đối không thay đổi schema mà không có migration. Toàn bộ 22 file schema nằm trong `migration_schemas/` (chia 7 cấp độ từ Level 0 đến Level 6) và được thực thi qua `scripts/migrate_schema.js`.
+* Tuyệt đối không thay đổi schema mà không có migration. Toàn bộ 22 bảng được mô tả trong `prisma/schema.prisma`.
 * Khi thanh toán hoặc chỉ định dịch vụ/vật tư, đơn giá phải được lưu cứng (Snapshot), không lấy theo giá hiện hành trong danh mục dịch vụ.
+
+### Quy tắc 10: Nạp Dữ liệu mẫu Kiểm thử (Mock Data Seeding)
+* Dữ liệu mẫu tổng hợp của 22 bảng (Level 0 – Level 6) được đặt tại `prisma/mock_data.sql` (với `password_hash` chuẩn hóa bcrypt cho mật khẩu `Password123@`).
+* Script thực thi tự động, idempotent (tự động `TRUNCATE CASCADE` trước khi nạp) nằm tại `prisma/seed.js`.
+* Thực thi qua lệnh: `npm run db:seed` hoặc `npx prisma db seed`.
 
 ---
 

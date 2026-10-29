@@ -7,19 +7,19 @@ Hệ thống kết hợp 2 lớp bảo vệ độc lập và tinh gọn: **Kiể
 ## 1. Cơ chế Kiểm tra Payload (`validate(dtoSchema)`)
 
 ### Nguyên tắc thiết kế:
-* **Tầng DTOs (`src/dtos/`):** Nơi duy nhất định nghĩa các Joi Schemas cho Request payload (ví dụ `loginRequestSchema`, `refreshTokenRequestSchema` trong `src/dtos/auth/authDepartmentDto.js`).
+* **Tầng DTOs (`src/dtos/`):** Nơi duy nhất định nghĩa các Joi Schemas cho Request payload (ví dụ `departmentLoginRequestSchema`, `departmentRefreshTokenRequestSchema` trong `src/dtos/auth/authDepartmentDto.js` hay `clientRegisterRequestSchema` trong `src/dtos/auth/authClientDto.js`).
 * **Hàm Factory `validate(schema)` (`src/common/validateMiddleware.js`):** Hàm middleware dùng chung toàn dự án để validate payload đầu vào.
 * **Gắn trực tiếp tại Route (`src/routes/`):** Tầng Route import trực tiếp `validate` từ `common` và schema từ `dtos`, gọi trực tiếp không qua file bọc trung gian:
   ```javascript
   import { validate } from '../../common/validateMiddleware.js';
   import {
-    loginRequestSchema,
-    refreshTokenRequestSchema,
+    departmentLoginRequestSchema,
+    departmentRefreshTokenRequestSchema,
   } from '../../dtos/auth/authDepartmentDto.js';
 
   // Gắn trực tiếp:
-  router.post('/login', validate(loginRequestSchema), login);
-  router.post('/refresh', validate(refreshTokenRequestSchema), refreshToken);
+  router.post('/login', validate(departmentLoginRequestSchema), login);
+  router.post('/refresh', validate(departmentRefreshTokenRequestSchema), refreshToken);
   ```
 
 ### Cơ chế hoạt động của `validate(schema)`:
@@ -50,14 +50,15 @@ Hệ thống kết hợp 2 lớp bảo vệ độc lập và tinh gọn: **Kiể
     req.user = decoded;
     ```
   * Vừa ngăn chặn lỗi crash ở runtime khi payload là primitive string, vừa giúp TypeScript tự động thu hẹp kiểu dữ liệu về `JwtPayload` mà không cần ép kiểu giả.
-* Gán payload đã giải mã vào `req.user = decoded` (chứa `userId`, `profileId`, `username`, `accountType`, `position`, `role` chuẩn 100% camelCase).
+* Gán payload đã giải mã vào `req.user = decoded` (gồm 3 trường định danh cốt lõi: `userId`, `profileId`, `role` chuẩn 100% camelCase).
 
-### B. `restrictToRoles(...roles)` (Phân quyền RBAC Đa chiều)
-* Kiểm tra phân quyền truy cập kết hợp cả 3 cấp độ trong `req.user`:
-  1. Cấp tài khoản (`accountType`): `'admin'`, `'nha_si'`, `'nhan_vien'`, `'benh_nhan'`.
-  2. Cấp chức vụ (`position`): `'le_tan'`.
-  3. Cấp vai trò hệ thống (`role`): `'BAC_SI'`, `'LE_TAN'`, `'ADMIN'`.
-* So khớp trực tiếp với danh sách quyền được cấp phép `roles`. Nếu không khớp, ném `ApiError(403, 'Ban khong co quyen thuc hien hanh dong nay!')`.
+### B. `restrictToRoles(...roles)` (Phân quyền RBAC Tinh gọn theo `role`)
+* Kiểm tra phân quyền truy cập dựa trên duy nhất 1 trường **`role`** chuẩn hóa trong `req.user`:
+  * `'ADMIN'`: Quản trị viên hệ thống.
+  * `'BAC_SI'`: Nha sĩ điều trị.
+  * `'LE_TAN'`: Nhân viên lễ tân & thu ngân.
+  * `'BENH_NHAN'`: Bệnh nhân / khách hàng.
+* So khớp trực tiếp `userRole` với danh sách quyền được cấp phép `roles`. Nếu không khớp, ném `ApiError(403, 'Ban khong co quyen thuc hien hanh dong nay!')`.
 
 ---
 

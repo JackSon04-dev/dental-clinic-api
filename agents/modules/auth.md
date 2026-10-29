@@ -10,23 +10,34 @@ Cổng API: **`department`** (`src/routes/auth/authDepartment.js`)
 
 | Phương thức | Endpoint | Middleware / Guard | Controller Handler | Mô tả chức năng |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/department/login` | `validate(loginRequestSchema)` | `login` | Đăng nhập tài khoản nhân sự phòng khám |
+| `POST` | `/api/v1/auth/department/login` | `validate(departmentLoginRequestSchema)` | `login` | Đăng nhập tài khoản nhân sự phòng khám |
 | `POST` | `/api/v1/auth/department/logout` | `verifyToken` | `logout` | Đăng xuất, hủy refresh token trên DB |
-| `POST` | `/api/v1/auth/department/refresh` | `validate(refreshTokenRequestSchema)` | `refreshToken` | Cấp lại Access Token mới & Token Rotation |
+| `POST` | `/api/v1/auth/department/refresh` | `validate(departmentRefreshTokenRequestSchema)` | `refreshToken` | Cấp lại Access Token mới & Token Rotation |
 | `GET` | `/api/v1/auth/department/me` | `verifyToken` | `getMe` | Lấy thông tin tài khoản người dùng hiện tại |
 
 ---
 
 ## 2. Chi tiết Triển khai các Tầng
 
-### 1. DTOs & Schemas (`src/dtos/auth/authDepartmentDto.js`)
-* `loginRequestSchema`: Kiểm tra bắt buộc `username`, `password`.
-* `refreshTokenRequestSchema`: Kiểm tra bắt buộc `refreshToken`.
-* `formatUserProfile(user)`: Format thông tin hồ sơ trả về cho Client.
-* `formatAuthResponse(...)`: Format payload xác thực chuẩn (`accessToken`, `refreshToken`, `tokenType: 'Bearer'`, `expiresIn`, `user`).
+### 1. DTOs & Schemas
+* **`src/dtos/auth/authDepartmentDto.js` (Phân hệ Phòng ban):**
+  * `departmentLoginRequestSchema`: Kiểm tra bắt buộc `username`, `password`.
+  * `departmentRefreshTokenRequestSchema`: Kiểm tra bắt buộc `refreshToken`.
+  * `departmentUserProfileResponseSchema(user)`: Format thông tin hồ sơ trả về cho Client.
+  * `departmentAuthResponseSchema(user, accessToken, refreshToken)`: Format payload xác thực chuẩn (`accessToken`, `refreshToken`, `tokenType: 'Bearer'`, `user`).
+* **`src/dtos/auth/authClientDto.js` (Phân hệ Bệnh nhân):**
+  * `clientRegisterRequestSchema`: Kiểm tra `fullName`, `email`, `phone`, `password`, `confirmPassword`, `dateOfBirth`, `gender`, `address`.
+  * `clientVerifyRegistrationRequestSchema`: Kiểm tra `email`, `otp` (6 chữ số).
+  * `clientResendOtpRequestSchema`: Kiểm tra `email`, `type` (`register` hoặc `forgot_password`).
+  * `clientLoginRequestSchema`: Kiểm tra `identifier` (email hoặc phone), `password`.
+  * `clientForgotPasswordRequestSchema`: Kiểm tra `email`.
+  * `clientResetPasswordRequestSchema`: Kiểm tra `email`, `otp`, `newPassword`, `confirmPassword`.
+  * `clientRefreshTokenRequestSchema`: Kiểm tra `refreshToken`.
+  * `clientProfileResponseSchema(user)`: Format thông tin khung UI Shell cho Bệnh nhân (`id`, `profileId`, `patientCode`, `fullName`, `role: 'BENH_NHAN'`, `roleTitle: 'Bệnh nhân'`, `email`, `phone`, `avatarUrl`).
+  * `clientAuthResponseSchema(user, accessToken, refreshToken)`: Format payload xác thực bệnh nhân (`accessToken`, `refreshToken`, `tokenType: 'Bearer'`, `user`).
 
 ### 2. Middleware & Guards (`src/common/validateMiddleware.js` & `src/middlewares/auth/authGuard.js`)
-* `validate(schema)`: Generic middleware gắn trực tiếp tại Route để validate DTOs (`loginRequestSchema`, `refreshTokenRequestSchema`).
+* `validate(schema)`: Generic middleware gắn trực tiếp tại Route để validate DTOs (`departmentLoginRequestSchema`, `departmentRefreshTokenRequestSchema`, `clientRegisterRequestSchema`, v.v.).
 * `verifyToken`: 
   * Tách token linh hoạt (hỗ trợ cả chuẩn `Bearer <token>`, dính liền `Bearer<token>`, hoặc người dùng chỉ gửi mỗi chuỗi token thuần `eyJ...`).
   * Sử dụng **Type Guard** `if (!decoded || typeof decoded === 'string')` để đảm bảo an toàn runtime và tương thích 100% với trình kiểm tra TypeScript (`checkJs: true`).
@@ -40,28 +51,15 @@ Cổng API: **`department`** (`src/routes/auth/authDepartment.js`)
   * `userId`: `req.user.userId`.
   * `token`: `req.body.refreshToken`.
 
-### 4. Service (`src/services/auth/authDepartment.js`)
-* `generateAccessToken(user)`: Cấp token 1h chứa `userId`, `profileId`, `username`, `accountType`, `position`, `role` (100% camelCase).
-* `generateRefreshToken(user)`: Cấp token 7d.
+### 4. Service (`src/services/auth/authDepartment.js` & `src/services/auth/authClient.js`)
+* Sử dụng tiện ích tập trung tại `src/utils/jwt.js` (`generateAccessToken`, `generateRefreshToken`, `verifyRefreshToken`).
+* `generateAccessToken(user, profile)`: Cấp token 1h chứa 3 trường định danh `{ userId, profileId, role }` (100% camelCase).
+* `generateRefreshToken(user, profile)`: Cấp token 7d chứa `{ userId, profileId, role }`.
 * `checkPassword(plainPassword, hashedPassword)`: So khớp mật khẩu với `bcrypt.compare`.
-* `login(loginData)`: Kiểm tra tài khoản, kiểm tra khóa (`isBlocked`), kiểm tra nghỉ việc (`workStatus === 'nghi_viec'`), băm lưu `refresh_token_hash`.
-* `refreshAccessToken(rawRefreshToken)`: Giải mã token, kiểm tra khớp hash với DB, thực hiện token rotation.
-* `logout(userId)`: Xóa `refresh_token_hash = NULL`.
-* `getMe(userId)`: Lấy thông tin chi tiết qua `DepartmentUser`.
-
-### 5. Repository (`src/repositories/auth/authDepartment.js`)
-* `findDepartmentUserByUsername(username)`: Query `tai_khoan` LEFT JOIN `nha_si` và `nhan_vien`.
-* `findDepartmentUserById(taiKhoanId)`: Query theo UUID tài khoản.
-* `updateRefreshToken(taiKhoanId, tokenHash)`: Lưu hash của refresh token (`UPDATE tai_khoan SET refresh_token_hash = $2 WHERE id = $1`).
-* `clearRefreshToken(taiKhoanId)`: Thu hồi refresh token (`UPDATE tai_khoan SET refresh_token_hash = NULL WHERE id = $1`).
-
-### 6. Model (`src/models/auth/departmentUser.js`)
-* Đóng gói dữ liệu nhân sự thống nhất `DepartmentUser`:
-  * `id`: UUID tài khoản (`tai_khoan_id`).
-  * `profileId`: UUID hồ sơ nha sĩ (`nha_si_id`) hoặc nhân viên (`nhan_vien_id`).
-  * `code`: Mã định danh (`ma_nha_si`, `ma_nhan_vien` hoặc `ADMIN-01`).
-  * `username`, `fullName`, `phone`, `email`, `specialty`, `avatarUrl`, `position`.
-  * `accountType`, `role`, `roleTitle`, `isBlocked`, `workStatus`.
+* `login(loginData)`: Kiểm tra tài khoản, kiểm tra khóa (`trangThai === 'bi_khoa'`), kiểm tra nghỉ việc (`workStatus === 'nghi_viec'`), băm lưu `refreshTokenHash` qua Prisma.
+* `refreshAccessToken(rawRefreshToken)`: Giải mã token qua `verifyRefreshToken`, kiểm tra khớp hash với DB, thực hiện token rotation.
+* `logout(userId)`: Xóa `refreshTokenHash = null` qua Prisma.
+* `getMe(userId)`: Lấy thông tin tài khoản qua DTO response schema.
 
 ---
 
@@ -88,5 +86,50 @@ Trong hệ thống y tế nha khoa, nhân sự có 2 cấp độ danh tính:
 
 ### C. Ranh giới Chuyển đổi Dữ liệu (Boundary Data Transformation Pattern)
 * **Tầng Database (Raw PostgreSQL):** Sử dụng `snake_case` (`tai_khoan_id`, `ma_nha_si`, `ho_ten`, `chuc_vu`).
-* **Tầng Model (`departmentUser.js`):** Đóng vai trò ranh giới duy nhất ánh xạ từ `snake_case` sang `camelCase`.
-* **Tầng Ứng dụng & API (Service, Controller, DTO, JWT Token, Client JSON):** Sử dụng 100% `camelCase` (`userId`, `profileId`, `username`, `accountType`, `position`, `role`).
+* **Tầng Prisma ORM (`prisma/schema.prisma`):** Đóng vai trò ranh giới duy nhất tự động ánh xạ từ `snake_case` sang `camelCase` (qua thuộc tính `@map`).
+* **Tầng Ứng dụng & API (Service, Controller, DTO, JWT Token, Client JSON):** Sử dụng 100% `camelCase` (`userId`, `profileId`, `role`).
+
+---
+
+## 4. Cấu trúc Route & Controller Phân hệ Bệnh nhân (`authClient`)
+
+Cổng API: **`client`** (`src/routes/auth/authClient.js`) - Quản lý đăng ký, xác thực OTP email, khôi phục mật khẩu và đăng nhập cho bệnh nhân.
+
+| Phương thức | Endpoint | Middleware / Guard | Controller Handler | Mô tả chức năng |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/client/register` | `validate(clientRegisterRequestSchema)` | `register` | Bước 1: Gửi thông tin (email, phone, password...), gửi mã OTP 6 số về email |
+| `POST` | `/api/v1/auth/client/verify-registration` | `validate(clientVerifyRegistrationRequestSchema)` | `verifyRegistration` | Bước 2: Nhập OTP xác thực → Tạo `TaiKhoan` + `BenhNhan` trên CSDL |
+| `POST` | `/api/v1/auth/client/resend-otp` | `validate(clientResendOtpRequestSchema)` | `resendOtp` | Gửi lại mã OTP mới nếu chưa nhận được hoặc hết hạn |
+| `POST` | `/api/v1/auth/client/login` | `validate(clientLoginRequestSchema)` | `login` | Đăng nhập bệnh nhân bằng Email hoặc SĐT + Password |
+| `POST` | `/api/v1/auth/client/forgot-password` | `validate(clientForgotPasswordRequestSchema)` | `forgotPassword` | Yêu cầu mã OTP khôi phục mật khẩu qua Email |
+| `POST` | `/api/v1/auth/client/reset-password` | `validate(clientResetPasswordRequestSchema)` | `resetPassword` | Đặt lại mật khẩu mới bằng mã OTP xác thực |
+| `POST` | `/api/v1/auth/client/refresh` | `validate(clientRefreshTokenRequestSchema)` | `refreshToken` | Cấp lại Access Token mới (Token Rotation) |
+| `POST` | `/api/v1/auth/client/logout` | `verifyToken` | `logout` | Đăng xuất, hủy refresh token trên DB |
+| `GET` | `/api/v1/auth/client/me` | `verifyToken` | `getMe` | Lấy hồ sơ cá nhân bệnh nhân hiện tại |
+
+### Kỹ thuật cốt lõi:
+1. **Two-Step Registration:** Dữ liệu đăng ký được giữ trong `OtpStore` (In-memory TTL 5 phút). Chỉ khi nhập đúng OTP mới ghi vào PostgreSQL bằng Prisma Transaction, chống rác database 100%.
+2. **Dual-Identity:** Token chứa `userId` (ID tài khoản) và `profileId` (`benh_nhan.id`), tự động sinh mã bệnh nhân `BN-XXXXXX`.
+3. **Nodemailer Fallback:** Tự động gửi email qua SMTP Gmail nếu có credentials, hoặc fallback in mã OTP ra Terminal/Console trong môi trường Development.
+
+---
+
+## 5. Nguyên tắc Tối thiểu hóa Payload Auth (Minimal UI Shell) & Phân định với Profile Module
+
+### A. Phản hồi Auth Chỉ Chứa Khung Giao Diện (UI Shell Data)
+Mọi endpoint thuộc phân hệ Auth (`/login`, `/register`, `/verify`, `/refresh`, `/me`) ở cả 2 nhánh **Department** và **Client** chỉ trả về payload siêu nhẹ (< 1KB) để phục vụ dựng Header, Navbar, Sidebar, Avatar và phân quyền:
+* **Department:** `id`, `profileId`, `code`, `username`, `fullName`, `role`, `roleTitle`, `email`, `phone`, `specialty`, `avatarUrl`.
+* **Client:** `id`, `profileId`, `patientCode`, `fullName`, `role: 'BENH_NHAN'`, `roleTitle: 'Bệnh nhân'`, `email`, `phone`, `avatarUrl` (bỏ `username` do trùng lặp với `email`).
+
+### B. Cơ chế Khôi phục Phiên qua `GET /me` (Session Hydration)
+* Khi người dùng F5 hoặc mở lại App, Client không lưu mật khẩu nên không thể gọi lại `/login`.
+* Client dùng `accessToken` còn lưu trong máy gọi `GET /me` để:
+  1. Xác thực tính hợp lệ của tài khoản theo thời gian thực (nếu tài khoản bị khóa $\rightarrow$ văng 403).
+  2. Nạp lại đúng đối tượng `user` khung UI vào State/Redux để render giao diện.
+* Nếu `accessToken` hết hạn (401), Client dùng `refreshToken` gọi `POST /refresh` để nhận cặp token mới ngầm (Silent Refresh) mà không ngắt quãng phiên làm việc.
+
+### C. Dữ liệu Chi tiết & Nhạy cảm Thuộc về Profile Module
+* **Tuyệt đối KHÔNG** trả về các trường sau trong các API Auth:
+  * Nhân sự: `diaChi`, `ngaySinh`, `gioiTinh`, `soGiayPhep` (chứng chỉ hành nghề y).
+  * Bệnh nhân: `diaChi`, `ngaySinh`, `gioiTinh`, `tienSuBenh` (bệnh lý nền), `diUng` (dị ứng thuốc), `ghiChu`.
+* Toàn bộ dữ liệu này được bảo vệ theo nguyên tắc *Least Privilege* và chỉ được tải khi người dùng chủ động truy cập màn hình Cài đặt hồ sơ cá nhân (`GET /api/v1/.../profile`).
