@@ -59,10 +59,3 @@ Rất nhiều bảng nghiệp vụ liên kết với nhân sự phòng khám, c�
   * `phac_do_dieu_tri`, `lich_hen`, `ho_so_benh_an`, `hoa_don`.
 
 ---
-
-## 3. Quy chuẩn Tầng Repository
-
-* **Nguyên tắc:** Mỗi Repository chịu trách nhiệm viết câu lệnh SQL cho một thực thể hoặc một nhóm bảng liên quan.
-* **Chống SQL Injection:** Luôn sử dụng câu truy vấn có tham số hóa `$1, $2, $3` qua `pool.query(query, params)`. Tuyệt đối không cộng chuỗi SQL.
-* **Snapshot Giá:** Khi insert vào `dich_vu_dieu_tri` và `vat_tu_su_dung`, bắt buộc lấy giá niêm yết hiện tại để lưu vào trường `don_gia` của bản ghi đó.
-* **Quy ước Naming:** CSDL luôn dùng `snake_case` (`tai_khoan_id`, `ma_nha_si`, `ho_ten`). Khi SELECT thì alias rõ ràng (`tk.id AS tai_khoan_id`, `ns.id AS nha_si_id`) để Model chuyển đổi sang `camelCase`.

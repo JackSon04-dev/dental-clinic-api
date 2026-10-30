@@ -4,6 +4,32 @@ Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và t�
 
 ---
 
+## [2026-10-30] - Hoàn thiện Toàn diện Màn hình 1 (Admin Dashboard) với 3 APIs
+
+### Đã hoàn thành:
+1. **API 1: `GET /api/v1/admin/stats` (KPI Tổng quan Dashboard):**
+   - Đóng gói toàn bộ logic tính doanh thu vào hàm PostgreSQL Stored Function `fn_calculate_revenue(p_start_date, p_end_date)` bám sát 3 kịch bản lâm sàng (Phác đồ 1 lần, Phác đồ theo đợt, Khám dịch vụ lẻ - voucher).
+   - Tối ưu song song qua `Promise.all` 4 tác vụ: Doanh thu thực thu, Số ca khám hoàn thành (`ho_so_benh_an`), Lịch hẹn hôm nay, Bệnh nhân mới hôm nay.
+2. **API 2: `GET /api/v1/admin/top-services` (Top Dịch vụ & Doanh thu đóng góp):**
+   - **PostgreSQL View:** Tạo View `v_dich_vu_da_thanh_toan` (lưu tại `prisma/sql/02_view_top_services.sql`) tổng hợp bằng `UNION ALL` giữa:
+     - Nhánh dịch vụ điều trị: `dich_vu_dieu_tri` $\rightarrow$ `chi_tiet_dich_vu` $\rightarrow$ `dich_vu`.
+     - Nhánh vật tư / sản phẩm tiêu hao: `vat_tu_su_dung` $\rightarrow$ `san_pham` $\rightarrow$ `dich_vu` (qua `san_pham.dich_vu_id`).
+     - Điều kiện bắt buộc: Hóa đơn đã thanh toán (`hoa_don.trang_thai_thanh_toan = 'da_thanh_toan'`).
+   - Sắp xếp (Rank) theo số lượt sử dụng (`execution_count DESC`) và doanh thu (`total_revenue DESC`).
+   - Tự động tính tỷ lệ % đóng góp (`percentageContribution`) trên tổng doanh thu dịch vụ của kỳ.
+   - Query params: `period` (mặc định `'this_month'`), `limit` (mặc định 5, min 1, max 50).
+3. **API 3: `GET /api/v1/admin/alerts` (Cảnh báo Tồn kho Vật tư Y tế):**
+   - Lọc các sản phẩm hoạt động có `so_luong_ton <= muc_ton_toi_thieu`.
+   - Phân cấp cảnh báo:
+     - `CRITICAL`: Hết hàng hoàn toàn (`so_luong_ton = 0`).
+     - `WARNING`: Tồn kho chạm ngưỡng tối thiểu (`0 < so_luong_ton <= muc_ton_toi_thieu`).
+   - Trả về cấu trúc `summary` (`totalAlerts`, `criticalCount`, `warningCount`) và danh sách `alerts` chi tiết.
+   - Query params: `limit` (mặc định 20, min 1, max 100).
+4. **Kiểm thử Toàn diện & Bảo mật RBAC:**
+   - Đã kiểm thử tự động 8 kịch bản (Success, Bad Request Validation, Unauthorized, Forbidden RBAC). Tất cả đều pass 100%.
+
+---
+
 ## [2026-10-29] - Chuẩn hóa Toàn diện Quy tắc Đặt tên DTOs (RequestSchema & ResponseSchema)
 
 ### Đã hoàn thành:

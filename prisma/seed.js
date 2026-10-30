@@ -54,6 +54,17 @@ async function seed() {
     console.log('🚀 Đang thực thi nạp dữ liệu mẫu (22 bảng theo thứ tự dependency Level 0 -> 6)...');
     await client.query(sqlContent);
 
+    // Nạp các hàm / thủ tục nhúng từ thư mục prisma/sql (nếu có)
+    const sqlDir = path.join(__dirname, 'sql');
+    if (fs.existsSync(sqlDir)) {
+      const sqlFiles = fs.readdirSync(sqlDir).filter((file) => file.endsWith('.sql'));
+      for (const file of sqlFiles) {
+        console.log(`⚡ Đang nạp mã SQL nhúng: ${file}...`);
+        const embeddedSql = fs.readFileSync(path.join(sqlDir, file), 'utf8');
+        await client.query(embeddedSql);
+      }
+    }
+
     // Kiểm tra nhanh số lượng bản ghi tài khoản
     const accountCheck = await client.query('SELECT COUNT(*) FROM tai_khoan');
     console.log(`\n🎉 IMPORT MOCK DATA THÀNH CÔNG!`);

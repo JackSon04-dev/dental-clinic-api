@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- DENTAL CLINIC DATABASE - DỮ LIỆU MẪU TỔNG HỢP (MOCK DATA)
 -- Tự động sinh từ 22 file SQL theo thứ tự dependency (Level 0 → 6)
 -- Ngày cập nhật: 2026-10-16
@@ -154,7 +154,16 @@ VALUES
 
     ('SP_KHAY_INVIS', 'Bộ khay niềng trong suốt Invisalign', 'vat_lieu_nha_khoa', 'Hộp', 45000000, 5, 1,
      (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_NIENGRANG'),
-     'Bộ khay niềng vật liệu SmartTrack chính hãng Align Technology', 'hoat_dong')
+     'Bộ khay niềng vật liệu SmartTrack chính hãng Align Technology', 'hoat_dong'),
+
+    -- 4. Nhóm Vật tư tiêu hao cơ bản (Có sản phẩm tồn kho thấp phục vụ API Alerts)
+    ('SP_GANGTAY_M', 'Găng tay y tế Nitrile không bột (Size M)', 'vat_tu', 'Hộp', 120000, 0, 10,
+     NULL,
+     'Găng tay y tế Nitrile không bột chống dị ứng, độ đàn hồi cao', 'hoat_dong'),
+
+    ('SP_KIMTIEM_30G', 'Kim tiêm gây tê nha khoa 30G ngắn', 'dung_cu', 'Hộp', 150000, 3, 10,
+     NULL,
+     'Kim tiêm nha khoa sử dụng 1 lần tiệt trùng dùng gây tê cục bộ', 'hoat_dong')
 ON CONFLICT (ma_san_pham) DO NOTHING;
 
 -- ============================================================================
@@ -1387,6 +1396,115 @@ VALUES
         'Ngậm dung dịch súc đều các kẽ răng trong 1 phút rồi nhổ ra. Không súc lại bằng nước lọc để hoạt chất bảo vệ cổ chân răng tối ưu.',
         'Kháng khuẩn, phòng ngừa viêm nướu và ngăn ngừa mảng bám tái hình thành'
     );
+
+-- ============================================================================
+-- DATABASE EMBEDDED FUNCTION: fn_calculate_revenue
+-- Tính doanh thu thực thu theo kỳ lọc bám sát logic 3 trường hợp phác đồ & khám lẻ
+-- ============================================================================
+CREATE OR REPLACE FUNCTION fn_calculate_revenue(p_start_date TIMESTAMPTZ, p_end_date TIMESTAMPTZ)
+RETURNS NUMERIC(18, 2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_total_revenue NUMERIC(18, 2) := 0;
+BEGIN
+    WITH invoice_raw AS (
+        SELECT 
+            hd.id,
+            hd.khuyen_mai_id,
+            km.loai_giam,
+            km.gia_tri_giam,
+            CASE
+                -- Trường hợp 1: Phác đồ thanh toán trọn gói 1 lần
+                WHEN hd.phac_do_dieu_tri_id IS NOT NULL THEN (
+                    SELECT COALESCE(SUM(gdpd.chi_phi), 0)
+                    FROM giai_doan_phac_do gdpd
+                    WHERE gdpd.phac_do_id = hd.phac_do_dieu_tri_id
+                )
+                -- Trường hợp 2: Phác đồ thanh toán theo từng giai đoạn
+                WHEN EXISTS (
+                    SELECT 1 FROM giai_doan_phac_do gdpd 
+                    WHERE gdpd.lich_hen_id = hd.lich_hen_id
+                ) THEN (
+                    SELECT COALESCE(gdpd.chi_phi, 0)
+                    FROM giai_doan_phac_do gdpd
+                    WHERE gdpd.lich_hen_id = hd.lich_hen_id
+                )
+                -- Trường hợp 3: Khám dịch vụ lẻ không theo phác đồ
+                ELSE (
+                    SELECT 
+                        COALESCE(SUM(dvdt.don_gia * dvdt.so_luong), 0) +
+                        COALESCE((
+                            SELECT COALESCE(SUM(vtsd.don_gia * vtsd.so_luong), 0)
+                            FROM vat_tu_su_dung vtsd
+                            WHERE vtsd.ho_so_id = hsba.id
+                        ), 0)
+                    FROM ho_so_benh_an hsba
+                    LEFT JOIN dich_vu_dieu_tri dvdt ON dvdt.ho_so_id = hsba.id
+                    WHERE hsba.lich_hen_id = hd.lich_hen_id
+                    GROUP BY hsba.id
+                )
+            END AS tien_goc
+        FROM hoa_don hd
+        LEFT JOIN khuyen_mai km ON hd.khuyen_mai_id = km.id
+        WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
+          AND hd.ngay_thanh_toan >= p_start_date
+          AND hd.ngay_thanh_toan <= p_end_date
+    )
+    SELECT COALESCE(SUM(
+        CASE 
+            WHEN loai_giam = 'phan_tram' THEN 
+                tien_goc * (1 - COALESCE(gia_tri_giam, 0) / 100.0)
+            WHEN loai_giam = 'so_tien' THEN 
+                GREATEST(0, tien_goc - COALESCE(gia_tri_giam, 0))
+            ELSE 
+                COALESCE(tien_goc, 0)
+        END
+    ), 0)::NUMERIC(18, 2)
+    INTO v_total_revenue
+    FROM invoice_raw;
+
+    RETURN v_total_revenue;
+END;
+$$;
+
+-- ============================================================================
+-- VIEW: v_dich_vu_da_thanh_toan
+-- Dùng cho API: GET /api/v1/admin/top-services
+-- ============================================================================
+CREATE OR REPLACE VIEW v_dich_vu_da_thanh_toan AS
+SELECT 
+    dv.id AS dich_vu_id,
+    dv.ma_dich_vu,
+    dv.ten_dich_vu,
+    dvdt.so_luong,
+    (dvdt.don_gia * dvdt.so_luong)::NUMERIC(18, 2) AS thanh_tien,
+    hd.ngay_thanh_toan,
+    hd.id AS hoa_don_id
+FROM dich_vu_dieu_tri dvdt
+JOIN chi_tiet_dich_vu ctdv ON dvdt.chi_tiet_dich_vu_id = ctdv.id
+JOIN dich_vu dv ON ctdv.dich_vu_id = dv.id
+JOIN ho_so_benh_an hsba ON dvdt.ho_so_id = hsba.id
+JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
+WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
+
+UNION ALL
+
+SELECT 
+    dv.id AS dich_vu_id,
+    dv.ma_dich_vu,
+    dv.ten_dich_vu,
+    vtsd.so_luong,
+    (vtsd.don_gia * vtsd.so_luong)::NUMERIC(18, 2) AS thanh_tien,
+    hd.ngay_thanh_toan,
+    hd.id AS hoa_don_id
+FROM vat_tu_su_dung vtsd
+JOIN san_pham sp ON vtsd.san_pham_id = sp.id
+JOIN dich_vu dv ON sp.dich_vu_id = dv.id
+JOIN ho_so_benh_an hsba ON vtsd.ho_so_id = hsba.id
+JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
+WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
+  AND sp.dich_vu_id IS NOT NULL;
 
 COMMIT;
 
