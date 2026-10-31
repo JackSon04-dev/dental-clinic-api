@@ -14,15 +14,15 @@ import {
 
 const router = express.Router();
 
+// Tất cả endpoints Admin Dashboard yêu cầu xác thực Admin
+router.use(verifyToken, restrictToRoles('ADMIN'));
+
 /**
  * [GET] /stats
  * Endpoint lấy 4 chỉ số KPI tổng quan Dashboard
- * Bảo vệ: Bắt buộc Bearer Token và quyền ADMIN
  */
 router.get(
   '/stats',
-  verifyToken,
-  restrictToRoles('ADMIN'),
   validate(adminDashboardStatsQuerySchema, 'query'),
   getDashboardStats
 );
@@ -30,12 +30,9 @@ router.get(
 /**
  * [GET] /top-services
  * Endpoint lấy danh sách top dịch vụ được sử dụng nhiều nhất và doanh thu mang lại
- * Bảo vệ: Bắt buộc Bearer Token và quyền ADMIN
  */
 router.get(
   '/top-services',
-  verifyToken,
-  restrictToRoles('ADMIN'),
   validate(adminTopServicesQuerySchema, 'query'),
   getTopServices
 );
@@ -43,12 +40,9 @@ router.get(
 /**
  * [GET] /alerts
  * Endpoint lấy danh sách cảnh báo tồn kho thấp cho vật tư y tế
- * Bảo vệ: Bắt buộc Bearer Token và quyền ADMIN
  */
 router.get(
   '/alerts',
-  verifyToken,
-  restrictToRoles('ADMIN'),
   validate(adminAlertsQuerySchema, 'query'),
   getInventoryAlerts
 );

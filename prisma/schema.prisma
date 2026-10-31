@@ -124,13 +124,14 @@ model PhongDieuTri {
   id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   maPhong    String?      @unique @map("ma_phong") @db.VarChar(20)
   tenPhong   String       @map("ten_phong") @db.VarChar(150)
-  trangThai  String       @default("san_sang") @map("trang_thai") @db.VarChar(20)
+  trangThai  String       @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
   ghiChu     String?      @map("ghi_chu") @db.VarChar(500)
   createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Quan hệ 1-N
-  caLamViec  CaLamViec[]
+  caLamViec      CaLamViec[]
+  khungCaLamViec KhungCaLamViec[]
 
   @@map("phong_dieu_tri")
 }
@@ -211,9 +212,10 @@ model NhaSi {
   taiKhoan     TaiKhoan        @relation(fields: [taiKhoanId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   // Quan hệ 1-N
-  caLamViec    CaLamViec[]
-  phacDoDieuTri PhacDoDieuTri[]
-  donThuoc     DonThuoc[]
+  caLamViec      CaLamViec[]
+  khungCaLamViec KhungCaLamViec[]
+  phacDoDieuTri  PhacDoDieuTri[]
+  donThuoc       DonThuoc[]
 
   @@map("nha_si")
 }
@@ -284,6 +286,33 @@ model AuditLog {
 // LEVEL 2: CA LÀM VIỆC & PHÁC ĐỒ ĐIỀU TRỊ
 // ============================================================================
 
+// 12B. KHUNG CA LÀM VIỆC CỐ ĐỊNH THEO TUẦN (Template Frame - Level 2)
+// Quản lý mẫu phân công ca làm việc lặp lại trong 1 tuần (Thứ 2 -> Chủ Nhật)
+// Dùng làm khung sườn để tự động khởi tạo lịch làm việc thực tế cho các tuần
+model KhungCaLamViec {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  thuTrongTuan    Int           @map("thu_trong_tuan") @db.SmallInt // 2 = Thứ Hai, 3 = Thứ Ba, ..., 8 = Chủ Nhật
+  gioBatDau       DateTime      @map("gio_bat_dau") @db.Time(6)     // 08:00:00 (Sáng) hoặc 13:30:00 (Chiều)
+  gioKetThuc      DateTime      @map("gio_ket_thuc") @db.Time(6)    // 12:00:00 (Sáng) hoặc 17:30:00 (Chiều)
+  phongDieuTriId  String        @map("phong_dieu_tri_id") @db.Uuid
+  nhaSiId         String        @map("nha_si_id") @db.Uuid
+  ghiChu          String?       @map("ghi_chu") @db.VarChar(255)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  nhaSi           NhaSi         @relation(fields: [nhaSiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  phongDieuTri    PhongDieuTri  @relation(fields: [phongDieuTriId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Ràng buộc toàn vẹn mẫu ca:
+  // 1. Một phòng trong một khung giờ chỉ xếp 1 ca trực duy nhất
+  @@unique([thuTrongTuan, gioBatDau, phongDieuTriId], name: "uq_khung_ca_phong")
+  // 2. Một bác sĩ trong một khung giờ chỉ trực tại 1 phòng duy nhất
+  @@unique([thuTrongTuan, gioBatDau, nhaSiId], name: "uq_khung_ca_nhasi")
+
+  @@map("khung_ca_lam_viec")
+}
+
 // 13. CA LÀM VIỆC (Level 2)
 model CaLamViec {
   id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -292,7 +321,8 @@ model CaLamViec {
   ngay            DateTime      @db.Date
   gioBatDau       DateTime      @map("gio_bat_dau") @db.Time(6)
   gioKetThuc      DateTime      @map("gio_ket_thuc") @db.Time(6)
-  trangThai       String        @default("trong") @map("trang_thai") @db.VarChar(20)
+  trangThai       String        @default("chua_dien_ra") @map("trang_thai") @db.VarChar(20)
+  ghiChu          String?       @map("ghi_chu") @db.Text
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

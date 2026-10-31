@@ -206,14 +206,17 @@ ON CONFLICT (ma_khuyen_mai) DO NOTHING;
 
 INSERT INTO phong_dieu_tri (ma_phong, ten_phong, trang_thai, ghi_chu)
 VALUES
-    ('P101', 'Phòng Nha Khoa 01 (Tầng 1)', 'san_sang',
+    ('P101', 'Phòng Nha Khoa 01 (Tầng 1)', 'hoat_dong',
      'Phòng khám & điều trị đa năng 01, ghế nha khoa tiêu chuẩn trang bị đầy đủ dụng cụ khám, trám, tủy, nhổ'),
 
-    ('P102', 'Phòng Nha Khoa 02 (Tầng 1)', 'san_sang',
+    ('P102', 'Phòng Nha Khoa 02 (Tầng 1)', 'hoat_dong',
      'Phòng khám & điều trị đa năng 02, ghế nha khoa thẩm mỹ tích hợp máy tẩy trắng và lấy dấu khớp cắn'),
 
-    ('P201', 'Phòng Nha Khoa 03 (Tầng 2)', 'san_sang',
-     'Phòng khám & điều trị đa năng 03, hệ thống vô trùng cao cấp phục vụ cấy ghép Implant và tiểu phẫu')
+    ('P201', 'Phòng Nha Khoa 03 (Tầng 2)', 'hoat_dong',
+     'Phòng khám & điều trị đa năng 03, hệ thống vô trùng cao cấp phục vụ cấy ghép Implant và tiểu phẫu'),
+
+    ('P301', 'Phòng Phẫu Thuật Vô Trùng (Tầng 3)', 'hoat_dong',
+     'Phòng phẫu thuật vô khuẩn áp lực dương chuyên sâu phục vụ chỉnh nha và cấy ghép Implant')
 ON CONFLICT (ma_phong) DO UPDATE SET
     ten_phong = EXCLUDED.ten_phong,
     trang_thai = EXCLUDED.trang_thai,
@@ -459,151 +462,290 @@ ON CONFLICT (phac_do_mau_id, buoc_so) DO UPDATE SET
 -- ============================================================================
 
 -- ============================================================================
--- DỮ LIỆU MẪU: BẢNG CA LÀM VIỆC (Level 2)
--- Lịch trực 15 ngày (28/09/2026 - 12/10/2026) cho 5 nha sĩ tại 3 phòng khám
+-- DỮ LIỆU MẪU: BẢNG KHUNG CA LÀM VIỆC CỐ ĐỊNH THEO TUẦN (Template Frame - Level 2)
+-- Khung ca mẫu 1 tuần cho 5 nha sĩ tại 4 phòng điều trị (56 ca trực mẫu)
 -- Quy chuẩn: 2 ca/ngày (Sáng: 08:00 - 12:00, Chiều: 13:30 - 17:30)
--- Bố trí: Mở rộng 1 tuần quá khứ từ 28/09 để liên kết đầy đủ các giai đoạn phác đồ
--- Xoay tua đều giữa 5 nha sĩ, đảm bảo không trùng giờ & không trùng phòng (GIST EXCLUDE)
+-- Thứ trong tuần: 2 = Thứ Hai, 3 = Thứ Ba, 4 = Thứ Tư, 5 = Thứ Năm, 6 = Thứ Sáu, 7 = Thứ Bảy, 8 = Chủ Nhật
+-- Phụ thuộc: nha_si, phong_dieu_tri
+-- ============================================================================
+
+INSERT INTO khung_ca_lam_viec (thu_trong_tuan, gio_bat_dau, gio_ket_thuc, phong_dieu_tri_id, nha_si_id, ghi_chu)
+VALUES
+    -- Thứ Hai (2)
+    (2, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Hai - Sáng'),
+    (2, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Hai - Sáng'),
+    (2, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Hai - Sáng'),
+    (2, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Hai - Sáng'),
+    (2, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Hai - Chiều'),
+    (2, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Hai - Chiều'),
+    (2, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Hai - Chiều'),
+    (2, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Hai - Chiều'),
+
+    -- Thứ Ba (3)
+    (3, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Ba - Sáng'),
+    (3, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Ba - Sáng'),
+    (3, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Ba - Sáng'),
+    (3, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Ba - Sáng'),
+    (3, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Ba - Chiều'),
+    (3, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Ba - Chiều'),
+    (3, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Ba - Chiều'),
+    (3, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Ba - Chiều'),
+
+    -- Thứ Tư (4)
+    (4, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Tư - Sáng'),
+    (4, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Tư - Sáng'),
+    (4, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Tư - Sáng'),
+    (4, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Tư - Sáng'),
+    (4, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Tư - Chiều'),
+    (4, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Tư - Chiều'),
+    (4, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Tư - Chiều'),
+    (4, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Tư - Chiều'),
+
+    -- Thứ Năm (5)
+    (5, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Năm - Sáng'),
+    (5, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Năm - Sáng'),
+    (5, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Năm - Sáng'),
+    (5, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Năm - Sáng'),
+    (5, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Năm - Chiều'),
+    (5, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Năm - Chiều'),
+    (5, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Năm - Chiều'),
+    (5, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Năm - Chiều'),
+
+    -- Thứ Sáu (6)
+    (6, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Sáu - Sáng'),
+    (6, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Sáu - Sáng'),
+    (6, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Sáu - Sáng'),
+    (6, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Sáu - Sáng'),
+    (6, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Sáu - Chiều'),
+    (6, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Sáu - Chiều'),
+    (6, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Sáu - Chiều'),
+    (6, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Sáu - Chiều'),
+
+    -- Thứ Bảy (7)
+    (7, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Bảy - Sáng'),
+    (7, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Thứ Bảy - Sáng'),
+    (7, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Bảy - Sáng'),
+    (7, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Bảy - Sáng'),
+    (7, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Thứ Bảy - Chiều'),
+    (7, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Thứ Bảy - Chiều'),
+    (7, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Thứ Bảy - Chiều'),
+    (7, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Thứ Bảy - Chiều'),
+
+    -- Chủ Nhật (8)
+    (8, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), 'Khung ca Chủ Nhật - Sáng'),
+    (8, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Chủ Nhật - Sáng'),
+    (8, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Chủ Nhật - Sáng'),
+    (8, '08:00:00', '12:00:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Chủ Nhật - Sáng'),
+    (8, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), 'Khung ca Chủ Nhật - Chiều'),
+    (8, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), 'Khung ca Chủ Nhật - Chiều'),
+    (8, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), 'Khung ca Chủ Nhật - Chiều'),
+    (8, '13:30:00', '17:30:00', (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), 'Khung ca Chủ Nhật - Chiều')
+ON CONFLICT (thu_trong_tuan, gio_bat_dau, phong_dieu_tri_id) DO UPDATE SET
+    nha_si_id = EXCLUDED.nha_si_id,
+    gio_ket_thuc = EXCLUDED.gio_ket_thuc,
+    ghi_chu = EXCLUDED.ghi_chu;
+
+-- ============================================================================
+-- DỮ LIỆU MẪU: BẢNG CA LÀM VIỆC CỐ ĐỊNH THEO TUẦN (Level 2)
+-- Áp dụng khung lịch tuần cố định (Weekly Fixed Shift Template) lặp lại chính xác
+-- Phủ sóng 3 tuần liên tiếp (21 ngày: 28/09/2026 - 18/10/2026) cho 5 nha sĩ tại 4 phòng khám
+-- Quy chuẩn: 2 ca/ngày (Sáng: 08:00 - 12:00, Chiều: 13:30 - 17:30)
+-- Thỏa mãn 100% Exclusion Constraints (không trùng bác sĩ, không trùng phòng)
+-- Khớp 100% với toàn bộ 6 lịch hẹn lâm sàng của bệnh nhân!
 -- Phụ thuộc: nha_si, phong_dieu_tri
 -- ============================================================================
 
 INSERT INTO ca_lam_viec (nha_si_id, phong_dieu_tri_id, ngay, gio_bat_dau, gio_ket_thuc, trang_thai)
 VALUES
-    -- Ngày 1: 2026-09-28
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-28', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-28', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-28', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-28', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-28', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-28', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 2: 2026-09-29
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-29', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-29', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-29', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-29', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-29', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-29', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 3: 2026-09-30
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-30', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-30', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-30', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-30', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-30', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-30', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 4: 2026-10-01
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-01', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-01', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-01', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-01', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-01', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-01', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 5: 2026-10-02
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-02', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-02', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-02', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-02', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-02', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-02', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 6: 2026-10-03
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-03', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-03', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-03', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-03', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-03', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-03', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 7: 2026-10-04
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-04', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-04', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-04', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-04', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-04', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-04', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 8: 2026-10-05
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-05', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-05', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-05', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-05', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-05', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-05', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 9: 2026-10-06
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-06', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-06', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-06', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-06', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-06', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-06', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 10: 2026-10-07
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-07', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-07', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-07', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-07', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-07', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-07', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 11: 2026-10-08
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-08', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-08', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-08', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-08', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-08', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-08', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 12: 2026-10-09
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-09', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-09', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-09', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-09', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-09', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-09', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 13: 2026-10-10
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-10', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-10', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-10', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-10', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-10', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-10', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 14: 2026-10-11
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-11', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-11', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-11', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-11', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-11', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-11', '13:30:00', '17:30:00', 'trong'),
-    -- Ngày 15: 2026-10-12
-    -- Ca sáng (08:00 - 12:00)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-12', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-12', '08:00:00', '12:00:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-12', '08:00:00', '12:00:00', 'trong'),
-    -- Ca chiều (13:30 - 17:30)
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-12', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-12', '13:30:00', '17:30:00', 'trong'),
-    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-12', '13:30:00', '17:30:00', 'trong');
+    -- Ngày: 2026-09-28 (Thứ Hai)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-28', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-28', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-28', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-28', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-28', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-28', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-28', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-28', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-09-29 (Thứ Ba)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-29', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-29', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-29', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-29', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-29', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-29', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-29', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-29', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-09-30 (Thứ Tư)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-30', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-30', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-30', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-30', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-09-30', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-30', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-30', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-30', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-01 (Thứ Năm)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-01', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-01', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-01', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-01', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-01', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-01', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-01', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-01', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-02 (Thứ Sáu)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-02', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-02', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-02', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-02', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-02', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-02', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-02', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-02', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-03 (Thứ Bảy)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-03', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-03', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-03', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-03', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-03', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-03', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-03', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-03', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-04 (Chủ Nhật)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-04', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-04', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-04', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-04', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-04', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-04', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-04', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-04', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-05 (Thứ Hai)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-05', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-05', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-05', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-05', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-05', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-05', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-05', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-05', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-06 (Thứ Ba)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-06', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-06', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-06', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-06', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-06', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-06', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-06', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-06', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-07 (Thứ Tư)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-07', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-07', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-07', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-07', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-07', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-07', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-07', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-07', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-08 (Thứ Năm)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-08', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-08', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-08', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-08', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-08', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-08', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-08', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-08', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-09 (Thứ Sáu)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-09', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-09', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-09', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-09', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-09', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-09', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-09', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-09', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-10 (Thứ Bảy)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-10', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-10', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-10', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-10', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-10', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-10', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-10', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-10', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-11 (Chủ Nhật)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-11', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-11', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-11', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-11', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-11', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-11', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-11', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-11', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-12 (Thứ Hai)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-12', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-12', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-12', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-12', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-12', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-12', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-12', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-12', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-13 (Thứ Ba)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-13', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-13', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-13', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-13', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-13', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-13', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-13', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-13', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-14 (Thứ Tư)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-14', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-14', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-14', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-14', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-14', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-14', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-14', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-14', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-15 (Thứ Năm)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-15', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-15', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-15', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-15', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-15', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-15', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-15', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-15', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-16 (Thứ Sáu)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-16', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-16', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-16', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-16', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-16', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-16', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-16', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-16', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-17 (Thứ Bảy)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-17', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-17', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-17', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-17', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-17', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-17', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-17', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-17', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    -- Ngày: 2026-10-18 (Chủ Nhật)
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-18', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-18', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-18', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-18', '08:00:00', '12:00:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-10-18', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-10-18', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-10-18', '13:30:00', '17:30:00', 'chua_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-10-18', '13:30:00', '17:30:00', 'chua_dien_ra');
 
 -- ============================================================================
 -- DỮ LIỆU MẪU: BẢNG PHÁC ĐỒ ĐIỀU TRỊ (Level 2)
