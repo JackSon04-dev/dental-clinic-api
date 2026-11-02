@@ -318,6 +318,7 @@ export const updateUserService = async (id, updateData) => {
 
   const normalizedEmail = email ? email.toLowerCase().trim() : undefined;
   const normalizedPhone = phone ? phone.trim() : undefined;
+  const normalizedWorkStatus = workStatus === 'da_nghi_viec' ? 'nghi_viec' : workStatus;
 
   // Kiểm tra trùng email hoặc sđt với người khác
   if (user.loaiTaiKhoan === 'nha_si' && user.nhaSi) {
@@ -352,7 +353,7 @@ export const updateUserService = async (id, updateData) => {
         ...(specialty !== undefined && { chuyenKhoa: specialty ? specialty.trim() : null }),
         ...(licenseNumber !== undefined && { soGiayPhep: licenseNumber ? licenseNumber.trim() : null }),
         ...(bio !== undefined && { gioiThieu: bio ? bio.trim() : null }),
-        ...(workStatus !== undefined && { trangThai: workStatus }),
+        ...(normalizedWorkStatus !== undefined && { trangThai: normalizedWorkStatus }),
       },
     });
   } else if (user.loaiTaiKhoan === 'nhan_vien' && user.nhanVien) {
@@ -385,7 +386,7 @@ export const updateUserService = async (id, updateData) => {
         ...(address !== undefined && { diaChi: address ? address.trim() : null }),
         ...(avatarUrl !== undefined && { hinhAnhUrl: avatarUrl ? avatarUrl.trim() : null }),
         ...(position !== undefined && { chucVu: position }),
-        ...(workStatus !== undefined && { trangThai: workStatus }),
+        ...(normalizedWorkStatus !== undefined && { trangThai: normalizedWorkStatus }),
       },
     });
   }

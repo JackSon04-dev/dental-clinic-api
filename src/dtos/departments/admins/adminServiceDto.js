@@ -273,6 +273,29 @@ export const adminServiceDetailResponseSchema = (service) => {
     ? service.chiTietDichVu.map(adminServiceItemResponseSchema)
     : [];
 
+  const rawProducts = Array.isArray(service.sanPham) ? service.sanPham : [];
+  const productsCount = service._count?.sanPham ?? rawProducts.length;
+
+  let minPrice = null;
+  let maxPrice = null;
+  let isProductDependent = false;
+
+  if (items.length > 0) {
+    const prices = items
+      .filter((i) => i.status === 'hoat_dong' || items.length === 1)
+      .map((i) => Number(i.price));
+
+    if (prices.length > 0) {
+      minPrice = Math.min(...prices);
+      maxPrice = Math.max(...prices);
+    }
+  } else if (productsCount > 0) {
+    // Không có biến thể nhưng có ít nhất 1 sản phẩm liên kết: giá là 0 đồng (chi phí phụ thuộc sản phẩm)
+    minPrice = 0;
+    maxPrice = 0;
+    isProductDependent = true;
+  }
+
   return {
     id: service.id,
     code: service.maDichVu || null,
@@ -282,7 +305,18 @@ export const adminServiceDetailResponseSchema = (service) => {
     estimatedDurationMinutes: service.thoiGianDuKienPhut ?? 30,
     status: service.trangThai,
     itemsCount: items.length,
+    productsCount,
+    isProductDependent,
+    minPrice,
+    maxPrice,
     items,
+    products: rawProducts.map((p) => ({
+      id: p.id,
+      code: p.maSanPham || null,
+      name: p.tenSanPham,
+      price: Number(p.giaBan || 0),
+      unit: p.donViTinh || null,
+    })),
     createdAt: service.createdAt,
     updatedAt: service.updatedAt,
   };
@@ -296,8 +330,13 @@ export const adminServiceListItemResponseSchema = (service) => {
   if (!service) return null;
 
   const rawItems = Array.isArray(service.chiTietDichVu) ? service.chiTietDichVu : [];
+  const rawProducts = Array.isArray(service.sanPham) ? service.sanPham : [];
+  const itemsCount = service._count?.chiTietDichVu ?? rawItems.length;
+  const productsCount = service._count?.sanPham ?? rawProducts.length;
+
   let minPrice = null;
   let maxPrice = null;
+  let isProductDependent = false;
 
   if (rawItems.length > 0) {
     const prices = rawItems
@@ -308,9 +347,12 @@ export const adminServiceListItemResponseSchema = (service) => {
       minPrice = Math.min(...prices);
       maxPrice = Math.max(...prices);
     }
+  } else if (productsCount > 0) {
+    // Không có biến thể nhưng có ít nhất 1 sản phẩm liên kết: giá là 0 đồng (chi phí phụ thuộc sản phẩm)
+    minPrice = 0;
+    maxPrice = 0;
+    isProductDependent = true;
   }
-
-  const itemsCount = service._count?.chiTietDichVu ?? rawItems.length;
 
   return {
     id: service.id,
@@ -321,6 +363,8 @@ export const adminServiceListItemResponseSchema = (service) => {
     estimatedDurationMinutes: service.thoiGianDuKienPhut ?? 30,
     status: service.trangThai,
     itemsCount,
+    productsCount,
+    isProductDependent,
     minPrice,
     maxPrice,
     createdAt: service.createdAt,

@@ -15,6 +15,8 @@ export const DAY_NAMES = {
 };
 
 export const SHIFT_STATUS_TITLES = {
+  da_dien_ra: 'Đã hoàn thành',
+  hoan_thanh: 'Đã hoàn thành',
   chua_dien_ra: 'Chưa diễn ra',
   co_mat: 'Có mặt',
   vang_mat: 'Vắng mặt',
@@ -147,8 +149,9 @@ export const adminWorkShiftIdParamSchema = Joi.object({
  * Kiểm thực cập nhật trạng thái có mặt / vắng mặt
  */
 export const adminUpdateWorkShiftStatusRequestSchema = Joi.object({
+  doctorId: Joi.string().uuid().optional().allow('', null),
   status: Joi.string()
-    .valid('chua_dien_ra', 'co_mat', 'vang_mat')
+    .valid('chua_dien_ra', 'co_mat', 'vang_mat', 'da_dien_ra', 'hoan_thanh')
     .required()
     .messages({
       'any.only': 'Trạng thái (status) chỉ được nhận giá trị: chua_dien_ra, co_mat, vang_mat',

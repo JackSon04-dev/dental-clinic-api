@@ -13,6 +13,8 @@ import adminTreatmentPlanRoutes from './routes/departments/admins/adminTreatment
 import adminInvoiceRoutes from './routes/departments/admins/adminInvoice.js';
 import adminWorkShiftTemplateRoutes from './routes/departments/admins/adminWorkShiftTemplate.js';
 import adminWorkShiftRoutes from './routes/departments/admins/adminWorkShift.js';
+import adminReportRoutes from './routes/departments/admins/adminReport.js';
+import clientDashboardRoutes from './routes/clients/clientDashboard.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
 
 dotenv.config();
@@ -45,6 +47,10 @@ app.use('/api/v1/admin/treatment-plans', adminTreatmentPlanRoutes);
 app.use('/api/v1/admin/invoices', adminInvoiceRoutes);
 app.use('/api/v1/admin/work-shift-templates', adminWorkShiftTemplateRoutes);
 app.use('/api/v1/admin/work-shifts', adminWorkShiftRoutes);
+app.use('/api/v1/admin/reports', adminReportRoutes);
+
+// Client Routes - Toàn bộ API phân hệ bệnh nhân
+app.use('/api/v1/client/dashboard', clientDashboardRoutes);
 
 // 404 Not Found Handler (bắt các đường dẫn không tồn tại)
 app.use((req, res, next) => {

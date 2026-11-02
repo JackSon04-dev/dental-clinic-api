@@ -176,6 +176,8 @@ model BenhNhan {
   tienSuBenh   String?         @map("tien_su_benh") @db.Text
   diUng        String?         @map("di_ung") @db.Text
   ghiChu       String?         @map("ghi_chu") @db.Text
+  diemSucKhoeBanDau    Int?            @default(85) @map("diem_suc_khoe_ban_dau")
+  diemSucKhoeHienTai   Int?            @default(95) @map("diem_suc_khoe_hien_tai")
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

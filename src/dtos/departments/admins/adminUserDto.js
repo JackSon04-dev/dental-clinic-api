@@ -92,13 +92,13 @@ export const adminCreateUserRequestSchema = Joi.object({
   }),
   gender: Joi.string().valid('nam', 'nu', 'khac').optional().allow(null),
   address: Joi.string().trim().max(500).optional().allow('', null),
-  avatarUrl: Joi.string().trim().uri().optional().allow('', null),
+  avatarUrl: Joi.string().trim().max(1000).optional().allow('', null),
   // Field chuyên biệt cho Nha sĩ
   specialty: Joi.string().trim().max(100).optional().allow('', null),
   licenseNumber: Joi.string().trim().max(100).optional().allow('', null),
   bio: Joi.string().trim().optional().allow('', null),
   // Field chuyên biệt cho Lễ tân
-  position: Joi.string().trim().valid('le_tan').default('le_tan').optional(),
+  position: Joi.string().trim().max(100).default('le_tan').optional().allow('', null),
 });
 
 /**
@@ -125,9 +125,9 @@ export const adminUpdateUserRequestSchema = Joi.object({
   }),
   gender: Joi.string().valid('nam', 'nu', 'khac').optional().allow(null),
   address: Joi.string().trim().max(500).optional().allow('', null),
-  avatarUrl: Joi.string().trim().uri().optional().allow('', null),
+  avatarUrl: Joi.string().trim().max(1000).optional().allow('', null),
   workStatus: Joi.string()
-    .valid('dang_lam_viec', 'nghi_phep', 'nghi_viec')
+    .valid('dang_lam_viec', 'nghi_phep', 'nghi_viec', 'da_nghi_viec')
     .optional()
     .messages({
       'any.only': 'Trạng thái làm việc phải là: dang_lam_viec, nghi_phep hoặc nghi_viec',
@@ -137,7 +137,7 @@ export const adminUpdateUserRequestSchema = Joi.object({
   licenseNumber: Joi.string().trim().max(100).optional().allow('', null),
   bio: Joi.string().trim().optional().allow('', null),
   // Field cho Lễ tân
-  position: Joi.string().trim().valid('le_tan').optional(),
+  position: Joi.string().trim().max(100).optional().allow('', null),
 }).min(1).messages({
   'object.min': 'Cần ít nhất một trường thông tin để cập nhật',
 });

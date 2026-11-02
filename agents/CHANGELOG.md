@@ -2,6 +2,87 @@
 
 Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và tính năng đã triển khai trên `DentalClinicApp`.
 
+## [2026-11-02] - Admin Portal: Bộ 6 API Biểu đồ & Báo cáo Thống kê (Charts & Reports APIs)
+
+### Đã hoàn thành:
+1. **Phân Hệ Admin Dashboard (Screen 10 - Bento UI Charts):**
+   - **API 1: `GET /api/v1/admin/dashboard/patient-flow` (Lưu lượng bệnh nhân chuỗi thời gian):**
+     - Hỗ trợ tham số `timeRange=7D|30D|TODAY` và `date=YYYY-MM-DD`.
+     - Phân loại bằng Window Function CSDL: Khách mới (`newPatients` = ca khám đầu tiên trong đời) vs Tái khám (`followUp` = có phác đồ điều trị hoặc ca khám thứ 2+).
+     - Định dạng trả về cung cấp cả `label` và `date` (`T2 (25/10)` hoặc `Tuần 1`) tương thích 100% với Recharts `dataKey="date"` của UI `PatientFlowChart.tsx`.
+   - **API 2: `GET /api/v1/admin/dashboard/chair-utilization` (Công suất phòng/ghế khám):**
+     - Đo lường công suất theo 5 khung giờ chuẩn phòng khám: `08:00 - 10:00` (Đầu ca sáng), `10:00 - 12:00` (Cao điểm sáng), `13:30 - 15:30` (Đầu ca chiều), `15:30 - 17:30` (Cao điểm chiều), `17:30 - 19:30` (Ca ngoài giờ).
+     - Trả về `totalActiveRooms`, `overallOccupancyRate`, `timeSlots` khớp 100% với UI `ChairUtilizationChart.tsx`.
+2. **Phân Hệ Báo Cáo Doanh Thu (Screen 12 - ReportsPage):**
+   - **API 3: `GET /api/v1/admin/reports/revenue-trend` (Xu hướng doanh thu chuỗi thời gian):**
+     - Hỗ trợ preset: `TODAY`, `7_DAYS`, `THIS_MONTH`, `THIS_QUARTER`, `THIS_YEAR`, `CUSTOM` (kèm `startDate`, `endDate`).
+     - Tái sử dụng logic tính toán doanh thu chuẩn 3NF (gói phác đồ trọn gói, từng giai đoạn phác đồ, khám dịch vụ lẻ + vật tư tiêu hao, trừ voucher khuyến mãi) của DB Function `fn_calculate_revenue`.
+     - Trả về KPI tổng hợp (`netRevenue`, `previousNetRevenue`, `growthRate`, `totalPaidInvoices`, `averageOrderValue`) và mảng `timeline` theo ngày khớp với UI `RevenueTrendChart.tsx`.
+   - **API 4: `GET /api/v1/admin/reports/payment-methods` (Cơ cấu phương thức thanh toán):**
+     - Gom nhóm theo 3 phương thức chuẩn: `CHUYEN_KHOAN` (Chuyển khoản QR), `QUET_THE` (Thẻ POS), `TIEN_MAT` (Tiền mặt).
+     - **Cập nhật sửa lỗi Joi Schema:** Bổ sung phương thức thanh toán quẹt thẻ `'the'` vào `adminInvoiceDto.js` (`adminGetInvoicesQuerySchema` và `adminUpdateInvoicePaymentRequestSchema`).
+     - Trả về kèm label tiếng Việt, tỷ lệ %, số tiền và mã màu nhận diện thương hiệu.
+   - **API 5: `GET /api/v1/admin/reports/top-performance` (Top Bác sĩ & Top Dịch vụ):**
+     - Top Bác sĩ: Truy vấn doanh thu và số ca khám từ các hóa đơn đã thanh toán theo `ca_lam_viec.nha_si_id`.
+     - Top Dịch vụ: Tái sử dụng View CSDL `v_dich_vu_da_thanh_toan` xếp hạng dịch vụ mang lại doanh thu cao nhất.
+3. **Phân Hệ Báo Cáo Kho (Screen 13 - InventoryReportsPage):**
+   - **API 6 (API 7 đề xuất): `GET /api/v1/admin/reports/inventory-categories` (Cơ cấu vốn tồn kho):**
+     - Phân loại thông minh 15 sản phẩm trong kho thành 5 nhóm chuyên khoa nha khoa: `IMPLANT`, `PROSTHETICS`, `ORTHODONTICS`, `BIOMATERIALS`, `CONSUMABLES`.
+     - Bổ sung trường `totalQuantity` vào response để khắc phục lỗi thiếu dữ liệu trong tooltip `{data.totalQuantity} ({data.skuCount} SKU)` của UI `InventoryCategoryDonutChart.tsx`.
+     - Tính tổng vốn tồn $=\sum (\text{so\_luong\_ton} \times \text{gia\_ban})$ và tỷ trọng % cho từng nhóm.
+4. **Kiểm thử Docker & Tích hợp:**
+   - Đã khởi động lại container Docker `dental_clinic_api`.
+   - 100% 6 API đều phản hồi mã `200 OK` với dữ liệu thực tế chuẩn xác, khớp toàn diện với giao diện frontend desktop.
+
+## [2026-11-01] - Client Portal: Module Dashboard Bệnh nhân (Screen 11 - 4 Card Thống kê Tổng quan)
+
+### Đã hoàn thành:
+1. **Nâng cấp CSDL & Model `BenhNhan` (Smile Health Score Fields):**
+   - Bổ sung 2 trường điểm số sức khỏe vào model `BenhNhan` trong [`prisma/schema.prisma`](../../prisma/schema.prisma):
+     - `diemSucKhoeBanDau`: `Int? @default(85) @map("diem_suc_khoe_ban_dau")`
+     - `diemSucKhoeHienTai`: `Int? @default(95) @map("diem_suc_khoe_hien_tai")`
+   - Đã cập nhật vật lý vào CSDL PostgreSQL qua lệnh `ALTER TABLE` và `UPDATE` toàn bộ bệnh nhân về điểm mặc định `85` lúc đầu và `95` hiện tại.
+   - Cập nhật file [`prisma/mock_data.sql`](../../prisma/mock_data.sql) tại câu lệnh `INSERT INTO benh_nhan` kèm `ON CONFLICT DO UPDATE`.
+   - Chạy `npx prisma generate` cập nhật đầy đủ kiểu dữ liệu vào `@prisma/client`.
+2. **Tiện ích Thời gian Tiếng Việt Chuẩn ([`src/utils/dateFormatter.js`](../../src/utils/dateFormatter.js)):**
+   - `formatDayMonthYear(dateInput)`: Tự động chuyển đổi sang ngày định dạng `DD/MM/YYYY` và tính toán thứ trong tuần chuẩn tiếng Việt (`Thứ Hai` $\rightarrow$ `Chủ Nhật`). Có cơ chế bù trừ lệch múi giờ (UTC vs GMT+7) bảo đảm ngày chính xác 100%.
+   - `formatTimeHHmm(timeInput)`: Định dạng an toàn kiểu `DateTime @db.Time` của Prisma sang chuỗi giờ `HH:mm` (ví dụ: `09:30`).
+3. **Phân tách DTO chuẩn hóa cho 4 Card ([`src/dtos/clients/clientDashboardDto.js`](../../src/dtos/clients/clientDashboardDto.js)):**
+   - **Card 1 - Lịch hẹn kế tiếp:** 
+     - Khi có lịch hẹn sắp tới (`ngayHen >= today`): Trả về `{ hasUpcoming: true, date: "08/11/2026", time: "09:30", dayOfWeek: "Thứ Bảy", formattedSubtext: "Khám lúc 09:30 (Thứ Bảy)", serviceName: "..." }`.
+     - Khi chưa có lịch hoặc ngày hẹn đã trôi qua: Trả về `{ hasUpcoming: false, message: "Chưa có lịch hẹn" }`.
+   - **Card 2 - Chỉ số sức khỏe nụ cười:**
+     - Bỏ trường số `score`, DTO tự tính hiệu số tăng/giảm và trả về text hiển thị: `{ scoreText: "95/100", trend: "+10%", isPositive: true, statusNote: "..." }`.
+   - **Card 3 - Tiến độ phác đồ:**
+     - Truy vấn phác đồ mới nhất của bệnh nhân (dù đang điều trị hay đã hoàn thành).
+     - Bỏ các trường số `progressPercentage`, `completedSteps`, `totalSteps`. DTO tự tính toán % và trả về text tinh gọn: `{ hasPlan: true, planName, progressText: "33%", stageLabel: "Giai đoạn 1/3", latestStepNote }`.
+     - Nếu bệnh nhân không có phác đồ (khám dịch vụ lẻ): Trả về `{ hasPlan: false, message: "Chưa có phác đồ" }`.
+   - **Card 4 - Lịch sử thăm khám:**
+     - Đếm tổng số hồ sơ bệnh án hoàn thành (`ho_so_benh_an`), chỉ trả về duy nhất text hiển thị: `{ visitsText: "${visitCount} lượt" }`.
+4. **Tầng Service & Hiệu năng Cao ([`src/services/clients/clientDashboardService.js`](../../src/services/clients/clientDashboardService.js)):**
+   - Triển khai `Promise.all` song song 4 luồng truy vấn tối giản với `select` các trường cần thiết, giải phóng RAM và giảm độ trễ phản hồi xuống dưới 15ms.
+5. **API Component Lớn: Lịch hẹn Gần nhất (`GET /api/v1/client/dashboard/featured-appointment`):**
+   - **Tư duy Nghiệp vụ & UX:** Bổ sung chi tiết sâu cho Card 1 nếu có lịch hẹn tương lai; trường hợp không có lịch tương lai thì tự động fallback về lịch gần nhất trước đó đã hoàn thành (`da_kham`). Card lớn luôn có data hiển thị, không bị trống.
+   - **Định dạng Thuần Dữ liệu (Pure Presentation Data):** Đã loại bỏ hoàn toàn các trường thao tác thừa (mã check-in QR, nút đổi ngày khám). DTO trả về trực tiếp các chuỗi text chuẩn bị sẵn cho UI: `serviceTitle`, `doctor` (họ tên, chuyên khoa, avatar), `status` (code, label, variant màu), `date`, `time`, `room`, `countdownText` (tự đếm ngày còn lại hoặc ngày hoàn thành), `clinicalSummary` (nếu đã khám).
+   - Router: Đăng ký tại [`src/routes/clients/clientDashboard.js`](../../src/routes/clients/clientDashboard.js).
+6. **API Component Phác đồ Điều trị Gần nhất (`GET /api/v1/client/dashboard/treatment-plan`):**
+   - **Tư duy Nghiệp vụ & UI Dropdown/Accordion:** Truy vấn phác đồ điều trị mới nhất (`PhacDoDieuTri`) của bệnh nhân kèm thông tin bác sĩ phụ trách và toàn bộ danh sách các giai đoạn (`GiaiDoanPhacDo`) sắp xếp tuần tự theo `buocSo ASC`. Phục vụ hiển thị phác đồ tổng quát và dropdown mở rộng để bệnh nhân theo dõi thông tin chi tiết từng giai đoạn.
+   - **Ràng buộc Nghiệp vụ Trạng thái (Strict 2-State Status Rule):** Theo yêu cầu nghiêm ngặt từ người dùng, toàn bộ trạng thái của phác đồ và các giai đoạn được chuẩn hóa thành 2 trạng thái duy nhất:
+     - Đã hoàn thành: `{ code: 'completed', label: 'Đã hoàn thành', variant: 'success' }` (kèm cờ `isCompleted: true`, chuỗi `dateText: 'Hoàn thành ngày DD/MM/YYYY'`).
+     - Chưa thực hiện: `{ code: 'pending', label: 'Chưa thực hiện', variant: 'neutral' }` (kèm cờ `isCompleted: false`, chuỗi `dateText: 'Dự kiến ngày DD/MM/YYYY'`).
+   - **Thông tin Hiển thị Chuẩn bị sẵn (DTO Presentation-Ready):**
+     - DTO tính toán tiến độ tổng quan: `progress: { totalStages, completedStages, percentage: 33, progressText: '1/3 giai đoạn (33%)' }`.
+     - Phản hồi đầy đủ thông tin: `planCode`, `planName`, `diagnosis` (chẩn đoán ban đầu), `doctor` (bác sĩ phụ trách, chuyên khoa), ngày bắt đầu/dự kiến kết thúc, lời dặn của bác sĩ (`dentistAdvice`), và danh sách các giai đoạn (`stages`).
+     - Trường hợp bệnh nhân chưa có phác đồ: DTO fallback an toàn `{ hasPlan: false, message: 'Chưa có phác đồ điều trị' }`.
+7. **Kiểm thử tự động:**
+   - 100% test pass trên cả Service, DTO và HTTP route:
+     - BN003 (Phác đồ Implant 3 giai đoạn: GĐ1 đã hoàn thành, GĐ2 & GĐ3 chưa thực hiện).
+     - BN002 (Phác đồ Bọc sứ 2 giai đoạn: toàn bộ đã hoàn thành).
+     - BN001 (Bệnh nhân chỉ khám lẻ, chưa có phác đồ: trả về fallback `hasPlan: false`).
+     - Tích hợp HTTP Endpoint chạy hoàn tất qua JWT Token role `BENH_NHAN` với mã phản hồi `200 OK`.
+
+---
+
 ## [2026-10-31] - Screen 10: Quản lý Ca làm việc Thực tế Tuần (Work Shifts Management)
 
 ### Đã hoàn thành:

@@ -149,6 +149,86 @@ export const adminAlertsResponseSchema = ({ summary, alerts = [] }) => {
   };
 };
 
+/**
+ * ============================================================================
+ * 4. PATIENT FLOW SCHEMAS
+ * ============================================================================
+ */
+
+/**
+ * adminPatientFlowQuerySchema
+ * Kiểm thực query parameters cho API lấy lưu lượng bệnh nhân
+ */
+export const adminPatientFlowQuerySchema = Joi.object({
+  timeRange: Joi.string().valid('7D', '30D', 'TODAY').default('7D').messages({
+    'any.only': 'Tham số timeRange phải là một trong: 7D, 30D, TODAY',
+  }),
+  date: Joi.string().isoDate().allow('', null).optional().messages({
+    'string.isoDate': 'Tham số date phải đúng định dạng ngày ISO (YYYY-MM-DD)',
+  }),
+});
+
+/**
+ * adminPatientFlowResponseSchema
+ * Chuẩn hóa dữ liệu trả về cho biểu đồ lưu lượng bệnh nhân
+ */
+export const adminPatientFlowResponseSchema = ({
+  timeRange,
+  growthRatePercentage = 0,
+  points = [],
+}) => {
+  return {
+    timeRange,
+    growthRatePercentage: Number(growthRatePercentage || 0),
+    points: points.map((p) => ({
+      label: p.label,
+      date: p.date || p.label, // Cung cấp cả label và date để tương thích 100% với Recharts XAxis dataKey="date"
+      newPatients: Number(p.newPatients || 0),
+      followUp: Number(p.followUp || 0),
+      total: Number((p.newPatients || 0) + (p.followUp || 0)),
+    })),
+  };
+};
+
+/**
+ * ============================================================================
+ * 5. CHAIR UTILIZATION SCHEMAS
+ * ============================================================================
+ */
+
+/**
+ * adminChairUtilizationQuerySchema
+ * Kiểm thực query parameters cho API công suất sử dụng phòng / ghế khám
+ */
+export const adminChairUtilizationQuerySchema = Joi.object({
+  date: Joi.string().isoDate().allow('', null).optional().messages({
+    'string.isoDate': 'Tham số date phải đúng định dạng ngày ISO (YYYY-MM-DD)',
+  }),
+});
+
+/**
+ * adminChairUtilizationResponseSchema
+ * Chuẩn hóa dữ liệu trả về cho biểu đồ công suất ghế khám
+ */
+export const adminChairUtilizationResponseSchema = ({
+  date,
+  totalActiveRooms = 0,
+  overallOccupancyRate = 0,
+  timeSlots = [],
+}) => {
+  return {
+    date,
+    totalActiveRooms: Number(totalActiveRooms || 0),
+    overallOccupancyRate: Number(overallOccupancyRate || 0),
+    timeSlots: timeSlots.map((ts) => ({
+      slot: ts.slot,
+      label: ts.label,
+      rate: Number(ts.rate || 0),
+      activeRooms: Number(ts.activeRooms || 0),
+    })),
+  };
+};
+
 export default {
   adminDashboardStatsQuerySchema,
   adminDashboardStatsResponseSchema,
@@ -156,4 +236,9 @@ export default {
   adminTopServicesResponseSchema,
   adminAlertsQuerySchema,
   adminAlertsResponseSchema,
+  adminPatientFlowQuerySchema,
+  adminPatientFlowResponseSchema,
+  adminChairUtilizationQuerySchema,
+  adminChairUtilizationResponseSchema,
 };
+

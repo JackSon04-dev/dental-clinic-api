@@ -74,6 +74,18 @@ export const getServicesListService = async ({ page = 1, limit = 10, status = 'A
             trangThai: true,
           },
         },
+        sanPham: {
+          select: {
+            id: true,
+            giaBan: true,
+          },
+        },
+        _count: {
+          select: {
+            chiTietDichVu: true,
+            sanPham: true,
+          },
+        },
       },
     }),
     prisma.dichVu.count({ where }),
@@ -103,6 +115,21 @@ export const getServiceDetailService = async (id) => {
     include: {
       chiTietDichVu: {
         orderBy: { createdAt: 'asc' },
+      },
+      sanPham: {
+        select: {
+          id: true,
+          maSanPham: true,
+          tenSanPham: true,
+          giaBan: true,
+          donViTinh: true,
+        },
+      },
+      _count: {
+        select: {
+          chiTietDichVu: true,
+          sanPham: true,
+        },
       },
     },
   });

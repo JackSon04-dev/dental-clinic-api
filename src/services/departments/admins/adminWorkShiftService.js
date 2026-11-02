@@ -88,7 +88,7 @@ export const getWorkShiftsMatrixService = async ({
  * @param {string} id UUID ca làm việc
  * @param {Object} body { status, notes }
  */
-export const updateWorkShiftStatusService = async (id, { status, notes = undefined }) => {
+export const updateWorkShiftStatusService = async (id, { status, doctorId = undefined, notes = undefined }) => {
   // 1. Kiểm tra ca làm việc có tồn tại
   const shift = await prisma.caLamViec.findUnique({
     where: { id },
@@ -102,15 +102,42 @@ export const updateWorkShiftStatusService = async (id, { status, notes = undefin
     throw new ApiError(404, 'Không tìm thấy ca làm việc trong hệ thống');
   }
 
-  // 2. Nếu chuyển sang 'co_mat', kiểm tra xem bác sĩ này đã điểm danh 'co_mat' ở phòng khác cùng khung giờ chưa
-  if (status === 'co_mat') {
+  // 2. Tìm bác sĩ được chỉ định (hỗ trợ cả nhaSi.id và taiKhoan.id)
+  let targetDoc = shift.nhaSi;
+  const updateData = {};
+
+  if (doctorId) {
+    targetDoc = await prisma.nhaSi.findFirst({
+      where: {
+        OR: [
+          { id: doctorId },
+          { taiKhoanId: doctorId }
+        ]
+      }
+    });
+    if (!targetDoc) throw new ApiError(404, 'Bác sĩ không tồn tại trong hệ thống');
+    if (targetDoc.trangThai === 'nghi_viec') throw new ApiError(400, 'Bác sĩ đã nghỉ việc');
+    updateData.nhaSiId = targetDoc.id;
+  }
+
+  const normalizedStatus = status === 'hoan_thanh' ? 'da_dien_ra' : status;
+  if (normalizedStatus) {
+    updateData.trangThai = normalizedStatus;
+  }
+  if (notes !== undefined) {
+    updateData.ghiChu = notes;
+  }
+
+  // 3. Kiểm tra chống trùng lịch: Bác sĩ không thể được phân công 2 ca cùng ngày và cùng buổi tại 2 phòng khác nhau (trừ khi ca kia đã đánh dấu 'vang_mat')
+  const finalStatus = normalizedStatus || shift.trangThai;
+  if (targetDoc && finalStatus !== 'vang_mat') {
     const conflictShift = await prisma.caLamViec.findFirst({
       where: {
         id: { not: id },
-        nhaSiId: shift.nhaSiId,
+        nhaSiId: targetDoc.id,
         ngay: shift.ngay,
         gioBatDau: shift.gioBatDau,
-        trangThai: 'co_mat',
+        trangThai: { not: 'vang_mat' },
       },
       include: {
         phongDieuTri: true,
@@ -120,19 +147,12 @@ export const updateWorkShiftStatusService = async (id, { status, notes = undefin
     if (conflictShift) {
       const roomName = conflictShift.phongDieuTri?.tenPhong || conflictShift.phongDieuTri?.maPhong || 'phòng khác';
       const timeStr = formatTimeHHMM(shift.gioBatDau);
+      const sessionLabel = String(timeStr).startsWith('08') ? 'Ca Sáng' : 'Ca Chiều';
       throw new ApiError(
         409,
-        `Trùng lịch: Bác sĩ ${shift.nhaSi?.hoTen} đã được điểm danh Có mặt tại ${roomName} lúc ${timeStr}. Vui lòng kiểm tra lại!`
+        `Trùng lịch trực: Bác sĩ ${targetDoc.hoTen} đã được phân công ${sessionLabel} (${timeStr}) tại ${roomName}. Không thể phân công 2 phòng cùng một khung giờ!`
       );
     }
-  }
-
-  // 3. Thực hiện cập nhật
-  const updateData = {
-    trangThai: status,
-  };
-  if (notes !== undefined) {
-    updateData.ghiChu = notes;
   }
 
   const updatedShift = await prisma.caLamViec.update({

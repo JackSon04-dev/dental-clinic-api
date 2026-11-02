@@ -55,8 +55,68 @@ export const getInventoryAlerts = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * getPatientFlow
+ * [GET] /api/v1/admin/dashboard/patient-flow
+ * Lấy lưu lượng bệnh nhân theo chuỗi thời gian (7D, 30D, TODAY)
+ */
+export const getPatientFlow = asyncHandler(async (req, res) => {
+  const { timeRange = '7D', date } = req.query;
+
+  const data = await adminDashboardService.getPatientFlowService({ timeRange, date });
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy dữ liệu lưu lượng bệnh nhân thành công',
+    data,
+  });
+});
+
+/**
+ * getChairUtilization
+ * [GET] /api/v1/admin/dashboard/chair-utilization
+ * Lấy công suất sử dụng phòng / ghế khám theo 5 khung giờ trong ngày
+ */
+export const getChairUtilization = asyncHandler(async (req, res) => {
+  const { date } = req.query;
+
+  const data = await adminDashboardService.getChairUtilizationService({ date });
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy dữ liệu công suất phòng khám thành công',
+    data,
+  });
+});
+
+
+/**
+ * getActiveDentists
+ * [GET] /api/v1/admin/dashboard/active-dentists
+ * Lấy danh sách 4 bác sĩ trực ca theo thời gian thực (Sáng/Chiều) và số ca hôm nay
+ */
+export const getActiveDentists = asyncHandler(async (req, res) => {
+  const { date, session } = req.query;
+
+  const data = await adminDashboardService.getActiveDentistsService({ date, session });
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy danh sách bác sĩ trực ca thành công',
+    data,
+  });
+});
+
 export default {
   getDashboardStats,
   getTopServices,
   getInventoryAlerts,
+  getPatientFlow,
+  getChairUtilization,
+  getActiveDentists,
 };
+
+

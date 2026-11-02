@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- DENTAL CLINIC DATABASE - DỮ LIỆU MẪU TỔNG HỢP (MOCK DATA)
 -- Tự động sinh từ 22 file SQL theo thứ tự dependency (Level 0 → 6)
 -- Ngày cập nhật: 2026-10-16
@@ -289,36 +289,39 @@ ON CONFLICT (ma_chi_tiet) DO UPDATE SET
 -- Phụ thuộc: tai_khoan
 -- ============================================================================
 
-INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, dia_chi, hinh_anh_url, tien_su_benh, di_ung, ghi_chu)
+INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, dia_chi, hinh_anh_url, tien_su_benh, di_ung, ghi_chu, diem_suc_khoe_ban_dau, diem_suc_khoe_hien_tai)
 VALUES
     -- BN 1 (Kịch bản 1: Khám thường - Lấy cao răng + Trám răng composite)
     ((SELECT id FROM tai_khoan WHERE username = 'bn_nguyenan'),
      'BN001', 'Nguyễn Văn An', '1993-05-14', 'nam', '0901112233', 'nguyenvanan93@gmail.com',
      '123 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội', NULL,
      'Không có tiền sử bệnh tim mạch hay huyết áp', 'Không có dị ứng thuốc đã biết',
-     'Bệnh nhân chăm sóc răng miệng đều đặn, đến khám định kỳ vệ sinh và trám kẽ răng sâu'),
+     'Men răng tốt, không cao răng', 85, 95),
 
     -- BN 2 (Kịch bản 2: Khám thường - Nhổ răng khôn khó + Đơn thuốc + Voucher)
     ((SELECT id FROM tai_khoan WHERE username = 'bn_lethibich'),
      'BN002', 'Lê Thị Bích', '2000-08-20', 'nu', '0902223344', 'bichle2000@gmail.com',
      '45 Nguyễn Trãi, Phường Thượng Đình, Quận Thanh Xuân, Hà Nội', NULL,
      'Đau nhức sưng viêm nướu góc hàm dưới bên trái nhiều đợt', 'Dị ứng nhẹ với thuốc giảm đau Aspirin',
-     'Răng số 38 mọc lệch 90 độ đâm vào răng 37, cần tiểu phẫu nhổ sớm'),
+     'Răng số 38 mọc lệch 90 độ đâm vào răng 37, cần tiểu phẫu nhổ sớm', 85, 95),
 
     -- BN 3 (Kịch bản 3: Phác đồ Trồng răng Implant Thụy Sĩ - Trả 1 lần trọn gói)
     ((SELECT id FROM tai_khoan WHERE username = 'bn_trancuong'),
      'BN003', 'Trần Quốc Cường', '1970-11-03', 'nam', '0903334455', 'cuongtran1970@gmail.com',
      '78 Trần Duy Hưng, Phường Trung Hòa, Quận Cầu Giấy, Hà Nội', NULL,
      'Mất răng cối 46 lâu năm dẫn đến tiêu xương nhẹ, có tiền sử tăng huyết áp nhẹ đã kiểm soát ổn định', 'Không dị ứng',
-     'Mong muốn cấy ghép trụ Implant Thụy Sĩ chất lượng cao nhất, thanh toán trọn gói 1 lần'),
+     'Trụ Implant tích hợp tốt, vết mổ lành thương ổn định', 85, 95),
 
     -- BN 4 (Kịch bản 4: Phác đồ Niềng răng mắc cài kim loại - Trả theo từng đợt)
     ((SELECT id FROM tai_khoan WHERE username = 'bn_hoangdung'),
      'BN004', 'Hoàng Phương Dung', '2004-03-25', 'nu', '0904445566', 'dungphuong2004@gmail.com',
      '12 Chùa Bộc, Phường Quang Trung, Quận Đống Đa, Hà Nội', NULL,
      'Khớp cắn sâu hạng II, răng khấp khểnh hàm trên', 'Không có dị ứng thuốc',
-     'Sinh viên đại học, chọn phương án thanh toán theo từng giai đoạn điều trị')
-ON CONFLICT (ma_benh_nhan) DO NOTHING;
+     'Răng dịch chuyển đúng lộ trình, vệ sinh răng miệng tốt', 85, 95)
+ON CONFLICT (ma_benh_nhan) DO UPDATE SET
+    diem_suc_khoe_ban_dau = EXCLUDED.diem_suc_khoe_ban_dau,
+    diem_suc_khoe_hien_tai = EXCLUDED.diem_suc_khoe_hien_tai,
+    ghi_chu = EXCLUDED.ghi_chu;
 
 -- ============================================================================
 -- DỮ LIỆU MẪU: BẢNG NHA SĨ (Level 1)
@@ -1364,7 +1367,7 @@ ON CONFLICT (ma_don_thuoc) DO UPDATE SET
 -- ============================================================================
 
 INSERT INTO vat_tu_su_dung (
-    ho_so_id, san_pham_id, so_luong, don_gia, ghi_chu
+    ho_so_id, san_pham_id, so_luong, don_gia, ghi_chu, created_at
 )
 VALUES
     -- 1. Bọc răng sứ GĐ2 (BN002 - HSBA_BOCSU_02 - Ngày 06/10/2026)
@@ -1374,7 +1377,8 @@ VALUES
         (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_MAO_CERCON'),
         4,
         6000000,
-        'Lắp cố định 4 mão toàn sứ Cercon HT răng 11, 12, 21, 22 (Khớp snapshot GĐ2: Mão toàn sứ Cercon HT-SP_MAO_CERCON)'
+        'Lắp cố định 4 mão toàn sứ Cercon HT răng 11, 12, 21, 22 (Khớp snapshot GĐ2: Mão toàn sứ Cercon HT-SP_MAO_CERCON)',
+        '2026-10-06 14:30:00+07'
     ),
 
     -- 2. Implant GĐ1 (BN003 - HSBA_IMPLANT_01 - Ngày 06/10/2026)
@@ -1384,7 +1388,18 @@ VALUES
         (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_IMP_CH'),
         1,
         38000000,
-        'Cấy ghép 01 trụ Implant Straumann SLA Thụy Sĩ vị trí răng 36 (Khớp snapshot GĐ1: Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH)'
+        'Cấy ghép 01 trụ Implant Straumann SLA Thụy Sĩ vị trí răng 36 (Khớp snapshot GĐ1: Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH)',
+        '2026-10-06 09:30:00+07'
+    ),
+
+    -- 3. Khám lẻ trám răng & lấy cao răng (BN001 - HSBA_KHAMLE_01 - Ngày 05/10/2026)
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_01'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_GANGTAY_M'),
+        1,
+        120000,
+        'Găng tay y tế Nitrile bảo hộ vô trùng ca khám lẻ',
+        '2026-10-05 09:00:00+07'
     );
 
 -- ============================================================================
@@ -1609,6 +1624,721 @@ BEGIN
     RETURN v_total_revenue;
 END;
 $$;
+
+-- ============================================================================
+-- DỮ LIỆU MẪU MỞ RỘNG: THÁNG 08/2026 & THÁNG 09/2026
+-- Phục vụ phân tích doanh thu chuỗi thời gian, tỷ lệ tăng trưởng và KPI Bác sĩ / Dịch vụ
+-- Gồm 6 bệnh nhân mới: 3 bệnh nhân tháng 8 (BN005, BN006, BN007)
+--                     3 bệnh nhân tháng 9 (BN008, BN009, BN010)
+-- Đầy đủ: Tài khoản, Bệnh nhân, Ca làm việc, Phác đồ, Lịch hẹn, Bệnh án,
+--         Giai đoạn phác đồ, Dịch vụ điều trị, Vật tư sử dụng, Đơn thuốc, Hóa đơn
+-- ============================================================================
+
+-- 1. BẢNG TÀI KHOẢN (Level 0)
+INSERT INTO tai_khoan (username, password_hash, google_id, loai_tai_khoan, trang_thai)
+VALUES
+    ('bn_vumaianh',       '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_dangminhtuan',   '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_phamngoclinh',   '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_buihoanglong',   '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_nguyenthuytrang', '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_lequocviet',     '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong')
+ON CONFLICT (username) DO NOTHING;
+
+-- 2. BẢNG BỆNH NHÂN (Level 1)
+INSERT INTO benh_nhan (
+    tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email,
+    dia_chi, hinh_anh_url, tien_su_benh, di_ung, ghi_chu,
+    diem_suc_khoe_ban_dau, diem_suc_khoe_hien_tai
+)
+VALUES
+    -- Tháng 8: BN005 (Khám lẻ: Nhổ răng khôn & Lấy cao răng)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_vumaianh'),
+     'BN005', 'Vũ Thị Mai Anh', '1998-09-12', 'nu', '0905556677', 'maianh.vu98@gmail.com',
+     '250 Hoàng Hoa Thám, Phường Liễu Giai, Quận Ba Đình, Hà Nội', NULL,
+     'Không có tiền sử bệnh tim mạch', 'Không có dị ứng thuốc đã biết',
+     'Răng khôn 38 mọc lệch 90 độ, mảng bám vôi răng độ 2', 80, 92),
+
+    -- Tháng 8: BN006 (Phác đồ Implant Thụy Sĩ trọn gói)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_dangminhtuan'),
+     'BN006', 'Đặng Minh Tuấn', '1975-04-18', 'nam', '0906667788', 'tuan.dang1975@gmail.com',
+     '18 Tam Trinh, Phường Mai Động, Quận Hoàng Mai, Hà Nội', NULL,
+     'Mất răng 46 lâu năm dẫn đến tiêu xương nhẹ', 'Không có dị ứng',
+     'Cấy ghép trụ Implant Straumann Thụy Sĩ vững chắc', 85, 95),
+
+    -- Tháng 8: BN007 (Khám lẻ: Tẩy trắng răng Laser + Trám composite)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_phamngoclinh'),
+     'BN007', 'Phạm Ngọc Linh', '2001-12-05', 'nu', '0907778899', 'linh.pham2001@gmail.com',
+     '56 Phố Huế, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội', NULL,
+     'Không có bệnh lý nền', 'Không dị ứng',
+     'Tẩy trắng răng thẩm mỹ và trám phục hồi răng cửa 21', 85, 95),
+
+    -- Tháng 9: BN008 (Phác đồ Bọc răng sứ Cercon HT 6 răng)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_buihoanglong'),
+     'BN008', 'Bùi Hoàng Long', '1988-07-22', 'nam', '0908889900', 'hoanglong.bui88@gmail.com',
+     '92 Lê Trọng Tấn, Phường Khương Mai, Quận Thanh Xuân, Hà Nội', NULL,
+     'Răng xỉn màu tetracycline độ 3', 'Không có dị ứng',
+     'Phục hình 6 răng sứ toàn phần Cercon HT thẩm mỹ nụ cười', 85, 95),
+
+    -- Tháng 9: BN009 (Phác đồ Niềng răng mắc cài tự buộc)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_nguyenthuytrang'),
+     'BN009', 'Nguyễn Thùy Trang', '2003-02-14', 'nu', '0909990011', 'thuytrang2003@gmail.com',
+     '102 Láng Hạ, Phường Thành Công, Quận Ba Đình, Hà Nội', NULL,
+     'Khớp cắn sâu hạng II, răng khấp khểnh', 'Không dị ứng',
+     'Chỉnh nha mắc cài sứ tự buộc Damon Clear 2 hai hàm', 85, 95),
+
+    -- Tháng 9: BN010 (Khám lẻ: Điều trị tủy răng cối lớn 46 + Trám composite)
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_lequocviet'),
+     'BN010', 'Lê Quốc Việt', '1990-10-30', 'nam', '0901001122', 'quocviet.le90@gmail.com',
+     '310 Minh Khai, Phường Vĩnh Tuy, Quận Hai Bà Trưng, Hà Nội', NULL,
+     'Viêm tủy cấp răng hàm 46 đau nhức từng cơn', 'Không dị ứng',
+     'Điều trị tủy cơ học triệt để và trám bít ống tủy 3D', 80, 90)
+ON CONFLICT (ma_benh_nhan) DO NOTHING;
+
+-- 3. BẢNG CA LÀM VIỆC (Level 2)
+INSERT INTO ca_lam_viec (nha_si_id, phong_dieu_tri_id, ngay, gio_bat_dau, gio_ket_thuc, trang_thai)
+VALUES
+    -- Tháng 8/2026
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS005'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P101'), '2026-08-10', '08:00:00', '12:00:00', 'da_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-08-18', '08:00:00', '12:00:00', 'da_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-08-25', '13:30:00', '17:30:00', 'da_dien_ra'),
+    -- Tháng 9/2026
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-08', '08:00:00', '12:00:00', 'da_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P102'), '2026-09-12', '13:30:00', '17:30:00', 'da_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P301'), '2026-09-18', '08:00:00', '12:00:00', 'da_dien_ra'),
+    ((SELECT id FROM nha_si WHERE ma_nha_si = 'NS004'), (SELECT id FROM phong_dieu_tri WHERE ma_phong = 'P201'), '2026-09-24', '13:30:00', '17:30:00', 'da_dien_ra');
+
+-- 4. BẢNG PHÁC ĐỒ ĐIỀU TRỊ (Level 3)
+INSERT INTO phac_do_dieu_tri (
+    ma_phac_do, benh_nhan_id, nha_si_id, phac_do_mau_id, ten_phac_do,
+    chan_doan_ban_dau, hinh_thuc_thanh_toan, trang_thai,
+    ngay_bat_dau, ngay_du_kien_hoan_thanh, ngay_hoan_thanh_thuc_te, ghi_chu
+)
+VALUES
+    -- 1. Phác đồ Cấy ghép Implant (BN006 - Tháng 8/2026 - Trả trọn gói)
+    (
+        'PDT_IMPLANT_002',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN006'),
+        (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001'),
+        (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_IMPLANT'),
+        'Phác đồ Cấy ghép Implant đơn lẻ răng 46',
+        'Mất răng 46 do viêm quanh chóp mãn tính đã nhổ 5 tháng, tiêu xương ổ răng nhẹ. Chỉ định cấy ghép 01 trụ Implant Straumann Thụy Sĩ.',
+        'tron_goi',
+        'dang_dieu_tri',
+        '2026-08-18',
+        '2026-11-20',
+        NULL,
+        'Bệnh nhân thanh toán 100% trọn gói ngay giai đoạn 1 qua thẻ thanh toán POS.'
+    ),
+
+    -- 2. Phác đồ Bọc răng sứ thẩm mỹ (BN008 - Tháng 9/2026 - Trả từng giai đoạn)
+    (
+        'PDT_BOCSU_002',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN008'),
+        (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002'),
+        (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_BOCSU'),
+        'Phác đồ Bọc 6 răng sứ toàn phần Cercon HT thẩm mỹ',
+        'Nhiễm màu tetracycline nặng 6 răng trước hàm trên (13, 12, 11, 21, 22, 23). Chỉ định bọc 6 mão toàn sứ Cercon HT bảo tồn tủy.',
+        'tung_giai_doan',
+        'hoan_thanh',
+        '2026-09-08',
+        '2026-09-12',
+        '2026-09-12',
+        'Hoàn tất phục hình 6 răng sứ Cercon HT, thanh toán theo 2 giai đoạn.'
+    ),
+
+    -- 3. Phác đồ Niềng răng mắc cài (BN009 - Tháng 9/2026 - Trả từng giai đoạn)
+    (
+        'PDT_NIENGRANG_002',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN009'),
+        (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003'),
+        (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_NIENGRANG'),
+        'Phác đồ Chỉnh nha Mắc cài sứ tự buộc Damon Clear 2',
+        'Sai khớp cắn hạng II, răng khấp khểnh hàm trên, chen chúc nhẹ hàm dưới. Chỉ định gắn mắc cài sứ tự buộc Damon Clear 2 hai hàm.',
+        'tung_giai_doan',
+        'dang_dieu_tri',
+        '2026-09-18',
+        '2028-03-18',
+        NULL,
+        'Bệnh nhân lựa chọn thanh toán theo 4 giai đoạn, đợt 1 gắn mắc cài sứ 2 hàm.'
+    )
+ON CONFLICT (ma_phac_do) DO NOTHING;
+
+-- 5. BẢNG LỊCH HẸN (Level 3)
+INSERT INTO lich_hen (
+    ma_lich_hen, benh_nhan_id, ca_lam_viec_id, dich_vu_id,
+    ngay_hen, gio_hen, gio_ket_thuc_du_kien, trang_thai, ghi_chu
+)
+VALUES
+    -- BN005 (10/08/2026): Tiểu phẫu nhổ răng khôn & lấy cao răng
+    (
+        'LH_KHAMLE_0810',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN005'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS005') AND ngay = '2026-08-10' AND gio_bat_dau = '08:00:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_RANGKHON'),
+        '2026-08-10', '08:30:00', '10:00:00', 'da_kham',
+        'Tiểu phẫu nhổ răng khôn hàm dưới lệch 90 độ và lấy cao răng 2 hàm.'
+    ),
+
+    -- BN006 (18/08/2026): Cấy trụ Implant Straumann
+    (
+        'LH_IMPLANT_0818',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN006'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS001') AND ngay = '2026-08-18' AND gio_bat_dau = '08:00:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_IMPLANT'),
+        '2026-08-18', '09:00:00', '11:00:00', 'da_kham',
+        'GĐ1 Implant: Khảo sát CT 3D & Phẫu thuật cấy trụ Straumann Thụy Sĩ răng 46.'
+    ),
+
+    -- BN007 (25/08/2026): Tẩy trắng Laser & trám composite
+    (
+        'LH_KHAMLE_0825',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN007'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002') AND ngay = '2026-08-25' AND gio_bat_dau = '13:30:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TAYTRANG'),
+        '2026-08-25', '14:00:00', '15:30:00', 'da_kham',
+        'Tẩy trắng răng Laser tại phòng khám kết hợp trám composite thẩm mỹ răng 21.'
+    ),
+
+    -- BN008 (08/09/2026): Bọc răng sứ Giai đoạn 1 (mài cùi lấy dấu)
+    (
+        'LH_BOCSU_0908',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN008'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002') AND ngay = '2026-09-08' AND gio_bat_dau = '08:00:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_BOCSU'),
+        '2026-09-08', '08:30:00', '10:30:00', 'da_kham',
+        'GĐ1 Bọc sứ: Mài cùi 6 răng trước hàm trên, lấy dấu 3D và gắn răng tạm bảo vệ.'
+    ),
+
+    -- BN008 (12/09/2026): Bọc răng sứ Giai đoạn 2 (lắp 6 mão Cercon HT)
+    (
+        'LH_BOCSU_0912',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN008'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS002') AND ngay = '2026-09-12' AND gio_bat_dau = '13:30:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_BOCSU'),
+        '2026-09-12', '14:00:00', '16:00:00', 'da_kham',
+        'GĐ2 Bọc sứ: Thử sườn, gắn cố định 6 mão toàn sứ Cercon HT và chỉnh khớp cắn.'
+    ),
+
+    -- BN009 (18/09/2026): Gắn mắc cài sứ tự buộc Damon Clear 2
+    (
+        'LH_NIENGRANG_0918',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN009'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS003') AND ngay = '2026-09-18' AND gio_bat_dau = '08:00:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_NIENGRANG'),
+        '2026-09-18', '09:00:00', '11:00:00', 'da_kham',
+        'GĐ1 Niềng răng: Khám phân tích sọ nghiêng, lấy dấu và gắn mắc cài sứ tự buộc 2 hàm.'
+    ),
+
+    -- BN010 (24/09/2026): Điều trị tủy răng cối 46 & trám composite
+    (
+        'LH_KHAMLE_0924',
+        (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN010'),
+        (SELECT id FROM ca_lam_viec WHERE nha_si_id = (SELECT id FROM nha_si WHERE ma_nha_si = 'NS004') AND ngay = '2026-09-24' AND gio_bat_dau = '13:30:00'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TUYRANG'),
+        '2026-09-24', '14:00:00', '15:30:00', 'da_kham',
+        'Điều trị tủy triệt để răng cối lớn 46 và trám phục hồi composite thẩm mỹ.'
+    )
+ON CONFLICT (ma_lich_hen) DO NOTHING;
+
+-- 6. BẢNG HỒ SƠ BỆNH ÁN (Level 4)
+INSERT INTO ho_so_benh_an (
+    ma_ho_so, lich_hen_id, chan_doan, phuong_phap_dieu_tri,
+    ket_qua, loi_dan, ngay_kham, ngay_tai_kham, tinh_trang_rang_mieng, ghi_chu
+)
+VALUES
+    -- BN005 (10/08/2026)
+    (
+        'HSBA_KHAMLE_0810',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0810'),
+        'Răng 38 mọc lệch 90 độ dắt thức ăn gây sâu chân răng 37; vôi răng mảng bám độ 2',
+        'Gây tê tại chỗ, rạch vạt bộc lộ xương, chia thân răng 38 và nhổ bỏ, khâu đóng vết mổ; lấy cao răng siêu âm và đánh bóng 2 hàm',
+        'Tiểu phẫu thuận lợi, nhổ trọn vẹn chân răng 38, vết mổ sạch kín, cầm máu tốt; cao răng sạch bóng',
+        'Cắn gạc 45 phút, chườm lạnh ngoài má 24h đầu, uống thuốc theo đơn, tái khám cắt chỉ sau 7 ngày',
+        '2026-08-10', '2026-08-17',
+        'Nướu lành thương ổn định, ổ răng sạch',
+        'Bệnh nhân tuân thủ dặn dò sau nhổ răng tốt'
+    ),
+
+    -- BN006 (18/08/2026)
+    (
+        'HSBA_IMPLANT_0818',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_0818'),
+        'Mất răng 46, tiêu xương ổ răng nhẹ, mật độ xương D2 thích hợp cấy ghép Implant',
+        'Gây tê tại chỗ, rạch vạt bộc lộ xương, khoan xương theo trình tự tiêu chuẩn và cấy ghép 01 trụ Implant Straumann SLA Thụy Sĩ (4.1 x 10mm), vặn nắp lành thương và khâu đóng vết mổ',
+        'Trụ Implant đạt lực siết sơ khởi (ISQ 76, torque 35 Ncm), vị trí lý tưởng, vết mổ khâu kín',
+        'Cắn gạc 45 phút, chườm lạnh ngoài má 24h đầu, uống thuốc theo toa, tái khám cắt chỉ sau 7 ngày',
+        '2026-08-18', '2026-08-25',
+        'Vết mổ ổn định, không chảy máu thêm',
+        'Phẫu thuật thành công hoàn hảo, thanh toán trọn gói qua thẻ POS'
+    ),
+
+    -- BN007 (25/08/2026)
+    (
+        'HSBA_KHAMLE_0825',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0825'),
+        'Men răng ố vàng độ B3 do thực phẩm, sâu men kẽ răng 21 xoang nhỏ',
+        'Cách ly nướu bằng Dam quang trùng hợp, tẩy trắng răng công nghệ Laser tại phòng khám kết hợp trám composite thẩm mỹ răng 21',
+        'Răng nâng 3 tông màu lên A1 sáng bóng tự nhiên, mối trám kẽ răng 21 khít sát hoàn hảo',
+        'Tránh uống nước có màu (cà phê, trà) trong 48h đầu, chải răng nhẹ nhàng bằng kem chống ê buốt',
+        '2026-08-25', '2027-02-25',
+        'Men răng sáng bóng, nướu viền hồng hào',
+        'Bệnh nhân rất hài lòng với màu răng mới'
+    ),
+
+    -- BN008 GĐ1 (08/09/2026)
+    (
+        'HSBA_BOCSU_0908',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0908'),
+        'Nhiễm màu tetracycline độ 3 nhóm răng cửa hàm trên, mòn men bờ cắn',
+        'Gây tê tại chỗ, mài cùi sinh học bảo tồn tủy 6 răng trước hàm trên, lấy dấu 3D gửi Labo và gắn răng tạm bảo vệ',
+        'Cùi răng mài đúng trục giải phẫu, đường hoàn tất rõ nét, tủy răng an toàn, răng tạm lưu giữ tốt',
+        'Ăn đồ mềm, tránh cắn đồ cứng bằng răng tạm, hẹn 4 ngày sau thử sườn và lắp mão sứ hoàn thiện',
+        '2026-09-08', '2026-09-12',
+        'Răng tạm ổn định, nướu viền lành thương tốt',
+        'Gửi Labo chế tác 6 mão Cercon HT màu A1 tự nhiên'
+    ),
+
+    -- BN008 GĐ2 (12/09/2026)
+    (
+        'HSBA_BOCSU_0912',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0912'),
+        'Hậu phục hình mài cùi 6 răng cửa hàm trên, cùi răng vững ổn',
+        'Tháo răng tạm, vệ sinh cùi răng, thử sườn 6 mão sứ Cercon HT, kiểm tra tiếp xúc điểm và gắn cố định bằng cement RelyX Luting 2, tinh chỉnh khớp cắn',
+        'Mão sứ Cercon HT màu sắc tự nhiên A1, khít sát bờ viền, khớp cắn chuẩn giải phẫu, thẩm mỹ nụ cười xuất sắc',
+        'Ăn nhai nhẹ nhàng trong 24h đầu, sử dụng chỉ nha khoa kẽ răng, bàn giao sổ bảo hành chính hãng 10 năm',
+        '2026-09-12', '2027-03-12',
+        'Nướu ôm sát viền mão sứ, thẩm mỹ hoàn hảo',
+        'Hoàn tất toàn bộ phác đồ bọc 6 răng sứ Cercon HT'
+    ),
+
+    -- BN009 (18/09/2026)
+    (
+        'HSBA_NIENGRANG_0918',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_0918'),
+        'Sai khớp cắn hạng II, răng khấp khểnh hàm trên',
+        'Vệ sinh bề mặt men răng, dán gắn mắc cài sứ tự buộc Damon Clear 2 hai hàm, luồn dây cung NiTi kích hoạt nhiệt ban đầu',
+        'Hệ thống mắc cài sứ gắn đúng vị trí giải phẫu trục thân răng, dây cung lưu giữ tốt, không cọ xát mô mềm',
+        'Vệ sinh răng miệng bằng bàn chải kẽ và chỉ nha khoa chuyên dụng, hạn chế đồ dính hoặc cứng, tái khám sau 4 tuần',
+        '2026-09-18', '2026-10-18',
+        'Mắc cài vững chắc, mô mềm nướu thích nghi tốt',
+        'Bệnh nhân tuân thủ lịch tái khám định kỳ siết lực'
+    ),
+
+    -- BN010 (24/09/2026)
+    (
+        'HSBA_KHAMLE_0924',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0924'),
+        'Viêm tủy cấp không hồi phục răng cối lớn 46, sâu men ngà mặt nhai',
+        'Gây tê tại chỗ, đặt đê cao su, mở buồng tủy, lấy tủy buồng và tủy chân 3 ống tủy, bơm rửa sát khuẩn, trám bít ống tủy 3D bằng Gutta-percha và trám phục hồi composite thẩm mỹ',
+        '3 ống tủy trám bít khít sát đến chóp sinh học, hết cảm giác đau buốt, mối trám phục hồi vững chắc',
+        'Tránh nhai đồ cứng tại vị trí răng 46 trong 24h đầu, súc miệng nước ấm, theo dõi tái khám sau 6 tháng',
+        '2026-09-24', '2027-03-24',
+        'Răng 46 hết đau nhức, gõ không đau, mô nha chu quanh chóp bình thường',
+        'Điều trị tủy cơ học thành công trọn vẹn'
+    )
+ON CONFLICT (ma_ho_so) DO NOTHING;
+
+-- 7. BẢNG GIAI ĐOẠN PHÁC ĐỒ (Level 4)
+INSERT INTO giai_doan_phac_do (
+    phac_do_id, buoc_so, ten_giai_doan, mo_ta, mo_ta_vat_tu_dich_vu,
+    chi_phi, trang_thai_thanh_toan, lich_hen_id, trang_thai,
+    ngay_du_kien, ngay_thuc_hien, co_phat_sinh, ghi_chu
+)
+VALUES
+    -- Phác đồ Implant PDT_IMPLANT_002 (BN006 - Tháng 8/2026)
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
+        1,
+        'Khảo sát CT 3D & Phẫu thuật cấy trụ Implant',
+        'Chụp phim CT ConeBeam 3D, lập kế hoạch định vị máng hướng dẫn và cấy ghép trụ titanium vào xương hàm',
+        'Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH',
+        38000000,
+        'da_thanh_toan',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_0818'),
+        'da_hoan_thanh',
+        '2026-08-18', '2026-08-18', FALSE,
+        'Bệnh nhân thanh toán 100% trọn gói trụ Straumann SLA ngay đợt 1 qua thẻ POS.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
+        2,
+        'Tái khám cắt chỉ & Chờ tích hợp xương hàm',
+        'Kiểm tra vết thương, cắt chỉ phẫu thuật và theo dõi quá trình lành thương, tích hợp xương',
+        'Tái khám cắt chỉ và theo dõi tích hợp xương',
+        0,
+        'da_thanh_toan',
+        NULL,
+        'da_hoan_thanh',
+        '2026-08-25', '2026-08-25', FALSE,
+        'Tái khám cắt chỉ phẫu thuật ngày 25/08/2026.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
+        3,
+        'Lấy dấu, gắn Abutment & Lắp mão sứ hoàn thiện',
+        'Mở nắp lành thương, gắn khớp nối Abutment, lấy dấu phục hình và gắn cố định mão răng sứ lên trụ',
+        'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
+        6000000,
+        'da_thanh_toan',
+        NULL,
+        'chua_thuc_hien',
+        '2026-11-20', NULL, FALSE,
+        'Đã thanh toán trọn gói 1 lần từ buổi đầu.'
+    ),
+
+    -- Phác đồ Bọc sứ PDT_BOCSU_002 (BN008 - Tháng 9/2026)
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_BOCSU_002'),
+        1,
+        'Mài cùi răng sinh học, lấy dấu & Gắn răng tạm',
+        'Mài cùi 6 răng trước hàm trên theo tỷ lệ bảo tồn, lấy dấu cao su chính xác chuyển Labo và gắn răng tạm bảo vệ',
+        'Dịch vụ mài cùi và gắn răng tạm',
+        0,
+        'da_thanh_toan',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0908'),
+        'da_hoan_thanh',
+        '2026-09-08', '2026-09-08', FALSE,
+        'Giai đoạn chuẩn bị, chi phí kỹ thuật đi kèm trọn gói bọc răng sứ.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_BOCSU_002'),
+        2,
+        'Thử sườn, gắn cố định mão răng sứ & Chỉnh khớp cắn',
+        'Thử độ khít sát viền nướu, màu sắc thẩm mỹ, gắn cố định bằng cement nha khoa chuyên dụng và tinh chỉnh khớp cắn',
+        'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
+        36000000,
+        'da_thanh_toan',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0912'),
+        'da_hoan_thanh',
+        '2026-09-12', '2026-09-12', FALSE,
+        'Lắp 6 mão toàn sứ Cercon HT (6 x 6.000.000đ = 36.000.000đ), thanh toán qua chuyển khoản.'
+    ),
+
+    -- Phác đồ Niềng răng PDT_NIENGRANG_002 (BN009 - Tháng 9/2026)
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_002'),
+        1,
+        'Khám khớp cắn, lấy dấu & Gắn mắc cài 2 hàm',
+        'Khám toàn diện, chụp phim sọ nghiêng, lấy dấu quét mẫu hàm 3D và gắn hệ thống mắc cài sứ tự buộc Damon Clear 2 hai hàm',
+        'Bộ mắc cài sứ tự buộc Damon Clear 2-SP_MC_SU',
+        18000000,
+        'da_thanh_toan',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_0918'),
+        'da_hoan_thanh',
+        '2026-09-18', '2026-09-18', FALSE,
+        'Gắn 2 bộ mắc cài sứ tự buộc (2 hàm x 9.000.000đ = 18.000.000đ), thanh toán qua thẻ POS.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_002'),
+        2,
+        'Tinh chỉnh khớp cắn & Thay thun / Dây cung đợt 1',
+        'Kiểm tra dịch chuyển răng, thay dây cung tăng tiết diện và thay thun chuỗi đóng khoảng',
+        'Tái khám định kỳ siết lực',
+        0,
+        'chua_thanh_toan',
+        NULL,
+        'chua_thuc_hien',
+        '2026-10-18', NULL, FALSE,
+        'Tái khám tháng thứ 1.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_002'),
+        3,
+        'Siết lực đóng khoảng & Tinh chỉnh trục răng đợt 2',
+        'Kéo đóng khoảng nhổ răng và tinh chỉnh trục thân răng',
+        'Tái khám siết lực đợt 2',
+        0,
+        'chua_thanh_toan',
+        NULL,
+        'chua_thuc_hien',
+        '2027-03-18', NULL, FALSE,
+        'Tái khám tháng thứ 6.'
+    ),
+    (
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_002'),
+        4,
+        'Tháo mắc cài, vệ sinh & Bàn giao hàm duy trì',
+        'Tháo toàn bộ mắc cài, đánh bóng men răng và bàn giao máng duy trì',
+        'Máng duy trì trong suốt',
+        1500000,
+        'chua_thanh_toan',
+        NULL,
+        'chua_thuc_hien',
+        '2028-03-18', NULL, FALSE,
+        'Hoàn tất chỉnh nha.'
+    )
+ON CONFLICT (phac_do_id, buoc_so) DO NOTHING;
+
+-- 8. BẢNG DỊCH VỤ ĐIỀU TRỊ (Level 5)
+INSERT INTO dich_vu_dieu_tri (
+    ho_so_id, chi_tiet_dich_vu_id, so_luong, don_gia, vi_tri_rang, ghi_chu
+)
+VALUES
+    -- BN005 (10/08/2026): Nhổ răng khôn khó + Lấy cao răng trung bình
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_RK_DUOI'),
+        1,
+        3000000,
+        'Răng 38',
+        'Tiểu phẫu nhổ răng khôn hàm dưới lệch khó'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_CR_TB'),
+        1,
+        550000,
+        '2 hàm',
+        'Lấy cao răng mức độ trung bình 2 hàm và đánh bóng'
+    ),
+
+    -- BN007 (25/08/2026): Tẩy trắng tại phòng khám + Trám composite
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0825'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TT_PHONG'),
+        1,
+        2500000,
+        '2 hàm',
+        'Tẩy trắng răng công nghệ Laser tại phòng khám'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0825'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TR_NHO'),
+        1,
+        750000,
+        'Răng 21',
+        'Trám thẩm mỹ composite nhỏ kẽ răng 21'
+    ),
+
+    -- BN010 (24/09/2026): Điều trị tủy răng cối + Trám composite lớn
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TUY_COI'),
+        1,
+        4500000,
+        'Răng 46',
+        'Điều trị tủy triệt để răng cối lớn 46'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
+        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TR_LON'),
+        1,
+        1000000,
+        'Răng 46',
+        'Trám phục hồi composite lớn xoang mặt nhai răng 46'
+    );
+
+-- 9. BẢNG VẬT TƯ SỬ DỤNG (Level 5)
+INSERT INTO vat_tu_su_dung (
+    ho_so_id, san_pham_id, so_luong, don_gia, ghi_chu, created_at
+)
+VALUES
+    -- 1. BN005 (10/08/2026): Kim tiêm gây tê & Găng tay y tế tiểu phẫu nhổ răng khôn
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_KIMTIEM_30G'),
+        2,
+        150000,
+        'Kim tiêm gây tê nha khoa 30G ngắn phục vụ tiểu phẫu nhổ răng 38',
+        '2026-08-10 08:45:00+07'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_GANGTAY_M'),
+        1,
+        120000,
+        'Găng tay y tế Nitrile không bột size M',
+        '2026-08-10 08:45:00+07'
+    ),
+
+    -- 2. BN006 (18/08/2026): Cấy ghép trụ Straumann Thụy Sĩ (GĐ1 phác đồ)
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_IMPLANT_0818'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_IMP_CH'),
+        1,
+        38000000,
+        'Cấy ghép 01 trụ Implant Straumann SLA Thụy Sĩ răng 46 (Khớp snapshot GĐ1: Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH)',
+        '2026-08-18 09:30:00+07'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_IMPLANT_0818'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_KIMTIEM_30G'),
+        2,
+        150000,
+        'Kim tiêm gây tê nha khoa 30G phẫu thuật cấy ghép trụ',
+        '2026-08-18 09:30:00+07'
+    ),
+
+    -- 3. BN007 (25/08/2026): Găng tay y tế ca tẩy trắng laser
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0825'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_GANGTAY_M'),
+        1,
+        120000,
+        'Găng tay y tế Nitrile bảo hộ ca tẩy trắng Laser',
+        '2026-08-25 14:15:00+07'
+    ),
+
+    -- 4. BN008 (12/09/2026): 6 Mão toàn sứ Cercon HT (GĐ2 phác đồ bọc răng sứ)
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_BOCSU_0912'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_MAO_CERCON'),
+        6,
+        6000000,
+        'Lắp cố định 6 mão toàn sứ Cercon HT răng 13, 12, 11, 21, 22, 23 (Khớp snapshot GĐ2: Mão toàn sứ Cercon HT-SP_MAO_CERCON)',
+        '2026-09-12 14:30:00+07'
+    ),
+
+    -- 5. BN009 (18/09/2026): 2 Bộ Mắc cài sứ tự buộc Damon Clear 2 (GĐ1 phác đồ niềng răng)
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_NIENGRANG_0918'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_MC_SU'),
+        2,
+        9000000,
+        'Gắn 2 bộ mắc cài sứ tự buộc Damon Clear 2 hai hàm (Khớp snapshot GĐ1: Bộ mắc cài sứ tự buộc Damon Clear 2-SP_MC_SU)',
+        '2026-09-18 09:30:00+07'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_NIENGRANG_0918'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_DAY_NITI'),
+        1,
+        300000,
+        'Cặp dây cung NiTi kích hoạt nhiệt kích hoạt di chuyển răng',
+        '2026-09-18 09:30:00+07'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_NIENGRANG_0918'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_THUN_CH'),
+        1,
+        100000,
+        'Bộ thun chuỗi đóng khoảng chỉnh nha',
+        '2026-09-18 09:30:00+07'
+    ),
+
+    -- 6. BN010 (24/09/2026): Kim tiêm gây tê & Găng tay điều trị tủy răng 46
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_KIMTIEM_30G'),
+        2,
+        150000,
+        'Kim tiêm gây tê nha khoa 30G điều trị tủy răng cối 46',
+        '2026-09-24 14:15:00+07'
+    ),
+    (
+        (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
+        (SELECT id FROM san_pham WHERE ma_san_pham = 'SP_GANGTAY_M'),
+        1,
+        120000,
+        'Găng tay y tế Nitrile không bột size M',
+        '2026-09-24 14:15:00+07'
+    );
+
+-- 10. BẢNG HÓA ĐƠN (Level 4)
+INSERT INTO hoa_don (
+    ma_hoa_don, lich_hen_id, phac_do_dieu_tri_id, nhan_vien_id,
+    khuyen_mai_id, phuong_thuc_thanh_toan, trang_thai_thanh_toan,
+    ngay_lap, ngay_thanh_toan, ghi_chu
+)
+VALUES
+    -- 1. BN005 (10/08/2026): Nhổ răng khôn + lấy cao răng -> 3.550.000 VNĐ, Chuyển khoản
+    (
+        'HD_KHAMLE_0810',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0810'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
+        NULL,
+        'chuyen_khoan',
+        'da_thanh_toan',
+        '2026-08-10 10:15:00+07',
+        '2026-08-10 10:20:00+07',
+        'Thu phí tiểu phẫu nhổ răng 38 và lấy cao răng 2 hàm qua chuyển khoản VietQR.'
+    ),
+
+    -- 2. BN006 (18/08/2026): Phác đồ Implant Straumann trả trọn gói 44tr - giảm 2tr voucher = 42.000.000 VNĐ, Thẻ POS
+    (
+        'HD_IMPLANT_0818',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_0818'),
+        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV002'),
+        (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_IMPLANT'),
+        'chuyen_khoan',
+        'da_thanh_toan',
+        '2026-08-18 11:15:00+07',
+        '2026-08-18 11:20:00+07',
+        'Thanh toán trọn gói phác đồ Implant Thụy Sĩ qua quẹt thẻ POS, áp voucher giảm 2 triệu.'
+    ),
+
+    -- 3. BN007 (25/08/2026): Tẩy trắng Laser + trám răng 3.250.000đ - giảm 10% = 2.925.000 VNĐ, Tiền mặt
+    (
+        'HD_KHAMLE_0825',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0825'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
+        (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_HE2026'),
+        'tien_mat',
+        'da_thanh_toan',
+        '2026-08-25 15:35:00+07',
+        '2026-08-25 15:40:00+07',
+        'Thu phí tẩy trắng răng Laser và trám composite răng 21, áp mã hè giảm 10%.'
+    ),
+
+    -- 4. BN008 (08/09/2026): Bọc sứ GĐ1 mài cùi lấy dấu -> 0 VNĐ
+    (
+        'HD_BOCSU_0908',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0908'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
+        NULL,
+        'chuyen_khoan',
+        'da_thanh_toan',
+        '2026-09-08 10:30:00+07',
+        '2026-09-08 10:35:00+07',
+        'Giai đoạn 1 mài cùi 6 răng và gắn răng tạm: Chi phí 0 VNĐ.'
+    ),
+
+    -- 5. BN008 (12/09/2026): Bọc sứ GĐ2 gắn 6 mão Cercon HT -> 36.000.000 VNĐ, Chuyển khoản
+    (
+        'HD_BOCSU_0912',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0912'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
+        NULL,
+        'chuyen_khoan',
+        'da_thanh_toan',
+        '2026-09-12 15:45:00+07',
+        '2026-09-12 15:50:00+07',
+        'Thanh toán đợt 2 gắn 6 mão toàn sứ Cercon HT qua chuyển khoản ngân hàng.'
+    ),
+
+    -- 6. BN009 (18/09/2026): Niềng răng GĐ1 gắn mắc cài sứ 2 hàm -> 18.000.000 VNĐ, Thẻ POS
+    (
+        'HD_NIENGRANG_0918',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_0918'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV002'),
+        NULL,
+        'chuyen_khoan',
+        'da_thanh_toan',
+        '2026-09-18 10:30:00+07',
+        '2026-09-18 10:35:00+07',
+        'Thanh toán đợt 1 gắn mắc cài sứ Damon Clear 2 hai hàm qua thẻ POS.'
+    ),
+
+    -- 7. BN010 (24/09/2026): Điều trị tủy răng cối + trám composite -> 5.500.000 VNĐ, Tiền mặt
+    (
+        'HD_KHAMLE_0924',
+        (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0924'),
+        NULL,
+        (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
+        NULL,
+        'tien_mat',
+        'da_thanh_toan',
+        '2026-09-24 15:40:00+07',
+        '2026-09-24 15:45:00+07',
+        'Thu tiền mặt điều trị tủy răng cối lớn 46 và trám composite lớn.'
+    )
+ON CONFLICT (ma_hoa_don) DO NOTHING;
 
 -- ============================================================================
 -- VIEW: v_dich_vu_da_thanh_toan

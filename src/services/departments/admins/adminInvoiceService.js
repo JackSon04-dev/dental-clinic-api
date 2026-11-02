@@ -180,7 +180,19 @@ export const updateInvoicePaymentService = async (
   }
 
   if (invoice.trangThaiThanhToan === 'da_thanh_toan') {
-    throw new ApiError(400, 'Hóa đơn này đã được xác nhận thanh toán trước đó');
+    // Hóa đơn đã thanh toán: cho phép cập nhật lại phương thức thanh toán và ghi chú đối soát
+    await prisma.hoaDon.update({
+      where: { id },
+      data: {
+        phuongThucThanhToan: paymentMethod,
+        ghiChu: note !== undefined ? note : invoice.ghiChu,
+      },
+    });
+    const updatedInvoice = await prisma.hoaDon.findUnique({
+      where: { id },
+      include: invoiceRelationsInclude,
+    });
+    return adminInvoiceDetailResponseSchema(updatedInvoice);
   }
 
   if (invoice.trangThaiThanhToan === 'da_huy') {

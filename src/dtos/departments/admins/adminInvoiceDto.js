@@ -25,10 +25,10 @@ export const adminGetInvoicesQuerySchema = Joi.object({
       'any.only': 'Tham số status phải là một trong: ALL, chua_thanh_toan, da_thanh_toan, da_huy',
     }),
   paymentMethod: Joi.string()
-    .valid('ALL', 'tien_mat', 'chuyen_khoan')
+    .valid('ALL', 'tien_mat', 'chuyen_khoan', 'the')
     .default('ALL')
     .messages({
-      'any.only': 'Tham số paymentMethod phải là một trong: ALL, tien_mat, chuyen_khoan',
+      'any.only': 'Tham số paymentMethod phải là một trong: ALL, tien_mat, chuyen_khoan, the',
     }),
   fromDate: Joi.string()
     .isoDate()
@@ -62,11 +62,11 @@ export const adminInvoiceIdParamSchema = Joi.object({
  */
 export const adminUpdateInvoicePaymentRequestSchema = Joi.object({
   paymentMethod: Joi.string()
-    .valid('tien_mat', 'chuyen_khoan')
+    .valid('tien_mat', 'chuyen_khoan', 'the')
     .required()
     .messages({
       'any.required': 'Phương thức thanh toán không được để trống',
-      'any.only': 'Phương thức thanh toán phải là: tien_mat hoặc chuyen_khoan',
+      'any.only': 'Phương thức thanh toán phải là: tien_mat, chuyen_khoan hoặc the',
     }),
   paymentDate: Joi.string()
     .isoDate()
@@ -204,13 +204,20 @@ export const calculateInvoiceFinancials = (invoice) => {
 export const adminInvoiceListItemResponseSchema = (invoice) => {
   if (!invoice) return null;
 
-  const { financialSummary } = calculateInvoiceFinancials(invoice);
+  const { services, materials, financialSummary } = calculateInvoiceFinancials(invoice);
   const benhNhan = invoice.lichHen?.benhNhan;
   const nhaSi = invoice.lichHen?.caLamViec?.nhaSi;
   const thuNgan = invoice.nhanVien;
   const giaiDoan = invoice.lichHen?.giaiDoanPhacDo;
   const phacDo = invoice.phacDoDieuTri || giaiDoan?.phacDoDieuTri;
   const voucher = invoice.khuyenMai;
+  const primaryService =
+    invoice.lichHen?.dichVu?.tenDichVu ||
+    phacDo?.tenPhacDo ||
+    giaiDoan?.tenGiaiDoan ||
+    (services.length > 0 ? services[0].itemName : null) ||
+    (materials.length > 0 ? materials[0].productName : null) ||
+    "Khám tổng quát";
 
   return {
     id: invoice.id,
@@ -221,6 +228,18 @@ export const adminInvoiceListItemResponseSchema = (invoice) => {
     status: invoice.trangThaiThanhToan,
     notes: invoice.ghiChu,
     cancelReason: invoice.lyDoHuy,
+    primaryService,
+    services,
+    materials,
+    appointment: invoice.lichHen
+      ? {
+          id: invoice.lichHen.id,
+          code: invoice.lichHen.maLichHen,
+          appointmentDate: invoice.lichHen.ngayHen,
+          appointmentTime: invoice.lichHen.gioHen,
+          primaryService: invoice.lichHen.dichVu?.tenDichVu || null,
+        }
+      : null,
     patient: benhNhan
       ? {
           id: benhNhan.id,
