@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- DENTAL CLINIC DATABASE - DỮ LIỆU MẪU TỔNG HỢP (MOCK DATA)
 -- Tự động sinh từ 22 file SQL theo thứ tự dependency (Level 0 → 6)
 -- Ngày cập nhật: 2026-10-16
@@ -165,6 +165,260 @@ VALUES
      NULL,
      'Kim tiêm nha khoa sử dụng 1 lần tiệt trùng dùng gây tê cục bộ', 'hoat_dong')
 ON CONFLICT (ma_san_pham) DO NOTHING;
+
+-- ============================================================================
+-- DỮ LIỆU MẪU: THƯ VIỆN THUỐC KÊ ĐƠN (Level 0)
+-- Danh mục thuốc nha khoa chuẩn hóa dùng cho Bác sĩ tìm kiếm & kê đơn nhanh
+-- ============================================================================
+
+INSERT INTO thuoc (
+    ma_thuoc, ten_thuoc, ten_biet_duoc, hoat_chat, ham_luong, dang_bao_che,
+    duong_dung, don_vi_tinh, nhom_thuoc, lieu_dung_mac_dinh, so_lan_ngay_mac_dinh,
+    thoi_diem_uong_mac_dinh, huong_dan_mac_dinh, chong_chi_dinh, gia_tham_khao, trang_thai
+)
+VALUES
+    -- 1. Kháng sinh nha khoa
+    (
+        'TH_AUG1G',
+        'Augmentin 1g',
+        'Augmentin 1g (GlaxoSmithKline)',
+        'Amoxicillin + Acid clavulanic',
+        '1000mg (875mg/125mg)',
+        'Viên nén bao phim',
+        'Uống',
+        'Viên',
+        'Kháng sinh',
+        '1 viên / lần',
+        2,
+        'Sau khi ăn no (sáng 8h - tối 20h)',
+        'Uống trọn viên thuốc với 1 cốc nước lớn ngay đầu bữa ăn. Uống đủ liều 5-7 ngày liên tục, không tự ý ngưng thuốc.',
+        'Mẫn cảm với nhóm Penicillin, Beta-lactam. Tiền sử vàng da/suy gan liên quan Amoxicillin.',
+        24000,
+        'hoat_dong'
+    ),
+    (
+        'TH_RODOGYL',
+        'Rodogyl',
+        'Rodogyl (Sanofi)',
+        'Spiramycin + Metronidazole',
+        '750.000 IU / 125mg',
+        'Viên nén bao phim',
+        'Uống',
+        'Viên',
+        'Kháng sinh',
+        '2 viên / lần',
+        2,
+        'Trong bữa ăn hoặc sau ăn no',
+        'Uống nhiều nước. Tuyệt đối không uống rượu bia trong thời gian dùng thuốc và 48h sau ngưng thuốc.',
+        'Mẫn cảm với Metronidazole, Spiramycin. Phụ nữ mang thai 3 tháng đầu hoặc đang cho con bú.',
+        11000,
+        'hoat_dong'
+    ),
+    (
+        'TH_AMOX500',
+        'Amoxicillin 500mg',
+        'Amoxicillin 500mg (DHG)',
+        'Amoxicillin',
+        '500mg',
+        'Viên nang cứng',
+        'Uống',
+        'Viên',
+        'Kháng sinh',
+        '1 viên / lần',
+        3,
+        'Sau ăn no (cách đều 8 tiếng)',
+        'Uống đều đặn mỗi 8 tiếng với nhiều nước. Uống đủ liệu trình tối thiểu 5 ngày.',
+        'Tiền sử dị ứng kháng sinh nhóm Penicillin hoặc Cephalosporin.',
+        2500,
+        'hoat_dong'
+    ),
+    (
+        'TH_CLINDA300',
+        'Clindamycin 300mg',
+        'Clindamycin 300mg (MIP Pharma)',
+        'Clindamycin hydrochloride',
+        '300mg',
+        'Viên nang cứng',
+        'Uống',
+        'Viên',
+        'Kháng sinh',
+        '1 viên / lần',
+        3,
+        'Sau khi ăn no với 1 ly nước lớn',
+        'Uống thuốc ở tư thế ngồi hoặc đứng thẳng với 1 ly nước đầy để tránh kích ứng thực quản.',
+        'Mẫn cảm với Clindamycin/Lincomycin. Tiền sử viêm đại tràng giả mạc.',
+        8500,
+        'hoat_dong'
+    ),
+
+    -- 2. Giảm đau - Hạ sốt
+    (
+        'TH_PANADOL_EXTRA',
+        'Panadol Extra',
+        'Panadol Extra đỏ (GSK)',
+        'Paracetamol + Caffeine',
+        '500mg / 65mg',
+        'Viên nén bao phim',
+        'Uống',
+        'Viên',
+        'Giảm đau - Hạ sốt',
+        '1 viên / lần',
+        2,
+        'Sau khi ăn no khi có cảm giác đau nhức',
+        'Chỉ dùng khi có cảm giác đau nhức, ê buốt. Mỗi lần uống cách nhau tối thiểu 4-6 giờ. Không dùng quá 8 viên/ngày.',
+        'Quá mẫn với Paracetamol hoặc Caffeine. Bệnh nhân suy tế bào gan nặng, thiếu hụt G6PD.',
+        3000,
+        'hoat_dong'
+    ),
+    (
+        'TH_EFFER500',
+        'Efferalgan 500mg',
+        'Efferalgan 500mg (UPSA)',
+        'Paracetamol',
+        '500mg',
+        'Viên sủi bọt',
+        'Uống',
+        'Viên',
+        'Giảm đau - Hạ sốt',
+        '1 viên / lần',
+        3,
+        'Hòa tan nước sau ăn khi đau',
+        'Hòa tan hoàn toàn 1 viên trong 150-200ml nước đun sôi để nguội, uống khi hết bọt khí. Mỗi liều cách nhau tối thiểu 4-6 tiếng.',
+        'Suy tế bào gan nặng, mẫn cảm với Paracetamol. Cần thận trọng với bệnh nhân ăn kiêng muối (natri).',
+        5500,
+        'hoat_dong'
+    ),
+    (
+        'TH_EFFER_CODEINE',
+        'Efferalgan Codeine',
+        'Efferalgan Codeine (UPSA)',
+        'Paracetamol + Codeine phosphate',
+        '500mg / 30mg',
+        'Viên sủi bọt',
+        'Uống',
+        'Viên',
+        'Giảm đau thần kinh',
+        '1 viên / lần',
+        2,
+        'Hòa tan nước sau ăn khi đau nhiều',
+        'Hòa tan hoàn toàn trong nước rồi uống. Dùng giảm đau mức độ vừa sau tiểu phẫu/nhổ răng khôn. Có thể gây buồn ngủ nhẹ.',
+        'Trẻ dưới 12 tuổi, suy hô hấp, hen suyễn, suy gan nặng, phụ nữ cho con bú.',
+        9000,
+        'hoat_dong'
+    ),
+
+    -- 3. Kháng viêm & Chống phù nề
+    (
+        'TH_ALPHACHOAY',
+        'Alpha Choay',
+        'Alpha Choay Sanofi',
+        'Chymotrypsin',
+        '4.2mg (21 microkatals)',
+        'Viên ngậm dưới lưỡi',
+        'Ngậm dưới lưỡi',
+        'Viên',
+        'Kháng viêm dạng men',
+        '2 viên / lần',
+        2,
+        'Ngậm dưới lưỡi sau bữa ăn (sáng - chiều)',
+        'Đặt 2 viên dưới lưỡi để thuốc tan tự nhiên từ từ, không nuốt trọn hay nhai vỡ viên để đạt hiệu quả chống phù nề mô tốt nhất.',
+        'Mẫn cảm với Chymotrypsin, bệnh nhân giảm đông máu hoặc đang dùng thuốc kháng đông.',
+        4000,
+        'hoat_dong'
+    ),
+    (
+        'TH_IBU400',
+        'Ibuprofen 400mg',
+        'Ibuprofen Stada 400mg',
+        'Ibuprofen',
+        '400mg',
+        'Viên nén bao phim',
+        'Uống',
+        'Viên',
+        'Kháng viêm giảm đau (NSAID)',
+        '1 viên / lần',
+        2,
+        'Sau khi ăn no (khi cảm thấy đau nhức)',
+        'Uống sau bữa ăn no khi có cảm giác đau nhiều, mỗi lần cách nhau tối thiểu 6-8 tiếng. Không uống khi đói để bảo vệ dạ dày.',
+        'Viêm loét dạ dày tá tràng tiến triển, suy thận/suy tim nặng, phụ nữ mang thai 3 tháng cuối.',
+        3500,
+        'hoat_dong'
+    ),
+    (
+        'TH_MEDROL16',
+        'Medrol 16mg',
+        'Medrol 16mg (Pfizer)',
+        'Methylprednisolone',
+        '16mg',
+        'Viên nén',
+        'Uống',
+        'Viên',
+        'Kháng viêm Corticoid',
+        '1 viên / lần',
+        1,
+        'Uống 1 lần duy nhất vào buổi sáng sau ăn no (8h)',
+        'Uống trọn viên sau bữa sáng no. Không tự ý ngưng thuốc đột ngột nếu dùng liệu trình kéo dài.',
+        'Nhiễm nấm toàn thân, mẫn cảm Methylprednisolone, loét dạ dày tá tràng tiến triển.',
+        12000,
+        'hoat_dong'
+    ),
+
+    -- 4. Dung dịch súc miệng & Gel bôi nha khoa
+    (
+        'TH_KIN_GINGIVAL',
+        'Nước súc miệng Kin Gingival 250ml',
+        'Kin Gingival Mouthwash (Laboratorios Kin)',
+        'Chlorhexidine digluconate + Sodium Fluoride',
+        '0.12% + 0.05%',
+        'Dung dịch súc miệng',
+        'Súc miệng',
+        'Chai',
+        'Dung dịch sát khuẩn',
+        '10ml - 15ml / lần',
+        2,
+        'Sáng và tối trước khi đi ngủ sau khi chải răng',
+        'Ngậm dung dịch súc đều các kẽ răng trong 1 phút rồi nhổ ra. Không súc lại bằng nước lọc và không ăn uống trong 30 phút sau khi súc.',
+        'Mẫn cảm với Chlorhexidine digluconate.',
+        135000,
+        'hoat_dong'
+    ),
+    (
+        'TH_MEDORAL250',
+        'Nước súc miệng Medoral 250ml',
+        'Medoral 250ml (Merap)',
+        'Chlorhexidine digluconate',
+        '0.2%',
+        'Dung dịch súc miệng',
+        'Súc miệng',
+        'Chai',
+        'Dung dịch sát khuẩn',
+        '15ml / lần',
+        3,
+        'Sau khi chải răng sạch',
+        'Dùng 15ml dung dịch súc nhẹ nhàng khoang miệng trong 30 giây rồi nhổ bỏ. Không nuốt, không súc lại bằng nước lọc và không ăn uống trong 30 phút sau khi súc.',
+        'Mẫn cảm với Chlorhexidine hoặc bất kỳ thành phần nào của dung dịch.',
+        95000,
+        'hoat_dong'
+    ),
+    (
+        'TH_KAMISTAD',
+        'Kamistad-Gel N',
+        'Kamistad-Gel N (Stada)',
+        'Lidocaine HCl + Chiết xuất hoa cúc Matricaria',
+        '10g',
+        'Gel bôi niêm mạc miệng',
+        'Bôi tại chỗ',
+        'Tuýp',
+        'Gel làm dịu niêm mạc',
+        'Thoa lượng bằng hạt đậu quanh viền nướu',
+        3,
+        'Sau khi vệ sinh răng miệng sạch',
+        'Dùng tăm bông sạch lấy một lượng nhỏ thoa nhẹ quanh bờ viền nướu để làm dịu cảm giác cộm rát hoặc ê buốt.',
+        'Mẫn cảm với Lidocaine hoặc các chất gây tê amid cục bộ khác, mẫn cảm hoa cúc.',
+        55000,
+        'hoat_dong'
+    )
+ON CONFLICT (ma_thuoc) DO NOTHING;
 
 -- ============================================================================
 -- DỮ LIỆU MẪU: BẢNG PHÁC ĐỒ MẪU (Level 0)
@@ -1412,7 +1666,7 @@ VALUES
 -- ============================================================================
 
 INSERT INTO chi_tiet_don_thuoc (
-    don_thuoc_id, ten_thuoc, hoat_chat, ham_luong, dang_bao_che,
+    don_thuoc_id, thuoc_id, ten_thuoc, hoat_chat, ham_luong, dang_bao_che,
     lieu_dung, so_luong, don_vi_tinh, so_lan_ngay, thoi_diem_uong,
     huong_dan, ghi_chu
 )
@@ -1423,6 +1677,7 @@ VALUES
     -- Kháng sinh: Augmentin 1g
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_IMPLANT_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_AUG1G'),
         'Augmentin 1g (GlaxoSmithKline)',
         'Amoxicillin + Acid clavulanic',
         '1000mg (875mg/125mg)',
@@ -1439,6 +1694,7 @@ VALUES
     -- Giảm đau, kháng viêm: Ibuprofen Stada 400mg
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_IMPLANT_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_IBU400'),
         'Ibuprofen Stada 400mg',
         'Ibuprofen',
         '400mg',
@@ -1455,6 +1711,7 @@ VALUES
     -- Chống phù nề dạng men: Alpha Choay Sanofi
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_IMPLANT_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_ALPHACHOAY'),
         'Alpha Choay Sanofi',
         'Chymotrypsin',
         '4.2mg (21 microkatals)',
@@ -1471,6 +1728,7 @@ VALUES
     -- Nước súc miệng sát khuẩn: Medoral 250ml
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_IMPLANT_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_MEDORAL250'),
         'Nước súc miệng Medoral 250ml',
         'Chlorhexidine digluconate',
         '0.2%',
@@ -1490,6 +1748,7 @@ VALUES
     -- Giảm đau, giảm ê buốt: Efferalgan 500mg
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_BOCSU_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_EFFER500'),
         'Efferalgan 500mg',
         'Paracetamol',
         '500mg',
@@ -1506,6 +1765,7 @@ VALUES
     -- Gel làm dịu viền nướu: Kamistad-Gel N
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_BOCSU_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_KAMISTAD'),
         'Kamistad-Gel N (Stada)',
         'Lidocaine HCl + Chiết xuất hoa cúc Matricaria',
         '10g',
@@ -1525,6 +1785,7 @@ VALUES
     -- Giảm đau nhẹ: Panadol Extra đỏ
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_KHAMLE_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_PANADOL_EXTRA'),
         'Panadol Extra đỏ (GSK)',
         'Paracetamol + Caffeine',
         '500mg / 65mg',
@@ -1541,6 +1802,7 @@ VALUES
     -- Nước súc miệng săn se nướu: Kin Gingival 250ml
     (
         (SELECT id FROM don_thuoc WHERE ma_don_thuoc = 'DT_KHAMLE_01'),
+        (SELECT id FROM thuoc WHERE ma_thuoc = 'TH_KIN_GINGIVAL'),
         'Nước súc miệng Kin Gingival 250ml',
         'Chlorhexidine digluconate + Sodium Fluoride',
         '0.12% + 0.05%',

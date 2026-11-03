@@ -2,6 +2,31 @@
 
 Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và tính năng đã triển khai trên `DentalClinicApp`.
 
+## [2026-11-03] - Nâng cấp CSDL 23 Bảng & Phân hệ Quản lý Thư viện Thuốc (Admin Medicines CRUD)
+
+### Đã hoàn thành:
+1. **Nâng cấp CSDL từ 22 bảng lên 23 bảng (`Thuoc` - Level 0 Master Data):**
+   - Bổ sung model `Thuoc` trong `prisma/schema.prisma` với đầy đủ thông tin y tế (`tenThuoc`, `tenBietDuoc`, `hoatChat`, `hamLuong`, `dangBaoChe`, `duongDung`, `donViTinh`, `nhomThuoc`, `lieuDungMacDinh`, `soLanNgayMacDinh`, `thoiDiemUongMacDinh`, `huongDanMacDinh`, `chongChiDinh`, `giaThamKhao`, `trangThai`).
+   - Cập nhật model `ChiTietDonThuoc` liên kết khóa ngoại `thuocId` dạng Nullable (SetNull on delete) bảo toàn snapshot đơn thuốc y khoa và hỗ trợ tự động điền form (pre-fill) cho Bác sĩ.
+   - Chạy `npx prisma generate` cập nhật Prisma Client.
+   - Thêm 13 loại thuốc nha khoa mẫu tiêu chuẩn vào `prisma/mock_data.sql` và map `thuoc_id` chuẩn xác vào 8 dòng đơn thuốc mẫu.
+   - Cập nhật `prisma/seed.js` bổ sung `thuoc` vào `TRUNCATE TABLE ... CASCADE`.
+   - Cập nhật tài liệu kiến trúc [databaseRelation.md](file:///d:/DentalClinicApp/agents/database/databaseRelation.md) và [databaseFeatures.md](file:///d:/DentalClinicApp/agents/database/databaseFeatures.md) lên chuẩn 23 bảng.
+2. **Xây dựng Phân hệ Quản lý Thuốc cho Admin (Admin Medicine Management):**
+   - Tuyệt đối không tạo API xóa thuốc (bảo vệ lịch sử y khoa); thay vào đó dùng cơ chế chuyển đổi trạng thái `hoat_dong` <-> `ngung_hoat_dong`.
+   - **Tầng DTO (`src/dtos/departments/admins/adminMedicineDto.js`):**
+     - Request validation: `adminGetMedicinesQuerySchema`, `adminGetMedicineDetailParamsSchema`, `adminCreateMedicineRequestSchema`, `adminUpdateMedicineRequestSchema`, `adminUpdateMedicineStatusRequestSchema`.
+     - Presentation-ready formatters: `adminMedicineDetailResponseSchema`, `adminMedicineListItemResponseSchema` (100% camelCase, convert `Number` giá tham khảo, kèm `statusTitle` và `usageCount`).
+   - **Tầng Service (`src/services/departments/admins/adminMedicineService.js`):**
+     - `getMedicinesListService`: Phân trang, tìm kiếm đa trường (tên, hoạt chất, biệt dược, mã), lọc nhóm & trạng thái.
+     - `getMedicineDetailService`: Chi tiết thuốc kèm đếm số lần sử dụng trong đơn thuốc.
+     - `createMedicineService`: Tự động sinh mã `TH-XXXX` nếu không truyền, kiểm tra trùng lặp mã thuốc.
+     - `updateMedicineService`: Cập nhật linh hoạt thông tin thuốc.
+     - `updateMedicineStatusService`: Bật / tắt trạng thái sử dụng nhanh.
+   - **Tầng Controller (`src/controllers/departments/admins/adminMedicine.js`):** Thin controllers bọc trong `asyncHandler`, trả mã chuẩn `200` và `201`.
+   - **Tầng Route (`src/routes/departments/admins/adminMedicine.js`):** Bảo vệ bằng RBAC `verifyToken, restrictToRoles('ADMIN')`, gắn DTO validators trực tiếp.
+   - **Mount Route (`src/app.js`):** Gắn tại `/api/v1/admin/medicines`.
+
 ## [2026-11-02] - Admin Portal: Bộ 6 API Biểu đồ & Báo cáo Thống kê (Charts & Reports APIs)
 
 ### Đã hoàn thành:

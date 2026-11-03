@@ -1,7 +1,7 @@
 # QUY CHUẨN NHÚNG MÃ SQL VÀO POSTGRESQL TRONG KIẾN TRÚC PRISMA (ruleEmbedDB)
 
 > **Tài liệu tham chiếu liên kết:**
-> * Cấu trúc quan hệ 22 bảng: [`agents/database/databaseRelation.md`](databaseRelation.md)
+> * Cấu trúc quan hệ 23 bảng: [`agents/database/databaseRelation.md`](databaseRelation.md)
 > * Chi tiết 7 tính năng Database: [`agents/database/databaseFeatures.md`](databaseFeatures.md)
 > * Bộ nhớ kiến trúc hệ thống: [`agents/MEMORY.md`](../MEMORY.md)
 > * Schema CSDL hiện tại: [`prisma/schema.prisma`](../../prisma/schema.prisma)
@@ -62,7 +62,7 @@ Trong kiến trúc hiện đại, việc phân định ranh giới giữa **Tầ
 
 ## 3. DANH MỤC ĐỀ XUẤT NHÚNG SQL & PHÂN TÍCH TRADE-OFFS
 
-Dưới đây là 8 đề xuất kỹ thuật cụ thể tương ứng với 22 bảng CSDL và 7 tính năng Database. Mỗi đề xuất đi kèm **Bản chất**, **Mã SQL minh họa**, **Cách gọi từ Prisma** và **Đánh giá Trade-off (Ưu / Nhược)** để bạn đưa ra quyết định lựa chọn (**CÓ / KHÔNG**).
+Dưới đây là 8 đề xuất kỹ thuật cụ thể tương ứng với 23 bảng CSDL và 7 tính năng Database. Mỗi đề xuất đi kèm **Bản chất**, **Mã SQL minh họa**, **Cách gọi từ Prisma** và **Đánh giá Trade-off (Ưu / Nhược)** để bạn đưa ra quyết định lựa chọn (**CÓ / KHÔNG**).
 
 ---
 

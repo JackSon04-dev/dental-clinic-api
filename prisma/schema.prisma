@@ -136,6 +136,36 @@ model PhongDieuTri {
   @@map("phong_dieu_tri")
 }
 
+// 06B. THƯ VIỆN THUỐC KÊ ĐƠN (Level 0)
+model Thuoc {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  maThuoc             String            @unique @map("ma_thuoc") @db.VarChar(30)
+  tenThuoc            String            @map("ten_thuoc") @db.VarChar(200)
+  tenBietDuoc         String?           @map("ten_biet_duoc") @db.VarChar(200)
+  hoatChat            String?           @map("hoat_chat") @db.VarChar(200)
+  hamLuong            String?           @map("ham_luong") @db.VarChar(100)
+  dangBaoChe          String?           @map("dang_bao_che") @db.VarChar(100)
+  duongDung           String?           @map("duong_dung") @db.VarChar(50)
+  donViTinh           String            @map("don_vi_tinh") @db.VarChar(50)
+  nhomThuoc           String?           @map("nhom_thuoc") @db.VarChar(100)
+  lieuDungMacDinh     String?           @map("lieu_dung_mac_dinh") @db.VarChar(200)
+  soLanNgayMacDinh    Int?              @default(2) @map("so_lan_ngay_mac_dinh")
+  thoiDiemUongMacDinh String?           @map("thoi_diem_uong_mac_dinh") @db.VarChar(100)
+  huongDanMacDinh     String?           @map("huong_dan_mac_dinh") @db.Text
+  chongChiDinh        String?           @map("chong_chi_dinh") @db.Text
+  giaThamKhao         Decimal?          @default(0) @map("gia_tham_khao") @db.Decimal(18, 2)
+  trangThai           String            @default("hoat_dong") @map("trang_thai") @db.VarChar(20)
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Quan hệ 1-N
+  chiTietDonThuoc     ChiTietDonThuoc[]
+
+  @@index([tenThuoc])
+  @@index([hoatChat])
+  @@map("thuoc")
+}
+
 // ============================================================================
 // LEVEL 1: HỒ SƠ NHÂN SỰ, BỆNH NHÂN & CHI TIẾT DANH MỤC
 // ============================================================================
@@ -567,6 +597,7 @@ model VatTuSuDung {
 model ChiTietDonThuoc {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   donThuocId     String       @map("don_thuoc_id") @db.Uuid
+  thuocId        String?      @map("thuoc_id") @db.Uuid
   tenThuoc       String       @map("ten_thuoc") @db.VarChar(200)
   hoatChat       String?      @map("hoat_chat") @db.VarChar(200)
   hamLuong       String?      @map("ham_luong") @db.VarChar(100)
@@ -583,6 +614,7 @@ model ChiTietDonThuoc {
 
   // Khóa ngoại
   donThuoc       DonThuoc     @relation(fields: [donThuocId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  thuoc          Thuoc?       @relation(fields: [thuocId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@map("chi_tiet_don_thuoc")
 }

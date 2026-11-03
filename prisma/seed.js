@@ -39,6 +39,7 @@ async function seed() {
         tai_khoan, 
         dich_vu, 
         san_pham, 
+        thuoc,
         phac_do_mau, 
         khuyen_mai, 
         phong_dieu_tri 

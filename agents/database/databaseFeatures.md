@@ -1,6 +1,6 @@
 # Các Tính năng Nâng cao trong Cơ sở Dữ liệu PostgreSQL (Database Features)
 
-Tài liệu này tổng hợp đầy đủ và chi tiết nhất về bản chất, đặc điểm hoạt động, mục đích cốt lõi và cách thức tương tác của **7 tính năng trụ cột** trong hệ quản trị cơ sở dữ liệu quan hệ (RDBMS), đặc biệt trên nền tảng **PostgreSQL 16** của hệ thống `DentalClinicApp`.
+Tài liệu này tổng hợp đầy đủ và chi tiết nhất về bản chất, đặc điểm hoạt động, mục đích cốt lõi và cách thức tương tác của **7 tính năng trụ cột** trong hệ quản trị cơ sở dữ liệu quan hệ (RDBMS), áp dụng xuyên suốt kiến trúc **23 bảng CSDL** trên nền tảng **PostgreSQL 16** của hệ thống `DentalClinicApp`.
 
 ---
 
@@ -152,7 +152,7 @@ Tài liệu này tổng hợp đầy đủ và chi tiết nhất về bản ch�
 ### Mục đích cốt lõi
 * Tối ưu hóa hiệu năng truy vấn cho các bảng lớn (hàng trăm ngàn đến hàng triệu bản ghi).
 * Tăng tốc các mệnh đề lọc dữ liệu: `WHERE`, `JOIN ... ON`, `ORDER BY`, `GROUP BY`.
-* *Ví dụ trong DentalClinicApp:* Đánh Index trên `tai_khoan.username`, `benh_nhan.sdt`, `hoa_don.ngay_thanh_toan`, `ca_lam_viec.ngay`.
+* *Ví dụ trong DentalClinicApp:* Đánh Index trên `tai_khoan.username`, `benh_nhan.sdt`, `hoa_don.ngay_thanh_toan`, `ca_lam_viec.ngay`, `thuoc.ten_thuoc`, `thuoc.hoat_chat` (tăng tốc tìm kiếm thuốc cho bác sĩ).
 
 ### Cách thức tương tác
 * Được khai báo một lần duy nhất bằng lệnh:
@@ -175,7 +175,7 @@ Tài liệu này tổng hợp đầy đủ và chi tiết nhất về bản ch�
 ### Các loại Constraint phổ biến
 1. **PRIMARY KEY (Khóa chính):** Định danh duy nhất cho từng dòng trong bảng, bắt buộc `NOT NULL` và `UNIQUE` (ví dụ: `id UUID PRIMARY KEY`).
 2. **FOREIGN KEY (Khóa ngoại):** Thiết lập mối quan hệ cha - con giữa các bảng, đảm bảo tính toàn vẹn tham chiếu (ví dụ: `lich_hen.benh_nhan_id` bắt buộc phải tồn tại trong bảng `benh_nhan`).
-3. **UNIQUE (Duy nhất):** Cấm dữ liệu trùng lặp trên một hoặc nhiều cột (ví dụ: `tai_khoan.username`, `benh_nhan.sdt`, `dich_vu.ma_dich_vu`).
+3. **UNIQUE (Duy nhất):** Cấm dữ liệu trùng lặp trên một hoặc nhiều cột (ví dụ: `tai_khoan.username`, `benh_nhan.sdt`, `dich_vu.ma_dich_vu`, `thuoc.ma_thuoc`).
 4. **CHECK (Kiểm tra logic):** Kiểm tra biểu thức điều kiện boolean (ví dụ: `CHECK (gia >= 0)`, `CHECK (so_luong_ton >= 0)`).
 5. **NOT NULL (Không được rỗng):** Bắt buộc cột phải có giá trị thực, không được để `NULL`.
 6. **EXCLUDE (Loại trừ nâng cao - PostgreSQL GiST):** Ngăn chặn sự chồng lấn khoảng thời gian (dùng để chống trùng lịch ca trực bác sĩ trong `ca_lam_viec`).
