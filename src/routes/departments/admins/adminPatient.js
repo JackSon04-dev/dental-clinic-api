@@ -15,7 +15,8 @@ import {
 const router = express.Router();
 
 // Tất cả endpoints quản lý hồ sơ bệnh nhân trong phân hệ Admin yêu cầu quyền ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+// Cho phép ADMIN, BAC_SI và LE_TAN tra cứu hồ sơ bệnh nhân
+router.use(verifyToken, restrictToRoles('ADMIN', 'BAC_SI', 'LE_TAN'));
 
 /**
  * [GET] /api/v1/admin/patients

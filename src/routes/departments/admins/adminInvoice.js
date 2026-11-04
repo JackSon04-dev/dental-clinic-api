@@ -17,7 +17,7 @@ import {
 const router = express.Router();
 
 // Tất cả các endpoints quản lý hóa đơn yêu cầu xác thực JWT và vai trò ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+router.use(verifyToken, restrictToRoles('ADMIN', 'LE_TAN'));
 
 /**
  * [GET] /api/v1/admin/invoices

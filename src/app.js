@@ -16,6 +16,13 @@ import adminInvoiceRoutes from './routes/departments/admins/adminInvoice.js';
 import adminWorkShiftTemplateRoutes from './routes/departments/admins/adminWorkShiftTemplate.js';
 import adminWorkShiftRoutes from './routes/departments/admins/adminWorkShift.js';
 import adminReportRoutes from './routes/departments/admins/adminReport.js';
+import dentistDashboardRoutes from './routes/departments/dentists/dentistDashboard.js';
+import dentistClinicalRoutes from './routes/departments/dentists/dentistClinical.js';
+import dentistTreatmentPlanRoutes from './routes/departments/dentists/dentistTreatmentPlan.js';
+import dentistCatalogRoutes from './routes/departments/dentists/dentistCatalog.js';
+import receptionistDashboardRoutes from './routes/departments/receptionists/receptionistDashboard.js';
+import receptionistAppointmentRoutes from './routes/departments/receptionists/receptionistAppointment.js';
+import receptionistCheckInRoutes from './routes/departments/receptionists/receptionistCheckIn.js';
 import clientDashboardRoutes from './routes/clients/clientDashboard.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
 
@@ -39,7 +46,7 @@ app.use('/api/v1/auth/department', authDepartmentRoutes);
 app.use('/api/v1/auth/client', authClientRoutes);
 
 // Admin Routes - Toàn bộ API phân hệ quản trị thống nhất dưới tiền tố /api/v1/admin/...
-app.use('/api/v1/admin', adminDashboardRoutes);
+
 app.use('/api/v1/admin/users', adminUserRoutes);
 app.use('/api/v1/admin/patients', adminPatientRoutes);
 app.use('/api/v1/admin/services', adminServiceRoutes);
@@ -52,6 +59,25 @@ app.use('/api/v1/admin/invoices', adminInvoiceRoutes);
 app.use('/api/v1/admin/work-shift-templates', adminWorkShiftTemplateRoutes);
 app.use('/api/v1/admin/work-shifts', adminWorkShiftRoutes);
 app.use('/api/v1/admin/reports', adminReportRoutes);
+app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
+app.use('/api/v1/admin', adminDashboardRoutes);
+
+// Dentist Routes - Toàn bộ API phân hệ bác sĩ thống nhất dưới tiền tố /api/v1/dentist/...
+app.use('/api/v1/dentist/dashboard', dentistDashboardRoutes);
+app.use('/api/v1/dentist/shifts', dentistDashboardRoutes);
+app.use('/api/v1/dentist/clinical', dentistClinicalRoutes);
+app.use('/api/v1/dentist', dentistDashboardRoutes);
+app.use('/api/v1/dentist', dentistClinicalRoutes);
+app.use('/api/v1/dentist/treatment-plans', dentistTreatmentPlanRoutes);
+app.use('/api/v1/dentist/catalogs', dentistCatalogRoutes);
+
+// Receptionist Routes - Toàn bộ API phân hệ lễ tân thống nhất dưới tiền tố /api/v1/receptionist/...
+app.use('/api/v1/receptionist/dashboard', receptionistDashboardRoutes);
+app.use('/api/v1/receptionist/appointments', receptionistAppointmentRoutes);
+app.use('/api/v1/receptionist/check-in', receptionistCheckInRoutes);
+app.use('/api/v1/receptionist/invoices', adminInvoiceRoutes);
+app.use('/api/v1/receptionist', receptionistDashboardRoutes);
+app.use('/api/v1/receptionist', receptionistAppointmentRoutes);
 
 // Client Routes - Toàn bộ API phân hệ bệnh nhân
 app.use('/api/v1/client/dashboard', clientDashboardRoutes);

@@ -21,7 +21,7 @@ import {
 const router = express.Router();
 
 // Tất cả endpoints quản lý nhân sự yêu cầu xác thực Admin
-router.use(verifyToken, restrictToRoles('ADMIN'));
+router.use(verifyToken, restrictToRoles('ADMIN', 'LE_TAN'));
 
 /**
  * [GET] /api/v1/admin/users

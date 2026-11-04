@@ -19,7 +19,7 @@ import {
 const router = express.Router();
 
 // Tất cả các endpoints quản lý phòng khám yêu cầu xác thực JWT và vai trò ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+router.use(verifyToken, restrictToRoles('ADMIN', 'LE_TAN', 'BAC_SI'));
 
 /**
  * [GET] /api/v1/admin/rooms

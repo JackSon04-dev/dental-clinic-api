@@ -19,7 +19,8 @@ import {
 const router = express.Router();
 
 // Tất cả các endpoints quản lý thuốc yêu cầu xác thực JWT và vai trò ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+// Cho phép ADMIN, BAC_SI, LE_TAN tra cứu thuốc
+router.use(verifyToken, restrictToRoles('ADMIN', 'BAC_SI', 'LE_TAN'));
 
 /**
  * [GET] /api/v1/admin/medicines

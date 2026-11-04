@@ -27,7 +27,8 @@ import {
 const router = express.Router();
 
 // Tất cả các endpoints quản lý dịch vụ yêu cầu xác thực JWT và vai trò ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+// Cho phép ADMIN, BAC_SI, LE_TAN tra cứu dịch vụ
+router.use(verifyToken, restrictToRoles('ADMIN', 'BAC_SI', 'LE_TAN'));
 
 // ============================================================================
 // 1. CÁC ENDPOINT QUẢN LÝ GÓI CHI TIẾT DỊCH VỤ (ITEM-LEVEL)
