@@ -88,8 +88,31 @@ export const getDentistSamplePlansService = async () => {
   }));
 };
 
+/**
+ * Lấy danh mục sản phẩm / vật tư y tế đang hoạt động
+ */
+export const getDentistProductsService = async () => {
+  const products = await prisma.sanPham.findMany({
+    where: { trangThai: 'hoat_dong' },
+    orderBy: { tenSanPham: 'asc' },
+  });
+
+  return products.map((p) => ({
+    id: p.id,
+    code: p.maSanPham,
+    name: p.tenSanPham,
+    type: p.loai,
+    unit: p.donViTinh || 'Cái',
+    price: Number(p.giaBan || 0),
+    stockQuantity: p.soLuongTon || 0,
+    minStockThreshold: p.mucTonToiThieu || 0,
+    description: p.moTa,
+  }));
+};
+
 export default {
   getDentistServicesService,
   getDentistMedicinesService,
   getDentistSamplePlansService,
+  getDentistProductsService,
 };

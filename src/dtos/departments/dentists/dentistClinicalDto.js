@@ -32,6 +32,22 @@ export const saveClinicalRecordRequestSchema = Joi.object({
     )
     .default([]),
 
+  // Danh sách vật tư / sản phẩm sử dụng (VatTuSuDung)
+  materials: Joi.array()
+    .items(
+      Joi.object({
+        productId: Joi.string().uuid().required().messages({
+          'any.required': 'Mã sản phẩm/vật tư là bắt buộc',
+        }),
+        productName: Joi.string().allow('', null).optional(),
+        quantity: Joi.number().integer().min(1).default(1),
+        price: Joi.number().min(0).default(0),
+        toothNumber: Joi.alternatives().try(Joi.string(), Joi.number()).allow('', null).optional(),
+        notes: Joi.string().allow('', null).optional(),
+      })
+    )
+    .default([]),
+
   // Danh sách đơn thuốc
   prescription: Joi.array()
     .items(
@@ -105,6 +121,28 @@ export const clinicalRecordResponseSchema = (record) => {
     });
   });
 
+  // Map materials (vatTuSuDung)
+  const materials = (record.vatTuSuDung || []).map((vt) => {
+    let toothNumber = '';
+    let notes = vt.ghiChu || '';
+    if (notes.startsWith('Răng:')) {
+      const parts = notes.split(' - ');
+      toothNumber = parts[0].replace('Răng:', '').trim();
+      notes = parts.slice(1).join(' - ');
+    }
+    return {
+      id: vt.id,
+      productId: vt.sanPhamId,
+      productName: vt.sanPham?.tenSanPham || 'Vật tư nha khoa',
+      productCode: vt.sanPham?.maSanPham || '',
+      unit: vt.sanPham?.donViTinh || 'Cái',
+      quantity: vt.soLuong,
+      price: Number(vt.donGia),
+      toothNumber,
+      notes,
+    };
+  });
+
   return {
     id: record.id,
     code: record.maHoSo,
@@ -123,6 +161,7 @@ export const clinicalRecordResponseSchema = (record) => {
     examDate: record.ngayKham ? formatDateYYYYMMDD(record.ngayKham) : '',
     reExamDate: record.ngayTaiKham ? formatDateYYYYMMDD(record.ngayTaiKham) : null,
     treatments,
+    materials,
     prescription,
     createdAt: record.createdAt,
   };

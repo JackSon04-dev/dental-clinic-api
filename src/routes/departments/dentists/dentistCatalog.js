@@ -3,6 +3,7 @@ import {
   getDentistServices,
   getDentistMedicines,
   getDentistSamplePlans,
+  getDentistProducts,
 } from '../../../controllers/departments/dentists/dentistCatalogController.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 
@@ -24,5 +25,10 @@ router.get('/medicines', getDentistMedicines);
  * [GET] /api/v1/dentist/catalogs/sample-plans
  */
 router.get('/sample-plans', getDentistSamplePlans);
+
+/**
+ * [GET] /api/v1/dentist/catalogs/products
+ */
+router.get('/products', getDentistProducts);
 
 export default router;

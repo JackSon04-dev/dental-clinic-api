@@ -5,7 +5,7 @@ import Joi from 'joi';
 // ============================================================================
 
 export const receptionistGetAppointmentsQuerySchema = Joi.object({
-  date: Joi.string().isoDate().optional(),
+  date: Joi.string().allow('', null).optional(),
   status: Joi.string().allow('', 'ALL').optional(),
   dentistId: Joi.string().allow('', 'ALL').optional(),
   roomId: Joi.string().allow('', 'ALL').optional(),
@@ -55,6 +55,7 @@ export const receptionistUpdateAppointmentStatusRequestSchema = Joi.object({
       'dang_kham',
       'cho_thanh_toan',
       'da_kham',
+      'hoan_thanh',
       'da_huy'
     )
     .required()
@@ -100,6 +101,7 @@ export const mapStatusToFrontend = (dbStatus) => {
     case 'cho_thanh_toan':
       return 'CHO_THANH_TOAN';
     case 'da_kham':
+    case 'hoan_thanh':
       return 'HOAN_THANH';
     case 'da_huy':
       return 'DA_HUY';
@@ -123,7 +125,8 @@ export const mapStatusToDatabase = (feStatus) => {
     case 'CHO_THANH_TOAN':
       return 'cho_thanh_toan';
     case 'HOAN_THANH':
-      return 'da_kham';
+    case 'hoan_thanh':
+      return 'hoan_thanh';
     case 'DA_HUY':
       return 'da_huy';
     default:

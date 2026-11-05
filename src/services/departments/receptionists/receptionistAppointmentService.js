@@ -7,10 +7,25 @@ import {
 } from '../../../dtos/departments/receptionists/receptionistAppointmentDto.js';
 
 /**
+ * Trích xuất chuỗi ngày YYYY-MM-DD an toàn từ nhiều định dạng (ISO, Date, null)
+ */
+const toCleanDateStr = (dateInput) => {
+  if (!dateInput) return getVietnamTodayDateString();
+  if (typeof dateInput === 'string') return dateInput.slice(0, 10);
+  if (dateInput instanceof Date) return dateInput.toISOString().slice(0, 10);
+  return getVietnamTodayDateString();
+};
+
+const parseToDateOnly = (dateInput) => {
+  const cleanStr = toCleanDateStr(dateInput);
+  return new Date(`${cleanStr}T00:00:00.000Z`);
+};
+
+/**
  * Tìm hoặc tạo tự động ca làm việc của Bác sĩ trong ngày để gán cho Lịch hẹn
  */
 async function findOrCreateShiftForDoctor(dentistId, dateStr, customRoomId = null) {
-  const targetDate = new Date(`${dateStr}T00:00:00.000Z`);
+  const targetDate = parseToDateOnly(dateStr);
 
   // 0. Resolve dentistId (hỗ trợ cả nhaSi.id lẫn taiKhoanId từ frontend)
   let resolvedDoctorId = dentistId;
@@ -89,9 +104,8 @@ export const getReceptionistAppointmentsService = async ({
 } = {}) => {
   const where = {};
 
-  // Mặc định lấy ngày hôm nay nếu không truyền date
-  const targetDateStr = date || getVietnamTodayDateString();
-  where.ngayHen = new Date(`${targetDateStr}T00:00:00.000Z`);
+  // Lọc ngày (mặc định hôm nay nếu không truyền)
+  where.ngayHen = parseToDateOnly(date);
 
   // Lọc theo trạng thái
   if (status && status !== 'ALL') {
@@ -208,7 +222,8 @@ export const createAppointmentService = async (payload) => {
   }
 
   // 3. Resolve Ca làm việc của Bác sĩ
-  const shift = await findOrCreateShiftForDoctor(dentistId, date, roomId);
+  const cleanDate = toCleanDateStr(date);
+  const shift = await findOrCreateShiftForDoctor(dentistId, cleanDate, roomId);
 
   // 4. Xử lý giờ hẹn
   const [hours, minutes] = (timeSlot || '08:30').split(':').map(Number);
@@ -218,7 +233,7 @@ export const createAppointmentService = async (payload) => {
   const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 phút sau
 
   // 5. Sinh mã lịch hẹn
-  const dateFormatted = (date || '').replace(/-/g, '');
+  const dateFormatted = cleanDate.replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const maLichHen = `LH-${dateFormatted}-${randomSuffix}`;
 
@@ -228,7 +243,7 @@ export const createAppointmentService = async (payload) => {
       benhNhanId: resolvedPatientId,
       caLamViecId: shift.id,
       dichVuId: resolvedServiceId,
-      ngayHen: new Date(`${date}T00:00:00.000Z`),
+      ngayHen: parseToDateOnly(cleanDate),
       gioHen: startTime,
       gioKetThucDuKien: endTime,
       trangThai: 'da_xac_nhan',
@@ -257,8 +272,12 @@ export const updateAppointmentStatusService = async (id, status) => {
     where: { id },
   });
 
-  if (!appointment) {
+    if (!appointment) {
     throw new ApiError(404, 'Không tìm thấy lịch hẹn');
+  }
+
+  if (appointment.trangThai === 'hoan_thanh' && status !== 'HOAN_THANH') {
+    throw new ApiError(400, 'Ca hẹn này đã hoàn tất khám và thanh toán, không thể tiếp nhận hoặc chuyển trạng thái lại.');
   }
 
   const dbStatus = mapStatusToDatabase(status);
@@ -362,7 +381,8 @@ export const rescheduleAppointmentService = async (id, { date, timeSlot, notes }
   }
 
   const doctorId = appointment.caLamViec?.nhaSiId;
-  const newShift = await findOrCreateShiftForDoctor(doctorId, date);
+  const cleanDate = toCleanDateStr(date);
+  const newShift = await findOrCreateShiftForDoctor(doctorId, cleanDate);
 
   const [hours, minutes] = (timeSlot || '08:30').split(':').map(Number);
   const startTime = new Date('1970-01-01T00:00:00.000Z');
@@ -373,7 +393,7 @@ export const rescheduleAppointmentService = async (id, { date, timeSlot, notes }
     where: { id },
     data: {
       caLamViecId: newShift.id,
-      ngayHen: new Date(`${date}T00:00:00.000Z`),
+      ngayHen: parseToDateOnly(cleanDate),
       gioHen: startTime,
       gioKetThucDuKien: endTime,
       trangThai: 'da_xac_nhan',

@@ -214,7 +214,18 @@ export const updateInvoicePaymentService = async (
       },
     });
 
-    // 2. Nếu hóa đơn gắn với buổi hẹn của giai đoạn phác đồ, đồng bộ trạng thái thanh toán
+    // 2. Cập nhật trạng thái ca hẹn sang 'hoan_thanh' để kết thúc quy trình khám
+    if (invoice.lichHenId) {
+      await tx.lichHen.update({
+        where: { id: invoice.lichHenId },
+        data: {
+          trangThai: 'hoan_thanh',
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // 3. Nếu hóa đơn gắn với buổi hẹn của giai đoạn phác đồ, đồng bộ trạng thái thanh toán
     const giaiDoanId = invoice.lichHen?.giaiDoanPhacDo?.id;
     if (giaiDoanId) {
       await tx.giaiDoanPhacDo.update({

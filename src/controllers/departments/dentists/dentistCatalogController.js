@@ -46,8 +46,24 @@ export const getDentistSamplePlans = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * getDentistProducts
+ * [GET] /api/v1/dentist/catalogs/products
+ */
+export const getDentistProducts = asyncHandler(async (req, res) => {
+  const data = await dentistCatalogService.getDentistProductsService();
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy danh mục sản phẩm và vật tư thành công',
+    data,
+  });
+});
+
 export default {
   getDentistServices,
   getDentistMedicines,
   getDentistSamplePlans,
+  getDentistProducts,
 };

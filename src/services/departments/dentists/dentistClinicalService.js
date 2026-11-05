@@ -29,6 +29,23 @@ const generateUniqueRecordCode = async () => {
 };
 
 /**
+ * Sinh mã hóa đơn viện phí ngẫu nhiên không trùng lặp
+ */
+const generateUniqueInvoiceCode = async (tx) => {
+  const dateStr = getVietnamTodayDateString().replace(/-/g, '');
+  for (let i = 0; i < 5; i++) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `HD-${dateStr}-${randomSuffix}`;
+    const existing = await tx.hoaDon.findUnique({
+      where: { maHoaDon: candidate },
+      select: { id: true },
+    });
+    if (!existing) return candidate;
+  }
+  return `HD-${dateStr}-${Date.now().toString(36).toUpperCase()}`;
+};
+
+/**
  * Sinh mã đơn thuốc ngẫu nhiên không trùng lặp
  */
 const generateUniquePrescriptionCode = async () => {
@@ -197,6 +214,11 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
         chiTietDonThuoc: true,
       },
     },
+    vatTuSuDung: {
+      include: {
+        sanPham: true,
+      },
+    },
   };
 
   if (slipId) {
@@ -235,6 +257,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
     notes,
     oralHealthStatus,
     treatments = [],
+    materials = [],
     prescription = [],
     daysOfSupply = 3,
   } = payload;
@@ -247,10 +270,14 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
     let targetLichHen = null;
 
     if (slipId) {
-      targetLichHen = await tx.lichHen.findUnique({
+            targetLichHen = await tx.lichHen.findUnique({
         where: { id: slipId },
         include: { caLamViec: true },
       });
+
+      if (targetLichHen && targetLichHen.trangThai === 'hoan_thanh') {
+        throw new ApiError(400, 'Ca khám này đã hoàn tất và thanh toán xong, không thể chỉnh sửa.');
+      }
     }
 
     if (!targetLichHen && patientId) {
@@ -405,6 +432,29 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       }
     }
 
+    // 3.1. Xử lý Vật Tư / Sản Phẩm Sử Dụng (VatTuSuDung)
+    await tx.vatTuSuDung.deleteMany({
+      where: { hoSoId: hoSo.id },
+    });
+
+    if (materials.length > 0) {
+      for (const m of materials) {
+        if (m.productId) {
+          const toothNote = m.toothNumber ? `Răng: ${m.toothNumber}` : null;
+          const fullNote = [toothNote, m.notes].filter(Boolean).join(' - ') || null;
+          await tx.vatTuSuDung.create({
+            data: {
+              hoSoId: hoSo.id,
+              sanPhamId: m.productId,
+              soLuong: Number(m.quantity) || 1,
+              donGia: Number(m.price) || 0,
+              ghiChu: fullNote,
+            },
+          });
+        }
+      }
+    }
+
     // 4. Xử lý Đơn Thuốc (DonThuoc & ChiTietDonThuoc)
     if (prescription.length > 0) {
       // Xóa các đơn thuốc cũ của hồ sơ này
@@ -451,7 +501,31 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       }
     }
 
-    // 5. Cập nhật trạng thái Lịch Hẹn sang 'cho_thanh_toan' (Chuyển sang Quầy Thu Ngân)
+    // 5. Tạo hoặc tái sử dụng Hóa đơn viện phí (trạng thái chua_thanh_toan)
+    let hoaDon = await tx.hoaDon.findFirst({
+      where: { lichHenId: targetLichHen.id },
+    });
+
+    if (!hoaDon) {
+      const defaultStaff =
+        (await tx.nhanVien.findFirst({
+          where: { trangThai: 'dang_lam_viec' },
+        })) || (await tx.nhanVien.findFirst());
+
+      const maHoaDon = await generateUniqueInvoiceCode(tx);
+      await tx.hoaDon.create({
+        data: {
+          maHoaDon,
+          lichHenId: targetLichHen.id,
+          nhanVienId: defaultStaff.id,
+          trangThaiThanhToan: 'chua_thanh_toan',
+          ghiChu: notes || 'Hóa đơn ca khám lâm sàng chờ thu tiền',
+          ngayLap: new Date(),
+        },
+      });
+    }
+
+    // 6. Cập nhật trạng thái Lịch Hẹn sang 'cho_thanh_toan' (Chuyển sang Quầy Thu Ngân)
     await tx.lichHen.update({
       where: { id: targetLichHen.id },
       data: {
@@ -460,7 +534,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       },
     });
 
-    // 6. Trả về kết quả đầy đủ
+    // 7. Trả về kết quả đầy đủ
     const fullRecord = await tx.hoSoBenhAn.findUnique({
       where: { id: hoSo.id },
       include: {
@@ -486,6 +560,11 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
         donThuoc: {
           include: {
             chiTietDonThuoc: true,
+          },
+        },
+        vatTuSuDung: {
+          include: {
+            sanPham: true,
           },
         },
       },

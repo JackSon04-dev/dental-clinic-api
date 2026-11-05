@@ -24,6 +24,8 @@ import receptionistDashboardRoutes from './routes/departments/receptionists/rece
 import receptionistAppointmentRoutes from './routes/departments/receptionists/receptionistAppointment.js';
 import receptionistCheckInRoutes from './routes/departments/receptionists/receptionistCheckIn.js';
 import clientDashboardRoutes from './routes/clients/clientDashboard.js';
+// [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
+import devDatabaseRoutes from './routes/dev/devDatabase.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
 
 dotenv.config();
@@ -81,6 +83,9 @@ app.use('/api/v1/receptionist', receptionistAppointmentRoutes);
 
 // Client Routes - Toàn bộ API phân hệ bệnh nhân
 app.use('/api/v1/client/dashboard', clientDashboardRoutes);
+
+// [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
+app.use('/api/v1/dev/database', devDatabaseRoutes);
 
 // 404 Not Found Handler (bắt các đường dẫn không tồn tại)
 app.use((req, res, next) => {
