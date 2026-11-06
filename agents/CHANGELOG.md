@@ -2,6 +2,105 @@
 
 Tài liệu này ghi lại toàn bộ các mốc thay đổi kiến trúc và tính năng đã triển khai trên `DentalClinicApp`.
 
+## [2026-11-05] - Hợp nhất Toàn diện Codebase: Tích hợp Module Nha Sĩ & Lễ Tân vào Source Code Chính
+
+### Đã hoàn thành:
+1. **Gộp phân hệ Nha sĩ (Dentist APIs) từ repo đồng nghiệp:**
+   - 4 controllers: `dentistDashboardController.js`, `dentistClinicalController.js`, `dentistTreatmentPlanController.js`, `dentistCatalogController.js`.
+   - 4 services: `dentistDashboardService.js`, `dentistClinicalService.js`, `dentistTreatmentPlanService.js`, `dentistCatalogService.js`.
+   - 3 DTOs: `dentistDashboardDto.js`, `dentistClinicalDto.js`, `dentistTreatmentPlanDto.js`.
+   - 4 routes: `dentistDashboard.js`, `dentistClinical.js`, `dentistTreatmentPlan.js`, `dentistCatalog.js` (gắn tại `/api/v1/dentist/...`).
+2. **Gộp phân hệ Lễ tân (Receptionist APIs) từ repo đồng nghiệp:**
+   - 3 controllers: `receptionistDashboardController.js`, `receptionistAppointmentController.js`, `receptionistCheckInController.js`.
+   - 3 services: `receptionistDashboardService.js`, `receptionistAppointmentService.js`, `receptionistCheckInService.js`.
+   - 3 DTOs: `receptionistDashboardDto.js`, `receptionistAppointmentDto.js`, `receptionistCheckInDto.js`.
+   - 3 routes: `receptionistDashboard.js`, `receptionistAppointment.js`, `receptionistCheckIn.js` (gắn tại `/api/v1/receptionist/...`).
+3. **Đồng bộ phân quyền (RBAC) cho các Route Admin dùng chung:**
+   - Cập nhật `restrictToRoles` cho phép `BAC_SI` và/hoặc `LE_TAN` tra cứu dữ liệu danh mục tại: `adminPatient.js`, `adminService.js`, `adminMedicine.js`, `adminRoom.js`, `adminInvoice.js`, `adminUser.js`.
+4. **Loại trừ thư mục `DentalApp-Database`:**
+   - Giữ nguyên kiến trúc chuẩn của dự án: Sử dụng `prisma/schema.prisma` và `prisma/mock_data.sql` chuẩn 23 bảng làm Single Source of Truth, không gộp các file SQL migration thuần cũ.
+5. **Kiểm thử tích hợp tự động toàn diện:**
+   - Đã kiểm tra thành công trên Docker (`dental_clinic_api`) cả 4 vai trò với phản hồi HTTP 200 OK:
+     - Client Portal (Bệnh nhân `bn_nguyenan`): Profile, Treatment History, Prescriptions.
+     - Dentist (Bác sĩ `bs_nam`): Stats Dashboard, Catalogs.
+     - Receptionist (Lễ tân `letan_lan`): Stats Dashboard, Appointments.
+     - Admin (`admin_system`): Patient Flow Stats.
+
+## [2026-11-04] - Client Portal: Module Đơn Thuốc & Phác Đồ Điều Trị (Prescriptions & Treatment Plans APIs)
+
+### Đã hoàn thành:
+1. **Module Đơn Thuốc Bệnh Nhân (`/api/v1/client/prescriptions`):**
+   - Xây dựng API `GET /api/v1/client/prescriptions` có phân trang (`page`, `limit`), sắp xếp mới nhất (`ngayKe: 'desc'`).
+   - Truy vấn CSDL bảo mật qua `hoSoBenhAn.lichHen.benhNhanId = req.user.profileId`.
+   - Mỗi bản ghi đơn thuốc trả về đầy đủ thông tin hành chính, chẩn đoán, lời dặn của bác sĩ và **toàn bộ danh mục chi tiết từng loại thuốc (`medicines`)**: tên thuốc, hoạt chất, hàm lượng, dạng bào chế, số lượng, đơn vị tính, liều dùng, số lần uống trong ngày, thời điểm uống, hướng dẫn sử dụng chi tiết.
+   - Hỗ trợ Frontend hiển thị dạng thẻ tóm tắt và mở rộng xem ngay chi tiết thuốc mà không cần gọi thêm request thứ hai.
+2. **Module Phác Đồ Điều Trị Bệnh Nhân (`/api/v1/client/treatment-plans`):**
+   - Xây dựng API `GET /api/v1/client/treatment-plans` có phân trang (`page`, `limit`), sắp xếp mới nhất (`createdAt: 'desc'`).
+   - Truy vấn CSDL trực tiếp theo `benhNhanId = req.user.profileId`.
+   - Kế thừa và chuẩn hóa cấu trúc từ Dashboard thành danh sách nhiều phác đồ (`records`): mã phác đồ, tên phác đồ, bác sĩ phụ trách, hình thức thanh toán, trạng thái chuẩn hóa, thanh tiến độ `%`, số giai đoạn hoàn thành/tổng số giai đoạn, ngày bắt đầu/kết thúc và danh sách toàn bộ các giai đoạn (`stages` sắp xếp `buocSo: 'asc'`) với 2 trạng thái chuẩn hóa (*"Đã hoàn thành"* / *"Chưa thực hiện"*).
+3. **Các thành phần mã nguồn đã triển khai:**
+   - Module Đơn thuốc:
+     - DTO: [`src/dtos/clients/clientPrescriptionDto.js`](../../src/dtos/clients/clientPrescriptionDto.js)
+     - Service: [`src/services/clients/clientPrescriptionService.js`](../../src/services/clients/clientPrescriptionService.js)
+     - Controller: [`src/controllers/clients/clientPrescriptionController.js`](../../src/controllers/clients/clientPrescriptionController.js)
+     - Route: [`src/routes/clients/clientPrescription.js`](../../src/routes/clients/clientPrescription.js)
+   - Module Phác đồ:
+     - DTO: [`src/dtos/clients/clientTreatmentPlanDto.js`](../../src/dtos/clients/clientTreatmentPlanDto.js)
+     - Service: [`src/services/clients/clientTreatmentPlanService.js`](../../src/services/clients/clientTreatmentPlanService.js)
+     - Controller: [`src/controllers/clients/clientTreatmentPlanController.js`](../../src/controllers/clients/clientTreatmentPlanController.js)
+     - Route: [`src/routes/clients/clientTreatmentPlan.js`](../../src/routes/clients/clientTreatmentPlan.js)
+   - Mount Router: [`src/app.js`](../../src/app.js) tại `/api/v1/client/prescriptions` và `/api/v1/client/treatment-plans`.
+4. **Kiểm thử End-to-End trên Docker Container:**
+   - Khởi động lại container `dental_clinic_api` trên Docker.
+   - Kiểm thử thành công `GET /api/v1/client/prescriptions` cho bệnh nhân `BN001` (khám lẻ: Panadol Extra + nước súc miệng Kin) và `BN002` (bọc răng sứ: Efferalgan 500mg + gel Kamistad).
+   - Kiểm thử thành công `GET /api/v1/client/treatment-plans` cho bệnh nhân `BN002` (phác đồ bọc răng sứ 2 giai đoạn, 100% hoàn thành).
+   - Kiểm thử các ca biên: phân trang `limit > 50` $\to$ trả về lỗi `400 Bad Request` chuẩn Joi.
+
+## [2026-11-04] - Client Portal: Module Lịch sử Điều trị (Client Treatment History APIs - GET List & GET Detail)
+
+### Đã hoàn thành:
+1. **Module Lịch sử Điều trị Bệnh nhân (`/api/v1/client/treatment-history`):**
+   - Xây dựng 2 API phân hệ Bệnh nhân (chỉ có quyền Read-only):
+     - `GET /api/v1/client/treatment-history`: Lấy danh sách hồ sơ bệnh án phân trang (`page`, `limit`), hiển thị các thông tin tóm tắt cơ bản (mã hồ sơ, ngày khám, tên dịch vụ chính, bác sĩ khám, phòng điều trị, chẩn đoán, tổng viện phí, trạng thái thanh toán và badges tổng số dịch vụ/vật tư).
+     - `GET /api/v1/client/treatment-history/:id`: Lấy toàn bộ chi tiết chuyên sâu của 1 hồ sơ bệnh án (thông tin lịch hẹn, phác đồ điều trị, chi tiết khám lâm sàng, bảng kê dịch vụ điều trị đã làm, bảng kê vật tư tiêu hao đã sử dụng, và chi tiết hóa đơn/viện phí).
+     - **Tách biệt đơn thuốc:** Hoàn toàn loại bỏ phần đơn thuốc (`donThuoc` và `chiTietDonThuoc`) khỏi cả 2 API để xây dựng thành một API chuyên biệt riêng theo yêu cầu nghiệp vụ.
+   - **Bảo mật đa tầng (Multi-tenant Security & Data Isolation):**
+     - RBAC: Bắt buộc `verifyToken` và `restrictToRoles('BENH_NHAN')`.
+     - Data Isolation: Lọc và xác thực sở hữu qua `lichHen.benhNhanId === req.user.profileId`. Bệnh nhân tuyệt đối không thể đọc hồ sơ của bệnh nhân khác (trả về `404 Not Found`).
+   - **Tài chính 3NF tự động (Auto Financials):**
+     - Tự động tổng hợp và tái cấu trúc số tiền dịch vụ (`dichVuDieuTri`), vật tư (`vatTuSuDung`), tạm tính, giảm trừ voucher khuyến mãi (`khuyenMai`), và số tiền thực trả (`finalAmount`).
+2. **Các thành phần mã nguồn đã triển khai:**
+   - DTO: [`src/dtos/clients/clientTreatmentHistoryDto.js`](../../src/dtos/clients/clientTreatmentHistoryDto.js) (Joi Schema & Formatter 100% camelCase, tính toán tài chính 3NF).
+   - Service: [`src/services/clients/clientTreatmentHistoryService.js`](../../src/services/clients/clientTreatmentHistoryService.js).
+   - Controller: [`src/controllers/clients/clientTreatmentHistoryController.js`](../../src/controllers/clients/clientTreatmentHistoryController.js).
+   - Route: [`src/routes/clients/clientTreatmentHistory.js`](../../src/routes/clients/clientTreatmentHistory.js).
+   - Mount: [`src/app.js`](../../src/app.js) tại `/api/v1/client/treatment-history`.
+3. **Kiểm thử End-to-End trên môi trường Docker container:**
+   - Khởi động lại container `dental_clinic_api` trên Docker.
+   - Đăng nhập bệnh nhân `bn_nguyenan` lấy JWT token.
+   - Kiểm thử thành công `GET /api/v1/client/treatment-history?page=1&limit=10` (trả về status 200, danh sách tóm tắt chuẩn DTO).
+   - Kiểm thử thành công `GET /api/v1/client/treatment-history/:id` (trả về status 200, chi tiết đầy đủ dịch vụ, vật tư, hóa đơn, không có đơn thuốc).
+   - Kiểm thử các ca biên: UUID không tồn tại -> 404, UUID sai format -> 400 Joi validation, limit > 50 -> 400 Joi validation.
+
+## [2026-11-04] - Client Portal: Module Hồ sơ Bệnh nhân (Client Profile APIs - GET & PUT)
+
+### Đã hoàn thành:
+1. **Module Client Profile (`/api/v1/client/profile`):**
+   - Xây dựng 2 API phân hệ Bệnh nhân theo kiến trúc Prisma Clean Architecture:
+     - `GET /api/v1/client/profile`: Cung cấp toàn diện thông tin cá nhân, tuổi tự tính toán, thông tin tài khoản và toàn bộ hồ sơ lâm sàng (tiền sử bệnh, dị ứng, ghi chú, điểm sức khỏe ban đầu/hiện tại).
+     - `PUT /api/v1/client/profile`: Cho phép bệnh nhân tự cập nhật thông tin cá nhân cơ bản (`fullName`, `phone`, `gender`, `dateOfBirth`, `address`).
+   - **Ranh giới an toàn dữ liệu y tế (Data Privilege Boundary):**
+     - Tự động strip/loại bỏ mọi trường can thiệp y tế (`medicalHistory`, `allergies`, `notes`, `initialHealthScore`, `currentHealthScore`, `patientCode`, `email`) nhằm đảm bảo chỉ bác sĩ mới có thẩm quyền chỉnh sửa hồ sơ y bạ lâm sàng.
+     - Kiểm tra xung đột số điện thoại trùng lặp (`409 Conflict`) khi bệnh nhân đổi số điện thoại mới.
+2. **Các thành phần mã nguồn đã triển khai:**
+   - DTO: [`src/dtos/clients/clientProfileDto.js`](../../src/dtos/clients/clientProfileDto.js) (Joi Schema & Formatter chuẩn 100% camelCase cho Frontend).
+   - Service: [`src/services/clients/clientProfileService.js`](../../src/services/clients/clientProfileService.js).
+   - Controller: [`src/controllers/clients/clientProfileController.js`](../../src/controllers/clients/clientProfileController.js).
+   - Route: [`src/routes/clients/clientProfile.js`](../../src/routes/clients/clientProfile.js) (Bảo vệ bởi `verifyToken` & `restrictToRoles('BENH_NHAN')`).
+   - Mount: [`src/app.js`](../../src/app.js) tại `/api/v1/client/profile`.
+3. **Kiểm thử End-to-End trực tiếp:**
+   - Đã chạy 5 kịch bản tích hợp trực tiếp trên container Docker: Đăng nhập Bệnh nhân, lấy hồ sơ, cập nhật hợp lệ, chặn tiêm dữ liệu y tế, chặn trùng số điện thoại. Kết quả đạt 100%.
+
 ## [2026-11-03] - Nâng cấp CSDL 23 Bảng & Phân hệ Quản lý Thư viện Thuốc (Admin Medicines CRUD)
 
 ### Đã hoàn thành:

@@ -24,6 +24,11 @@ import receptionistDashboardRoutes from './routes/departments/receptionists/rece
 import receptionistAppointmentRoutes from './routes/departments/receptionists/receptionistAppointment.js';
 import receptionistCheckInRoutes from './routes/departments/receptionists/receptionistCheckIn.js';
 import clientDashboardRoutes from './routes/clients/clientDashboard.js';
+import clientProfileRoutes from './routes/clients/clientProfile.js';
+import clientTreatmentHistoryRoutes from './routes/clients/clientTreatmentHistory.js';
+import clientPrescriptionRoutes from './routes/clients/clientPrescription.js';
+import clientTreatmentPlanRoutes from './routes/clients/clientTreatmentPlan.js';
+import clientAppointmentRoutes from './routes/clients/clientAppointment.js';
 // [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
 import devDatabaseRoutes from './routes/dev/devDatabase.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
@@ -83,6 +88,11 @@ app.use('/api/v1/receptionist', receptionistAppointmentRoutes);
 
 // Client Routes - Toàn bộ API phân hệ bệnh nhân
 app.use('/api/v1/client/dashboard', clientDashboardRoutes);
+app.use('/api/v1/client/profile', clientProfileRoutes);
+app.use('/api/v1/client/treatment-history', clientTreatmentHistoryRoutes);
+app.use('/api/v1/client/prescriptions', clientPrescriptionRoutes);
+app.use('/api/v1/client/treatment-plans', clientTreatmentPlanRoutes);
+app.use('/api/v1/client/appointments', clientAppointmentRoutes);
 
 // [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
 app.use('/api/v1/dev/database', devDatabaseRoutes);
