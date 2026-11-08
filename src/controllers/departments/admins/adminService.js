@@ -4,7 +4,7 @@ import * as adminServiceService from '../../../services/departments/admins/admin
 /**
  * getServices
  * [GET] /api/v1/admin/services
- * Lấy danh sách dịch vụ cha (Level 0) có phân trang, bộ lọc trạng thái và tìm kiếm
+ * Lấy danh sách dịch vụ trực tiếp có phân trang, bộ lọc trạng thái và tìm kiếm
  */
 export const getServices = asyncHandler(async (req, res) => {
   const data = await adminServiceService.getServicesListService(req.query);
@@ -20,7 +20,7 @@ export const getServices = asyncHandler(async (req, res) => {
 /**
  * getServiceDetail
  * [GET] /api/v1/admin/services/:id
- * Lấy chi tiết thông tin dịch vụ cha kèm toàn bộ danh sách gói con
+ * Lấy chi tiết thông tin dịch vụ trực tiếp
  */
 export const getServiceDetail = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -38,7 +38,7 @@ export const getServiceDetail = asyncHandler(async (req, res) => {
 /**
  * createService
  * [POST] /api/v1/admin/services
- * Tạo mới dịch vụ cha (Level 0)
+ * Tạo mới dịch vụ trực tiếp
  */
 export const createService = asyncHandler(async (req, res) => {
   const data = await adminServiceService.createServiceService(req.body);
@@ -54,7 +54,7 @@ export const createService = asyncHandler(async (req, res) => {
 /**
  * updateService
  * [PUT] /api/v1/admin/services/:id
- * Cập nhật thông tin dịch vụ cha
+ * Cập nhật thông tin dịch vụ trực tiếp
  */
 export const updateService = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -72,7 +72,7 @@ export const updateService = asyncHandler(async (req, res) => {
 /**
  * updateServiceStatus
  * [PATCH] /api/v1/admin/services/:id/status
- * Bật / tắt trạng thái hoạt động dịch vụ cha (tự động cascade gói con khi ngừng)
+ * Bật / tắt trạng thái hoạt động dịch vụ
  */
 export const updateServiceStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -87,59 +87,3 @@ export const updateServiceStatus = asyncHandler(async (req, res) => {
     data,
   });
 });
-
-/**
- * createServiceItem
- * [POST] /api/v1/admin/services/:serviceId/items
- * Thêm mới gói chi tiết dịch vụ vào dịch vụ cha
- */
-export const createServiceItem = asyncHandler(async (req, res) => {
-  const { serviceId } = req.params;
-
-  const data = await adminServiceService.createServiceItemService(serviceId, req.body);
-
-  return res.status(201).json({
-    success: true,
-    status: 201,
-    message: 'Thêm mới chi tiết dịch vụ thành công',
-    data,
-  });
-});
-
-/**
- * updateServiceItem
- * [PUT] /api/v1/admin/services/items/:itemId
- * Cập nhật thông tin gói chi tiết dịch vụ
- */
-export const updateServiceItem = asyncHandler(async (req, res) => {
-  const { itemId } = req.params;
-
-  const data = await adminServiceService.updateServiceItemService(itemId, req.body);
-
-  return res.status(200).json({
-    success: true,
-    status: 200,
-    message: 'Cập nhật chi tiết dịch vụ thành công',
-    data,
-  });
-});
-
-/**
- * updateServiceItemStatus
- * [PATCH] /api/v1/admin/services/items/:itemId/status
- * Bật / tắt trạng thái hoạt động gói chi tiết dịch vụ
- */
-export const updateServiceItemStatus = asyncHandler(async (req, res) => {
-  const { itemId } = req.params;
-  const { status } = req.body;
-
-  const data = await adminServiceService.updateServiceItemStatusService(itemId, status);
-
-  return res.status(200).json({
-    success: true,
-    status: 200,
-    message: `Đã cập nhật trạng thái chi tiết dịch vụ sang '${status}'`,
-    data,
-  });
-});
-

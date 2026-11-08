@@ -181,6 +181,19 @@ export const adminGenerateWorkShiftsRequestSchema = Joi.object({
     }),
 });
 
+/**
+ * adminGetDoctorsOverviewQuerySchema
+ * Kiểm thực query param ?date=YYYY-MM-DD
+ */
+export const adminGetDoctorsOverviewQuerySchema = Joi.object({
+  date: Joi.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Ngày (date) phải theo định dạng YYYY-MM-DD (ví dụ: 2026-11-08)',
+    }),
+});
+
 // ============================================================================
 // 3. RESPONSE SCHEMAS (Data Sanitizers & Formatters)
 // ============================================================================

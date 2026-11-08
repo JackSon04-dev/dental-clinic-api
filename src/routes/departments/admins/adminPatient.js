@@ -3,6 +3,7 @@ import {
   getPatients,
   getPatientDetail,
   updatePatient,
+  createPatient,
 } from '../../../controllers/departments/admins/adminPatient.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -10,6 +11,7 @@ import {
   adminGetPatientsQuerySchema,
   adminGetPatientDetailParamsSchema,
   adminUpdatePatientRequestSchema,
+  adminCreatePatientRequestSchema,
 } from '../../../dtos/departments/admins/adminPatientDto.js';
 
 const router = express.Router();
@@ -26,6 +28,16 @@ router.get(
   '/',
   validate(adminGetPatientsQuerySchema, 'query'),
   getPatients
+);
+
+/**
+ * [POST] /api/v1/admin/patients
+ * Tạo mới hồ sơ bệnh nhân
+ */
+router.post(
+  '/',
+  validate(adminCreatePatientRequestSchema, 'body'),
+  createPatient
 );
 
 /**

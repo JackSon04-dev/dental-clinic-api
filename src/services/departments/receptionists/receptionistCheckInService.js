@@ -18,13 +18,13 @@ export const getCheckInQueueService = async (status) => {
     if (status === 'CHO_KHAM') {
       where.trangThai = { in: ['da_tiep_nhan', 'cho_kham'] };
     } else if (status === 'DANG_KHAM') {
-      where.trangThai = 'dang_kham';
+      where.trangThai = { in: ['dang_kham', 'dang_dieu_tri'] };
     } else if (status === 'HOAN_THANH') {
       where.trangThai = { in: ['da_kham', 'cho_thanh_toan'] };
     }
   } else {
     // Mặc định lấy tất cả các ca đang ở phòng khám
-    where.trangThai = { in: ['da_tiep_nhan', 'cho_kham', 'dang_kham', 'cho_thanh_toan'] };
+    where.trangThai = { in: ['da_tiep_nhan', 'cho_kham', 'dang_kham', 'dang_dieu_tri', 'cho_thanh_toan'] };
   }
 
   const items = await prisma.lichHen.findMany({

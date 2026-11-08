@@ -21,13 +21,17 @@ export const getDentistServices = asyncHandler(async (req, res) => {
  * [GET] /api/v1/dentist/catalogs/medicines
  */
 export const getDentistMedicines = asyncHandler(async (req, res) => {
-  const data = await dentistCatalogService.getDentistMedicinesService();
+  const list = await dentistCatalogService.getDentistMedicinesService(req.query);
 
   return res.status(200).json({
     success: true,
     status: 200,
     message: 'Lấy danh mục thuốc kê đơn thành công',
-    data,
+    data: {
+      medicines: list,
+      items: list,
+      total: list.length,
+    },
   });
 });
 

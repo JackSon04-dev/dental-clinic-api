@@ -50,3 +50,22 @@ export const updatePatient = asyncHandler(async (req, res) => {
     data,
   });
 });
+
+/**
+ * createPatient
+ * [POST] /api/v1/admin/patients
+ * Tạo mới hồ sơ bệnh nhân
+ */
+export const createPatient = asyncHandler(async (req, res) => {
+  const data = await adminPatientService.createPatientService(req.body);
+
+  return res.status(201).json({
+    success: true,
+    status: 201,
+    message: 'Tạo mới hồ sơ bệnh nhân thành công',
+    data: {
+      patient: data,
+      ...data,
+    },
+  });
+});

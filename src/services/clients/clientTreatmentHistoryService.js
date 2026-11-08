@@ -59,7 +59,7 @@ export const getTreatmentHistoryListService = async (patientId, { page = 1, limi
         },
         dichVuDieuTri: {
           include: {
-            chiTietDichVu: true,
+            dichVu: true,
           },
         },
         vatTuSuDung: {
@@ -134,7 +134,7 @@ export const getTreatmentHistoryDetailService = async (patientId, recordId) => {
       },
       dichVuDieuTri: {
         include: {
-          chiTietDichVu: true,
+          dichVu: true,
         },
       },
       vatTuSuDung: {

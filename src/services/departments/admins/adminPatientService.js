@@ -12,12 +12,32 @@ const patientFullInclude = {
     include: {
       dichVu: { select: { tenDichVu: true } },
       caLamViec: {
-        include: { nhaSi: { select: { hoTen: true } } },
+        include: {
+          nhaSi: { select: { hoTen: true } },
+          phongDieuTri: { select: { tenPhong: true } },
+        },
       },
       hoSoBenhAn: {
         include: {
-          dichVuDieuTri: true,
-          vatTuSuDung: true,
+          dichVuDieuTri: {
+            include: {
+              dichVu: true,
+            },
+          },
+          vatTuSuDung: {
+            include: {
+              sanPham: true,
+            },
+          },
+          donThuoc: {
+            include: {
+              chiTietDonThuoc: {
+                include: {
+                  thuoc: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -181,4 +201,64 @@ export const updatePatientService = async (id, data) => {
   });
 
   return adminPatientDetailResponseSchema(updatedPatient);
+};
+
+export const createPatientService = async (data) => {
+  const hoTen = (data.fullName || data.hoTen || '').trim();
+  if (!hoTen) {
+    throw new ApiError(400, 'Họ và tên bệnh nhân là bắt buộc');
+  }
+
+  let sdt = (data.phone || data.sdt || '').trim();
+  if (sdt) {
+    const existingPhone = await prisma.benhNhan.findUnique({ where: { sdt } });
+    if (existingPhone) {
+      throw new ApiError(409, 'Số điện thoại này đã được sử dụng bởi bệnh nhân khác');
+    }
+  } else {
+    sdt = null;
+  }
+
+  let email = (data.email || '').trim().toLowerCase();
+  if (email) {
+    const existingEmail = await prisma.benhNhan.findUnique({ where: { email } });
+    if (existingEmail) {
+      throw new ApiError(409, 'Email này đã được sử dụng bởi bệnh nhân khác');
+    }
+  } else {
+    email = null;
+  }
+
+  let code = '';
+  let isUnique = false;
+  while (!isUnique) {
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    code = `BN-${randomDigits}`;
+    const existing = await prisma.benhNhan.findUnique({ where: { maBenhNhan: code } });
+    if (!existing) isUnique = true;
+  }
+
+  const rawDob = data.dateOfBirth || data.birthDate || data.ngaySinh;
+  const ngaySinh = rawDob ? new Date(rawDob) : null;
+  const gioiTinh = data.gender || data.gioiTinh || 'khac';
+  const diaChi = data.address || data.diaChi || null;
+  const tienSuBenh = data.medicalHistory || data.tienSuBenh ? String(data.medicalHistory || data.tienSuBenh).trim() : null;
+  const diUng = data.allergies || data.diUng ? String(data.allergies || data.diUng).trim() : null;
+
+  const patient = await prisma.benhNhan.create({
+    data: {
+      maBenhNhan: code,
+      hoTen,
+      sdt,
+      email,
+      ngaySinh,
+      gioiTinh,
+      diaChi,
+      tienSuBenh,
+      diUng,
+    },
+    include: patientFullInclude,
+  });
+
+  return adminPatientDetailResponseSchema(patient);
 };

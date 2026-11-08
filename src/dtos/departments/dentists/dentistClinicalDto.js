@@ -10,6 +10,12 @@ export const saveClinicalRecordRequestSchema = Joi.object({
   patientId: Joi.string().uuid().required().messages({
     'any.required': 'Mã bệnh nhân là bắt buộc',
   }),
+  // Bổ sung các trường cập nhật tiền sử và dị ứng
+  medicalHistory: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())).optional(),
+  tienSuBenh: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())).optional(),
+  allergies: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())).optional(),
+  diUng: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())).optional(),
+
   diagnosis: Joi.string().allow('', null).optional(),
   treatmentMethod: Joi.string().allow('', null).optional(),
   doctorAdvice: Joi.string().allow('', null).optional(),
@@ -48,30 +54,32 @@ export const saveClinicalRecordRequestSchema = Joi.object({
     )
     .default([]),
 
-  // Danh sách đơn thuốc
+  // Danh sách đơn thuốc (cho phép dosage & instructions optional để tự động điền từ Thuoc)
   prescription: Joi.array()
     .items(
       Joi.object({
         medicineId: Joi.string().uuid().allow('', null).optional(),
-        medicineName: Joi.string().required().messages({
-          'any.required': 'Tên thuốc không được để trống',
-        }),
+        thuocId: Joi.string().uuid().allow('', null).optional(),
+        id: Joi.string().uuid().allow('', null).optional(),
+        medicineName: Joi.string().allow('', null).optional(),
         activeIngredient: Joi.string().allow('', null).optional(),
         dosage: Joi.string().allow('', null).optional(),
         quantity: Joi.number().integer().min(1).required(),
         unit: Joi.string().allow('', null).optional(),
         usageInstruction: Joi.string().allow('', null).optional(),
+        instructions: Joi.string().allow('', null).optional(),
         daysOfSupply: Joi.number().integer().min(1).optional(),
       })
     )
     .default([]),
 
+  medicines: Joi.array().items(Joi.object().unknown()).optional(),
   daysOfSupply: Joi.number().integer().min(1).default(3),
 });
 
 export const updateSlipStatusRequestSchema = Joi.object({
   status: Joi.string()
-    .valid('CHO_KHAM', 'DANG_KHAM', 'CHO_THANH_TOAN', 'HOAN_THANH', 'HUY')
+    .valid('CHO_KHAM', 'DANG_KHAM', 'DANG_DIEU_TRI', 'CHO_THANH_TOAN', 'HOAN_THANH', 'HUY')
     .required()
     .messages({
       'any.required': 'Trạng thái là bắt buộc',
@@ -94,10 +102,10 @@ export const clinicalRecordResponseSchema = (record) => {
   // Map treatments
   const treatments = (record.dichVuDieuTri || []).map((t) => ({
     id: t.id,
-    serviceId: t.chiTietDichVu?.dichVuId || t.chiTietDichVuId,
-    serviceDetailId: t.chiTietDichVuId,
+    serviceId: t.dichVuId || t.dichVu?.id || t.chiTietDichVu?.dichVuId || null,
+    serviceDetailId: t.dichVuId || t.chiTietDichVuId || null,
     serviceName:
-      t.chiTietDichVu?.tenChiTiet || t.chiTietDichVu?.dichVu?.tenDichVu || 'Dịch vụ điều trị',
+      t.dichVu?.tenDichVu || t.chiTietDichVu?.tenChiTiet || t.chiTietDichVu?.dichVu?.tenDichVu || 'Dịch vụ điều trị',
     toothNumber: t.viTriRang || '',
     price: Number(t.donGia),
     quantity: t.soLuong,
@@ -163,6 +171,27 @@ export const clinicalRecordResponseSchema = (record) => {
     treatments,
     materials,
     prescription,
+    appointmentStatus: lichHen.trangThai || 'dang_kham',
+    invoices: (lichHen.hoaDon || []).map((inv) => ({
+      id: inv.id,
+      code: inv.maHoaDon,
+      installment: inv.dotThanhToan || 1,
+      invoiceType: inv.loaiHoaDon || 'thanh_toan_truoc',
+      status: inv.trangThaiThanhToan,
+      subtotal: Number(inv.tongTien) || 0,
+      discount: Number(inv.giamGia) || 0,
+      finalAmount: Number(inv.soTienThanhToan) || 0,
+      paidAt: inv.ngayThanhToan,
+      items: (inv.chiTietHoaDon || []).map((ct) => ({
+        id: ct.id,
+        name: ct.tenMuc,
+        type: ct.loaiMuc,
+        quantity: ct.soLuong,
+        unitPrice: Number(ct.donGia),
+        totalAmount: Number(ct.thanhTien),
+        toothNumber: ct.viTriRang,
+      })),
+    })),
     createdAt: record.createdAt,
   };
 };

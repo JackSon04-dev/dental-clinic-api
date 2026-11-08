@@ -18,8 +18,7 @@ SELECT
     hd.ngay_thanh_toan,
     hd.id AS hoa_don_id
 FROM dich_vu_dieu_tri dvdt
-JOIN chi_tiet_dich_vu ctdv ON dvdt.chi_tiet_dich_vu_id = ctdv.id
-JOIN dich_vu dv ON ctdv.dich_vu_id = dv.id
+JOIN dich_vu dv ON dvdt.dich_vu_id = dv.id
 JOIN ho_so_benh_an hsba ON dvdt.ho_so_id = hsba.id
 JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
 WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'

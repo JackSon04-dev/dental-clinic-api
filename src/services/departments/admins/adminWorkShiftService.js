@@ -5,7 +5,9 @@ import {
   adminWorkShiftDetailResponseSchema,
   adminWorkShiftsMatrixResponseSchema,
   adminGenerateWorkShiftsResponseSchema,
+  formatDateYYYYMMDD,
   formatTimeHHMM,
+  getSessionFromTime,
   DAY_NAMES,
 } from '../../../dtos/departments/admins/adminWorkShiftDto.js';
 
@@ -243,3 +245,200 @@ export const generateWorkShiftsFromTemplateService = async ({ startDate }) => {
     totalCreated: newShifts.length,
   });
 };
+
+/**
+ * getDoctorsWorkShiftsOverviewService
+ * Lấy danh sách toàn bộ bác sĩ đang làm việc kèm KPI ca trực:
+ * - dailyShiftsCount: số ca trong ngày được chỉ định (hoặc ngày hôm nay)
+ * - weeklyShiftsCount: tổng số ca trong tuần chứa ngày đó (Thứ Hai -> Chủ Nhật)
+ * - shifts: danh sách ca trực trong tuần
+ */
+export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) => {
+  // 1. Tính toán khoảng tuần Thứ Hai -> Chủ Nhật
+  const week = getWeekRangeFromDateString(date);
+  const targetDateStr = date || week.currentDate;
+
+  // 2. Lấy danh sách tất cả bác sĩ đang làm việc
+  const doctors = await prisma.nhaSi.findMany({
+    where: { trangThai: 'dang_lam_viec' },
+    orderBy: { maNhaSi: 'asc' },
+  });
+
+  // 3. Lấy tất cả ca làm việc trong tuần của các bác sĩ
+  const shifts = await prisma.caLamViec.findMany({
+    where: {
+      ngay: {
+        gte: new Date(week.startDate),
+        lte: new Date(week.endDate),
+      },
+    },
+    include: {
+      phongDieuTri: true,
+    },
+    orderBy: [
+      { ngay: 'asc' },
+      { gioBatDau: 'asc' },
+    ],
+  });
+
+  // 4. Gom nhóm ca theo nhaSiId
+  const shiftsByDoctor = new Map();
+  for (const s of shifts) {
+    if (!shiftsByDoctor.has(s.nhaSiId)) {
+      shiftsByDoctor.set(s.nhaSiId, []);
+    }
+    shiftsByDoctor.get(s.nhaSiId).push(s);
+  }
+
+  // 5. Tính toán KPI và tổng hợp kết quả cho từng bác sĩ
+  const result = doctors.map((doc) => {
+    const docShifts = shiftsByDoctor.get(doc.id) || [];
+
+    // Đếm số ca trong ngày được chọn
+    const dailyShifts = docShifts.filter((s) => formatDateYYYYMMDD(s.ngay) === targetDateStr);
+    const dailyShiftsCount = dailyShifts.length;
+
+    // Tổng số ca trong tuần
+    const weeklyShiftsCount = docShifts.length;
+
+    // Format danh sách ca trực trong tuần
+    const formattedShifts = docShifts.map((s) => ({
+      id: s.id,
+      shiftDate: formatDateYYYYMMDD(s.ngay),
+      date: formatDateYYYYMMDD(s.ngay),
+      startTime: formatTimeHHMM(s.gioBatDau),
+      endTime: formatTimeHHMM(s.gioKetThuc),
+      session: getSessionFromTime(s.gioBatDau),
+      roomId: s.phongDieuTriId,
+      roomName: s.phongDieuTri?.tenPhong || s.phongDieuTri?.maPhong || 'Phòng khám',
+      status: s.trangThai,
+      notes: s.ghiChu,
+    }));
+
+    return {
+      doctorId: doc.id,
+      doctorCode: doc.maNhaSi,
+      doctorName: doc.hoTen,
+      email: doc.email,
+      phone: doc.sdt,
+      specialty: doc.chuyenKhoa,
+      dailyShiftsCount,
+      weeklyShiftsCount,
+      shifts: formattedShifts,
+    };
+  });
+
+  return result;
+};
+
+/**
+ * getShiftAppointmentsService
+ * Lấy thông tin chi tiết một ca làm việc kèm danh sách cuộc hẹn khám và bệnh nhân
+ */
+export const getShiftAppointmentsService = async ({ shiftId }) => {
+  const shift = await prisma.caLamViec.findUnique({
+    where: { id: shiftId },
+    include: {
+      nhaSi: {
+        select: {
+          id: true,
+          maNhaSi: true,
+          hoTen: true,
+          sdt: true,
+          chuyenKhoa: true,
+        },
+      },
+      phongDieuTri: {
+        select: {
+          id: true,
+          maPhong: true,
+          tenPhong: true,
+        },
+      },
+      lichHen: {
+        include: {
+          benhNhan: {
+            select: {
+              id: true,
+              maBenhNhan: true,
+              hoTen: true,
+              sdt: true,
+              ngaySinh: true,
+              gioiTinh: true,
+            },
+          },
+          dichVu: {
+            select: {
+              id: true,
+              maDichVu: true,
+              tenDichVu: true,
+              gia: true,
+            },
+          },
+          hoSoBenhAn: {
+            select: {
+              id: true,
+              maHoSo: true,
+              chanDoan: true,
+              ketQua: true,
+            },
+          },
+        },
+        orderBy: { gioHen: 'asc' },
+      },
+    },
+  });
+
+  if (!shift) {
+    throw new ApiError(404, 'Không tìm thấy ca làm việc trong hệ thống');
+  }
+
+  const shiftDate = formatDateYYYYMMDD(shift.ngay);
+  const startTime = formatTimeHHMM(shift.gioBatDau);
+  const endTime = formatTimeHHMM(shift.gioKetThuc);
+  const doctorName = shift.nhaSi?.hoTen || '';
+  const roomName = shift.phongDieuTri?.tenPhong || shift.phongDieuTri?.maPhong || '';
+
+  const appointments = (shift.lichHen || []).map((app) => ({
+    id: app.id,
+    appointmentCode: app.maLichHen || '',
+    patientId: app.benhNhanId,
+    patientName: app.benhNhan?.hoTen || '',
+    patientPhone: app.benhNhan?.sdt || '',
+    patientCode: app.benhNhan?.maBenhNhan || '',
+    patientGender: app.benhNhan?.gioiTinh || '',
+    patientDob: app.benhNhan?.ngaySinh ? formatDateYYYYMMDD(app.benhNhan.ngaySinh) : null,
+    appointmentTime: formatTimeHHMM(app.gioHen),
+    serviceId: app.dichVuId,
+    serviceName: app.dichVu?.tenDichVu || '',
+    serviceCode: app.dichVu?.maDichVu || '',
+    servicePrice: app.dichVu?.gia ? Number(app.dichVu.gia) : 0,
+    status: app.trangThai,
+    notes: app.ghiChu || '',
+    medicalRecord: app.hoSoBenhAn
+      ? {
+          id: app.hoSoBenhAn.id,
+          recordCode: app.hoSoBenhAn.maHoSo || '',
+          diagnosis: app.hoSoBenhAn.chanDoan || '',
+          result: app.hoSoBenhAn.ketQua || '',
+        }
+      : null,
+  }));
+
+  return {
+    shiftId: shift.id,
+    doctorId: shift.nhaSiId,
+    doctorName,
+    doctorCode: shift.nhaSi?.maNhaSi || '',
+    roomId: shift.phongDieuTriId,
+    roomName,
+    shiftDate,
+    startTime,
+    endTime,
+    status: shift.trangThai,
+    notes: shift.ghiChu || '',
+    appointmentsCount: appointments.length,
+    appointments,
+  };
+};
+

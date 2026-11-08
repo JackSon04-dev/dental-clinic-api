@@ -3,12 +3,8 @@ import { ApiError } from '../../../common/errorMiddleware.js';
 import {
   adminServiceListItemResponseSchema,
   adminServiceDetailResponseSchema,
-  adminServiceItemResponseSchema,
 } from '../../../dtos/departments/admins/adminServiceDto.js';
 
-/**
- * Sinh mã dịch vụ ngẫu nhiên duy nhất nếu không được truyền
- */
 const generateUniqueServiceCode = async () => {
   for (let i = 0; i < 5; i++) {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -23,24 +19,8 @@ const generateUniqueServiceCode = async () => {
 };
 
 /**
- * Sinh mã chi tiết dịch vụ ngẫu nhiên duy nhất nếu không được truyền
- */
-const generateUniqueItemCode = async () => {
-  for (let i = 0; i < 5; i++) {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const candidateCode = `CTDV-${randomSuffix}`;
-    const existing = await prisma.chiTietDichVu.findUnique({
-      where: { maChiTiet: candidateCode },
-      select: { id: true },
-    });
-    if (!existing) return candidateCode;
-  }
-  return `CTDV-${Date.now().toString(36).toUpperCase()}`;
-};
-
-/**
  * getServicesListService
- * Lấy danh sách dịch vụ cha (Level 0) có phân trang, bộ lọc trạng thái và tìm kiếm
+ * Lấy danh sách dịch vụ trực tiếp có phân trang, bộ lọc trạng thái và tìm kiếm
  */
 export const getServicesListService = async ({ page = 1, limit = 10, status = 'ALL', search = '' }) => {
   const pageNum = Number(page) || 1;
@@ -68,12 +48,6 @@ export const getServicesListService = async ({ page = 1, limit = 10, status = 'A
       take: limitNum,
       orderBy: { createdAt: 'desc' },
       include: {
-        chiTietDichVu: {
-          select: {
-            gia: true,
-            trangThai: true,
-          },
-        },
         sanPham: {
           select: {
             id: true,
@@ -82,7 +56,6 @@ export const getServicesListService = async ({ page = 1, limit = 10, status = 'A
         },
         _count: {
           select: {
-            chiTietDichVu: true,
             sanPham: true,
           },
         },
@@ -107,15 +80,12 @@ export const getServicesListService = async ({ page = 1, limit = 10, status = 'A
 
 /**
  * getServiceDetailService
- * Lấy chi tiết thông tin dịch vụ cha kèm toàn bộ danh sách gói con
+ * Lấy chi tiết thông tin dịch vụ trực tiếp
  */
 export const getServiceDetailService = async (id) => {
   const service = await prisma.dichVu.findUnique({
     where: { id },
     include: {
-      chiTietDichVu: {
-        orderBy: { createdAt: 'asc' },
-      },
       sanPham: {
         select: {
           id: true,
@@ -127,7 +97,6 @@ export const getServiceDetailService = async (id) => {
       },
       _count: {
         select: {
-          chiTietDichVu: true,
           sanPham: true,
         },
       },
@@ -143,17 +112,30 @@ export const getServiceDetailService = async (id) => {
 
 /**
  * createServiceService
- * Tạo mới dịch vụ cha (Level 0)
+ * Tạo mới dịch vụ trực tiếp với giá và đơn vị tính
  */
-export const createServiceService = async ({
-  name,
-  code,
-  description,
-  processInfo,
-  estimatedDurationMinutes = 30,
-  status = 'hoat_dong',
-}) => {
-  let serviceCode = (code || '').trim();
+export const createServiceService = async (payload) => {
+  const {
+    name,
+    tenDichVu,
+    code,
+    maDichVu,
+    price,
+    gia,
+    unit,
+    donViTinh,
+    description,
+    moTa,
+    processInfo,
+    thongTinQuyTrinh,
+    estimatedDurationMinutes = 30,
+    thoiGianDuKienPhut,
+    status = 'hoat_dong',
+    trangThai,
+  } = payload;
+
+  const rawCode = (code || maDichVu || '').trim();
+  let serviceCode = rawCode;
 
   if (serviceCode) {
     const existing = await prisma.dichVu.findUnique({
@@ -167,26 +149,51 @@ export const createServiceService = async ({
     serviceCode = await generateUniqueServiceCode();
   }
 
-  const newService = await prisma.dichVu.create({
-    data: {
-      maDichVu: serviceCode,
-      tenDichVu: name.trim(),
-      moTa: description ? description.trim() : null,
-      thongTinQuyTrinh: processInfo ? processInfo.trim() : null,
-      thoiGianDuKienPhut: estimatedDurationMinutes,
-      trangThai: status,
-    },
-    include: {
-      chiTietDichVu: true,
-    },
-  });
+  const finalName = (name || tenDichVu || '').trim();
+  const finalPrice = gia !== undefined ? Number(gia) : (price !== undefined ? Number(price) : 0);
+  const finalUnit = (donViTinh !== undefined && donViTinh !== null && String(donViTinh).trim() !== '') 
+    ? String(donViTinh).trim() 
+    : (unit !== undefined && unit !== null && String(unit).trim() !== '' ? String(unit).trim() : 'Lần');
+  const finalDesc = description !== undefined ? description : moTa;
+  const finalProc = processInfo !== undefined ? processInfo : thongTinQuyTrinh;
+  const finalDuration = estimatedDurationMinutes !== undefined ? estimatedDurationMinutes : (thoiGianDuKienPhut ?? 30);
+  const finalStatus = status || trangThai || 'hoat_dong';
+
+  let newService;
+  try {
+    newService = await prisma.dichVu.create({
+      data: {
+        maDichVu: serviceCode,
+        tenDichVu: finalName,
+        gia: finalPrice,
+        donViTinh: finalUnit,
+        moTa: finalDesc ? finalDesc.trim() : null,
+        thongTinQuyTrinh: finalProc ? finalProc.trim() : null,
+        thoiGianDuKienPhut: Number(finalDuration),
+        trangThai: finalStatus,
+      },
+      include: {
+        sanPham: true,
+        _count: {
+          select: { sanPham: true },
+        },
+      },
+    });
+  } catch (err) {
+    if (err?.code === 'P2002') {
+      throw ApiError.conflict 
+        ? ApiError.conflict('Mã dịch vụ đã tồn tại trong hệ thống') 
+        : new ApiError(409, 'Mã dịch vụ đã tồn tại trong hệ thống');
+    }
+    throw err;
+  }
 
   return adminServiceDetailResponseSchema(newService);
 };
 
 /**
  * updateServiceService
- * Cập nhật thông tin dịch vụ cha
+ * Cập nhật thông tin dịch vụ trực tiếp
  */
 export const updateServiceService = async (id, data) => {
   const existingService = await prisma.dichVu.findUnique({
@@ -200,28 +207,42 @@ export const updateServiceService = async (id, data) => {
 
   const updateData = {};
 
-  if (data.name !== undefined) {
-    updateData.tenDichVu = data.name.trim();
+  if (data.name !== undefined || data.tenDichVu !== undefined) {
+    updateData.tenDichVu = (data.name || data.tenDichVu).trim();
   }
 
-  if (data.description !== undefined) {
-    updateData.moTa = data.description ? data.description.trim() : null;
+  if (data.gia !== undefined || data.price !== undefined) {
+    updateData.gia = data.gia !== undefined ? Number(data.gia) : Number(data.price);
   }
 
-  if (data.processInfo !== undefined) {
-    updateData.thongTinQuyTrinh = data.processInfo ? data.processInfo.trim() : null;
+  if (data.donViTinh !== undefined || data.unit !== undefined) {
+    const rawUnit = (data.donViTinh !== undefined && data.donViTinh !== null && String(data.donViTinh).trim() !== '')
+      ? String(data.donViTinh).trim()
+      : (data.unit !== undefined && data.unit !== null && String(data.unit).trim() !== '' ? String(data.unit).trim() : 'Lần');
+    updateData.donViTinh = rawUnit;
   }
 
-  if (data.estimatedDurationMinutes !== undefined) {
-    updateData.thoiGianDuKienPhut = data.estimatedDurationMinutes;
+  if (data.description !== undefined || data.moTa !== undefined) {
+    const desc = data.description !== undefined ? data.description : data.moTa;
+    updateData.moTa = desc ? desc.trim() : null;
   }
 
-  if (data.status !== undefined) {
-    updateData.trangThai = data.status;
+  if (data.processInfo !== undefined || data.thongTinQuyTrinh !== undefined) {
+    const proc = data.processInfo !== undefined ? data.processInfo : data.thongTinQuyTrinh;
+    updateData.thongTinQuyTrinh = proc ? proc.trim() : null;
   }
 
-  if (data.code !== undefined) {
-    const newCode = data.code ? data.code.trim() : null;
+  if (data.estimatedDurationMinutes !== undefined || data.thoiGianDuKienPhut !== undefined) {
+    updateData.thoiGianDuKienPhut = Number(data.estimatedDurationMinutes ?? data.thoiGianDuKienPhut);
+  }
+
+  if (data.status !== undefined || data.trangThai !== undefined) {
+    updateData.trangThai = data.status || data.trangThai;
+  }
+
+  const rawCode = data.code !== undefined ? data.code : data.maDichVu;
+  if (rawCode !== undefined) {
+    const newCode = rawCode ? rawCode.trim() : null;
     if (newCode && newCode !== existingService.maDichVu) {
       const codeCheck = await prisma.dichVu.findUnique({
         where: { maDichVu: newCode },
@@ -234,191 +255,54 @@ export const updateServiceService = async (id, data) => {
     }
   }
 
-  const updatedService = await prisma.dichVu.update({
-    where: { id },
-    data: updateData,
-    include: {
-      chiTietDichVu: {
-        orderBy: { createdAt: 'asc' },
+  let updatedService;
+  try {
+    updatedService = await prisma.dichVu.update({
+      where: { id },
+      data: updateData,
+      include: {
+        sanPham: true,
+        _count: {
+          select: { sanPham: true },
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    if (err?.code === 'P2002') {
+      throw ApiError.conflict 
+        ? ApiError.conflict(`Mã dịch vụ '${updateData.maDichVu || 'đã tồn tại'}' đã tồn tại trong hệ thống`) 
+        : new ApiError(409, `Mã dịch vụ '${updateData.maDichVu || 'đã tồn tại'}' đã tồn tại trong hệ thống`);
+    }
+    throw err;
+  }
 
   return adminServiceDetailResponseSchema(updatedService);
 };
 
 /**
  * updateServiceStatusService
- * Bật / tắt trạng thái hoạt động của dịch vụ cha
- * Khi chuyển sang 'ngung_hoat_dong', cascade cập nhật toàn bộ gói chi tiết con trực thuộc
+ * Bật / tắt trạng thái hoạt động dịch vụ trực tiếp
  */
 export const updateServiceStatusService = async (id, status) => {
   const existingService = await prisma.dichVu.findUnique({
     where: { id },
-    select: { id: true, trangThai: true },
+    select: { id: true },
   });
 
   if (!existingService) {
     throw new ApiError(404, 'Không tìm thấy dịch vụ để thay đổi trạng thái');
   }
 
-  return await prisma.$transaction(async (tx) => {
-    const updated = await tx.dichVu.update({
-      where: { id },
-      data: { trangThai: status },
-      include: {
-        chiTietDichVu: {
-          orderBy: { createdAt: 'asc' },
-        },
-      },
-    });
-
-    // Nếu ngưng hoạt động dịch vụ cha, ngưng hoạt động toàn bộ gói con
-    if (status === 'ngung_hoat_dong') {
-      await tx.chiTietDichVu.updateMany({
-        where: { dichVuId: id },
-        data: { trangThai: 'ngung_hoat_dong' },
-      });
-
-      // Nạp lại danh sách gói con sau khi update
-      const updatedItems = await tx.chiTietDichVu.findMany({
-        where: { dichVuId: id },
-        orderBy: { createdAt: 'asc' },
-      });
-      updated.chiTietDichVu = updatedItems;
-    }
-
-    return adminServiceDetailResponseSchema(updated);
-  });
-};
-
-/**
- * createServiceItemService
- * Thêm mới gói / chi tiết dịch vụ (Level 1) vào một dịch vụ cha
- */
-export const createServiceItemService = async (serviceId, { name, code, price, unit, status = 'hoat_dong' }) => {
-  const service = await prisma.dichVu.findUnique({
-    where: { id: serviceId },
-    select: { id: true, trangThai: true },
-  });
-
-  if (!service) {
-    throw new ApiError(404, 'Không tìm thấy dịch vụ cha để thêm gói chi tiết');
-  }
-
-  let itemCode = (code || '').trim();
-
-  if (itemCode) {
-    const existing = await prisma.chiTietDichVu.findUnique({
-      where: { maChiTiet: itemCode },
-      select: { id: true },
-    });
-    if (existing) {
-      throw new ApiError(409, `Mã chi tiết dịch vụ '${itemCode}' đã tồn tại trong hệ thống`);
-    }
-  } else {
-    itemCode = await generateUniqueItemCode();
-  }
-
-  const newItem = await prisma.chiTietDichVu.create({
-    data: {
-      dichVuId: serviceId,
-      maChiTiet: itemCode,
-      tenChiTiet: name.trim(),
-      gia: price,
-      donViTinh: unit.trim(),
-      trangThai: status,
-    },
-  });
-
-  return adminServiceItemResponseSchema(newItem);
-};
-
-/**
- * updateServiceItemService
- * Cập nhật thông tin gói / chi tiết dịch vụ
- */
-export const updateServiceItemService = async (itemId, data) => {
-  const existingItem = await prisma.chiTietDichVu.findUnique({
-    where: { id: itemId },
-    select: { id: true, maChiTiet: true },
-  });
-
-  if (!existingItem) {
-    throw new ApiError(404, 'Không tìm thấy chi tiết dịch vụ để cập nhật');
-  }
-
-  const updateData = {};
-
-  if (data.name !== undefined) {
-    updateData.tenChiTiet = data.name.trim();
-  }
-
-  if (data.price !== undefined) {
-    updateData.gia = data.price;
-  }
-
-  if (data.unit !== undefined) {
-    updateData.donViTinh = data.unit.trim();
-  }
-
-  if (data.status !== undefined) {
-    updateData.trangThai = data.status;
-  }
-
-  if (data.code !== undefined) {
-    const newCode = data.code ? data.code.trim() : null;
-    if (newCode && newCode !== existingItem.maChiTiet) {
-      const codeCheck = await prisma.chiTietDichVu.findUnique({
-        where: { maChiTiet: newCode },
-        select: { id: true },
-      });
-      if (codeCheck) {
-        throw new ApiError(409, `Mã chi tiết dịch vụ '${newCode}' đã tồn tại trong hệ thống`);
-      }
-      updateData.maChiTiet = newCode;
-    }
-  }
-
-  const updatedItem = await prisma.chiTietDichVu.update({
-    where: { id: itemId },
-    data: updateData,
-  });
-
-  return adminServiceItemResponseSchema(updatedItem);
-};
-
-/**
- * updateServiceItemStatusService
- * Bật / tắt trạng thái hoạt động của gói chi tiết dịch vụ
- */
-export const updateServiceItemStatusService = async (itemId, status) => {
-  const existingItem = await prisma.chiTietDichVu.findUnique({
-    where: { id: itemId },
-    include: {
-      dichVu: {
-        select: { id: true, trangThai: true, tenDichVu: true },
-      },
-    },
-  });
-
-  if (!existingItem) {
-    throw new ApiError(404, 'Không tìm thấy chi tiết dịch vụ để thay đổi trạng thái');
-  }
-
-  // Nếu muốn kích hoạt nhưng dịch vụ cha đang ngưng hoạt động -> cảnh báo
-  if (status === 'hoat_dong' && existingItem.dichVu.trangThai === 'ngung_hoat_dong') {
-    throw new ApiError(
-      400,
-      `Không thể kích hoạt gói này vì dịch vụ cha '${existingItem.dichVu.tenDichVu}' đang ở trạng thái ngưng hoạt động. Hãy kích hoạt dịch vụ cha trước.`
-    );
-  }
-
-  const updatedItem = await prisma.chiTietDichVu.update({
-    where: { id: itemId },
+  const updated = await prisma.dichVu.update({
+    where: { id },
     data: { trangThai: status },
+    include: {
+      sanPham: true,
+      _count: {
+        select: { sanPham: true },
+      },
+    },
   });
 
-  return adminServiceItemResponseSchema(updatedItem);
+  return adminServiceDetailResponseSchema(updated);
 };
-

@@ -17,6 +17,8 @@ export const mapLichHenStatusToSlipStatus = (dbStatus) => {
       return 'CHO_KHAM';
     case 'dang_kham':
       return 'DANG_KHAM';
+    case 'dang_dieu_tri':
+      return 'DANG_DIEU_TRI';
     case 'cho_thanh_toan':
       return 'CHO_THANH_TOAN';
     case 'da_kham':

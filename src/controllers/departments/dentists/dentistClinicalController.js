@@ -83,9 +83,27 @@ export const saveClinicalRecord = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * getPatientExamHistory
+ * [GET] /api/v1/dentist/clinical/patients/:patientId/history
+ */
+export const getPatientExamHistory = asyncHandler(async (req, res) => {
+  const { patientId } = req.params;
+
+  const data = await dentistClinicalService.getPatientExamHistoryService(patientId);
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy chi tiết lịch sử khám bệnh của bệnh nhân thành công',
+    data,
+  });
+});
+
 export default {
   getClinicalQueue,
   updateSlipStatus,
   getClinicalRecord,
   saveClinicalRecord,
+  getPatientExamHistory,
 };

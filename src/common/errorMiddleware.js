@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Custom ApiError class tương tự ecommerce_backend
  * Hỗ trợ truyền HTTP status code, message và mảng errors chi tiết
  */
@@ -10,6 +10,18 @@ export class ApiError extends Error {
     this.errors = errors;
     this.success = false;
     Error.captureStackTrace(this, this.constructor);
+  }
+
+  static badRequest(message, errors = []) {
+    return new ApiError(400, message, errors);
+  }
+
+  static notFound(message, errors = []) {
+    return new ApiError(404, message, errors);
+  }
+
+  static conflict(message, errors = []) {
+    return new ApiError(409, message, errors);
   }
 }
 

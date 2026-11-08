@@ -379,9 +379,8 @@ export const formatAvailableSlotsResponse = ({
  * Format thông tin dịch vụ trả về cho Client lựa chọn đặt lịch
  */
 export const formatClientServiceItem = (service) => {
-  const details = service.chiTietDichVu || [];
-  const minPrice = details.length > 0 ? Number(details[0].gia) : null;
-  const unit = details.length > 0 ? details[0].donViTinh : null;
+  const price = service.gia !== undefined && service.gia !== null ? Number(service.gia) : null;
+  const unit = service.donViTinh || (service.chiTietDichVu?.[0]?.donViTinh) || 'lượt';
 
   return {
     id: service.id,
@@ -390,8 +389,8 @@ export const formatClientServiceItem = (service) => {
     description: service.moTa || '',
     procedureInfo: service.thongTinQuyTrinh || '',
     durationMinutes: service.thoiGianDuKienPhut || 30,
-    price: minPrice,
-    unit: unit || 'lượt',
+    price: price !== null ? price : (service.chiTietDichVu?.[0] ? Number(service.chiTietDichVu[0].gia) : null),
+    unit,
   };
 };
 

@@ -5,6 +5,7 @@ import {
   createPromotion,
   updatePromotion,
   updatePromotionStatus,
+  validatePromotion,
 } from '../../../controllers/departments/admins/adminPromotion.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -14,22 +15,38 @@ import {
   adminCreatePromotionRequestSchema,
   adminUpdatePromotionRequestSchema,
   adminUpdatePromotionStatusRequestSchema,
+  validatePromotionRequestSchema,
 } from '../../../dtos/departments/admins/adminPromotionDto.js';
 
 const router = express.Router();
 
-// Tất cả các endpoints quản lý khuyến mãi yêu cầu xác thực JWT và vai trò ADMIN
-router.use(verifyToken, restrictToRoles('ADMIN'));
+/**
+ * [POST] /api/v1/admin/promotions/validate
+ * Kiểm tra tính hợp lệ của voucher và tính số tiền giảm
+ * Mở quyền cho cả Lễ tân (LE_TAN) và Quản trị viên (ADMIN)
+ */
+router.post(
+  '/validate',
+  verifyToken,
+  restrictToRoles('ADMIN', 'LE_TAN'),
+  validate(validatePromotionRequestSchema, 'body'),
+  validatePromotion
+);
 
 /**
  * [GET] /api/v1/admin/promotions
- * Lấy danh sách chương trình khuyến mãi / voucher (Level 0) có phân trang, bộ lọc và tìm kiếm
+ * Danh sách khuyến mãi (để Lễ tân chọn voucher từ danh mục hoặc Admin quản lý)
  */
 router.get(
   '/',
+  verifyToken,
+  restrictToRoles('ADMIN', 'LE_TAN'),
   validate(adminGetPromotionsQuerySchema, 'query'),
   getPromotions
 );
+
+// Các thao tác CRUD quản trị chỉ dành cho ADMIN
+router.use(verifyToken, restrictToRoles('ADMIN'));
 
 /**
  * [POST] /api/v1/admin/promotions

@@ -6,12 +6,6 @@ import prisma from '../../../config/prisma.js';
 export const getDentistServicesService = async () => {
   const services = await prisma.dichVu.findMany({
     where: { trangThai: 'hoat_dong' },
-    include: {
-      chiTietDichVu: {
-        where: { trangThai: 'hoat_dong' },
-        orderBy: { gia: 'asc' },
-      },
-    },
     orderBy: { tenDichVu: 'asc' },
   });
 
@@ -21,24 +15,31 @@ export const getDentistServicesService = async () => {
     name: s.tenDichVu,
     description: s.moTa,
     expectedDurationMinutes: s.thoiGianDuKienPhut,
-    unitPrice: s.chiTietDichVu?.[0] ? Number(s.chiTietDichVu[0].gia) : 0,
-    unit: s.chiTietDichVu?.[0]?.donViTinh || 'Lần',
-    variants: s.chiTietDichVu.map((v) => ({
-      id: v.id,
-      code: v.maChiTiet,
-      name: v.tenChiTiet,
-      price: Number(v.gia),
-      unit: v.donViTinh,
-    })),
+    unitPrice: Number(s.gia || 0),
+    price: Number(s.gia || 0),
+    unit: s.donViTinh || 'Lần',
+    variants: [],
   }));
 };
 
 /**
  * Lấy danh mục thuốc kê đơn
  */
-export const getDentistMedicinesService = async () => {
+export const getDentistMedicinesService = async (query = {}) => {
+  const { search = '' } = query;
+  const where = { trangThai: 'hoat_dong' };
+  const cleanSearch = typeof search === 'string' ? search.trim() : '';
+  if (cleanSearch) {
+    where.OR = [
+      { tenThuoc: { contains: cleanSearch, mode: 'insensitive' } },
+      { hoatChat: { contains: cleanSearch, mode: 'insensitive' } },
+      { tenBietDuoc: { contains: cleanSearch, mode: 'insensitive' } },
+      { maThuoc: { contains: cleanSearch, mode: 'insensitive' } },
+    ];
+  }
+
   const medicines = await prisma.thuoc.findMany({
-    where: { trangThai: 'hoat_dong' },
+    where,
     orderBy: { tenThuoc: 'asc' },
   });
 
@@ -54,6 +55,8 @@ export const getDentistMedicinesService = async () => {
     unit: m.donViTinh,
     defaultDosage: m.lieuDungMacDinh,
     defaultUsageInstruction: m.huongDanMacDinh,
+    lieuDungMacDinh: m.lieuDungMacDinh,
+    huongDanMacDinh: m.huongDanMacDinh,
     contraindications: m.chongChiDinh,
     price: m.giaThamKhao ? Number(m.giaThamKhao) : 0,
   }));

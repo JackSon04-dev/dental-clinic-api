@@ -292,3 +292,127 @@ export const updatePromotionStatusService = async (id, status) => {
 
   return adminPromotionDetailResponseSchema(updatedPromotion);
 };
+
+/**
+ * validatePromotionService
+ * Kiểm thực mã khuyến mãi / voucher cho Lễ tân và Thu ngân:
+ * - Kiểm tra sự tồn tại (case-insensitive)
+ * - Kiểm tra trạng thái hoạt động (hoat_dong)
+ * - Kiểm tra khung thời gian hiệu lực (ngayBatDau <= today <= ngayKetThuc)
+ * - Kiểm tra số lần sử dụng tối đa (soLanDaSuDung < soLanSuDungToiDa)
+ * - Tính toán số tiền giảm (discountAmount) và số tiền thanh toán cuối cùng (finalAmount), chặn không vượt quá subtotal
+ */
+export const validatePromotionService = async ({ code, subtotal = 0 }) => {
+  const cleanCode = (code || '').trim().toUpperCase();
+  const numericSubtotal = Math.max(0, Number(subtotal) || 0);
+
+  if (!cleanCode) {
+    return {
+      valid: false,
+      message: 'Mã khuyến mãi không được để trống',
+      promotion: null,
+      discountAmount: 0,
+      finalAmount: numericSubtotal,
+    };
+  }
+
+  const promo = await prisma.khuyenMai.findUnique({
+    where: { maKhuyenMai: cleanCode },
+  });
+
+  if (!promo) {
+    return {
+      valid: false,
+      message: `Mã khuyến mãi '${cleanCode}' không tồn tại trong hệ thống`,
+      promotion: null,
+      discountAmount: 0,
+      finalAmount: numericSubtotal,
+    };
+  }
+
+  // 1. Kiểm tra trạng thái hoạt động
+  if (promo.trangThai !== 'hoat_dong') {
+    return {
+      valid: false,
+      message: 'Chương trình khuyến mãi hiện không còn hoạt động hoặc đã bị tạm ngưng',
+      promotion: null,
+      discountAmount: 0,
+      finalAmount: numericSubtotal,
+    };
+  }
+
+  // 2. Kiểm tra khung ngày áp dụng
+  const now = new Date();
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const startDate = new Date(promo.ngayBatDau);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(promo.ngayKetThuc);
+  endDate.setHours(23, 59, 59, 999);
+
+  if (todayDate < startDate) {
+    return {
+      valid: false,
+      message: 'Chương trình khuyến mãi chưa đến thời gian áp dụng',
+      promotion: null,
+      discountAmount: 0,
+      finalAmount: numericSubtotal,
+    };
+  }
+
+  if (now > endDate) {
+    return {
+      valid: false,
+      message: 'Mã khuyến mãi đã hết hạn sử dụng',
+      promotion: null,
+      discountAmount: 0,
+      finalAmount: numericSubtotal,
+    };
+  }
+
+  // 3. Kiểm tra số lần sử dụng tối đa
+  if (promo.soLanSuDungToiDa !== null && promo.soLanSuDungToiDa !== undefined) {
+    if (promo.soLanDaSuDung >= promo.soLanSuDungToiDa) {
+      return {
+        valid: false,
+        message: 'Mã khuyến mãi đã hết số lượt sử dụng tối đa',
+        promotion: null,
+        discountAmount: 0,
+        finalAmount: numericSubtotal,
+      };
+    }
+  }
+
+  // 4. Tính toán mức giảm giá chính xác
+  let discountAmount = 0;
+  const promoValue = Number(promo.giaTriGiam) || 0;
+
+  if (promo.loaiGiam === 'phan_tram') {
+    discountAmount = Math.round((numericSubtotal * promoValue) / 100);
+  } else if (promo.loaiGiam === 'so_tien') {
+    discountAmount = promoValue;
+  }
+
+  // Ràng buộc F02: Số tiền giảm tối đa không vượt quá tổng tiền hóa đơn (Capped at subtotal)
+  if (discountAmount > numericSubtotal) {
+    discountAmount = numericSubtotal;
+  }
+
+  const finalAmount = Math.max(0, numericSubtotal - discountAmount);
+
+  return {
+    valid: true,
+    message: 'Áp dụng mã khuyến mãi thành công',
+    promotion: {
+      id: promo.id,
+      maKhuyenMai: promo.maKhuyenMai,
+      tenChuongTrinh: promo.tenChuongTrinh,
+      loaiGiam: promo.loaiGiam,
+      giaTriGiam: promoValue,
+    },
+    discountAmount,
+    finalAmount,
+    finalTotal: finalAmount,
+  };
+};

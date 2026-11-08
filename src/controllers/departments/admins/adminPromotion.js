@@ -87,3 +87,19 @@ export const updatePromotionStatus = asyncHandler(async (req, res) => {
     data,
   });
 });
+
+/**
+ * validatePromotion
+ * [POST] /api/v1/admin/promotions/validate
+ * Kiểm thực mã khuyến mãi và tính toán giảm giá
+ */
+export const validatePromotion = asyncHandler(async (req, res) => {
+  const data = await adminPromotionService.validatePromotionService(req.body);
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: data.valid ? data.message : (data.message || 'Mã khuyến mãi không hợp lệ'),
+    data,
+  });
+});

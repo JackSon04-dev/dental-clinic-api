@@ -83,6 +83,7 @@ app.use('/api/v1/receptionist/dashboard', receptionistDashboardRoutes);
 app.use('/api/v1/receptionist/appointments', receptionistAppointmentRoutes);
 app.use('/api/v1/receptionist/check-in', receptionistCheckInRoutes);
 app.use('/api/v1/receptionist/invoices', adminInvoiceRoutes);
+app.use('/api/v1/receptionist/promotions', adminPromotionRoutes);
 app.use('/api/v1/receptionist', receptionistDashboardRoutes);
 app.use('/api/v1/receptionist', receptionistAppointmentRoutes);
 
@@ -105,6 +106,10 @@ app.use((req, res, next) => {
 // Centralized Error Handling Middleware (luôn ở cuối cùng)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+if (process.argv[1] && process.argv[1].endsWith('app.js')) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

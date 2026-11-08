@@ -68,6 +68,12 @@ export const adminUpdateInvoicePaymentRequestSchema = Joi.object({
       'any.required': 'Phương thức thanh toán không được để trống',
       'any.only': 'Phương thức thanh toán phải là: tien_mat, chuyen_khoan hoặc the',
     }),
+  khuyenMaiId: Joi.string().uuid().allow(null, '').optional(),
+  voucherId: Joi.string().uuid().allow(null, '').optional(),
+  giamGia: Joi.number().min(0).optional(),
+  discountAmount: Joi.number().min(0).optional(),
+  soTienThanhToan: Joi.number().min(0).optional(),
+  finalAmount: Joi.number().min(0).optional(),
   paymentDate: Joi.string()
     .isoDate()
     .allow(null, '')
@@ -101,6 +107,58 @@ export const adminCancelInvoiceRequestSchema = Joi.object({
  * @returns {Object} { services, materials, financialSummary }
  */
 export const calculateInvoiceFinancials = (invoice) => {
+  // Ưu tiên đọc từ chiTietHoaDon nếu có (chuẩn 3NF snapshot)
+  if (invoice.chiTietHoaDon && invoice.chiTietHoaDon.length > 0) {
+    const rawItems = invoice.chiTietHoaDon;
+    const services = rawItems
+      .filter((item) => item.loaiMuc === 'dich_vu')
+      .map((item) => ({
+        id: item.id,
+        itemCode: item.dichVu?.maDichVu || item.chiTietDichVu?.maChiTiet || null,
+        itemName: item.tenMuc,
+        serviceGroup: item.dichVu?.tenDichVu || item.chiTietDichVu?.dichVu?.tenDichVu || null,
+        unit: item.donViTinh || item.dichVu?.donViTinh || 'Lần',
+        toothPosition: item.viTriRang || null,
+        quantity: Number(item.soLuong) || 1,
+        unitPrice: Number(item.donGia) || 0,
+        totalAmount: Number(item.thanhTien) || 0,
+        notes: item.ghiChu || null,
+      }));
+
+    const materials = rawItems
+      .filter((item) => item.loaiMuc === 'vat_tu')
+      .map((item) => ({
+        id: item.id,
+        productCode: item.sanPham?.maSanPham || null,
+        productName: item.tenMuc,
+        category: item.sanPham?.loai || null,
+        unit: item.donViTinh || 'Cái',
+        manufacturer: null,
+        quantity: Number(item.soLuong) || 1,
+        unitPrice: Number(item.donGia) || 0,
+        totalAmount: Number(item.thanhTien) || 0,
+        notes: item.ghiChu || null,
+      }));
+
+    const totalServicesAmount = services.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalMaterialsAmount = materials.reduce((sum, m) => sum + m.totalAmount, 0);
+    const subtotalAmount = Number(invoice.tongTien) > 0 ? Number(invoice.tongTien) : (totalServicesAmount + totalMaterialsAmount);
+    const discountAmount = Number(invoice.giamGia) || 0;
+    const finalAmount = Number(invoice.soTienThanhToan) > 0 ? Number(invoice.soTienThanhToan) : Math.max(0, subtotalAmount - discountAmount);
+
+    return {
+      services,
+      materials,
+      financialSummary: {
+        totalServicesAmount,
+        totalMaterialsAmount,
+        subtotalAmount,
+        discountAmount,
+        finalAmount,
+      },
+    };
+  }
+
   const hoSo = invoice.lichHen?.hoSoBenhAn;
   const rawServices = hoSo?.dichVuDieuTri || [];
   const rawMaterials = hoSo?.vatTuSuDung || [];
@@ -117,10 +175,10 @@ export const calculateInvoiceFinancials = (invoice) => {
 
     return {
       id: dv.id,
-      itemCode: dv.chiTietDichVu?.maChiTiet || null,
-      itemName: dv.chiTietDichVu?.tenChiTiet || dv.chiTietDichVu?.dichVu?.tenDichVu || 'Dịch vụ điều trị',
-      serviceGroup: dv.chiTietDichVu?.dichVu?.tenDichVu || null,
-      unit: dv.chiTietDichVu?.donViTinh || 'Lần',
+      itemCode: dv.dichVu?.maDichVu || dv.chiTietDichVu?.maChiTiet || null,
+      itemName: dv.dichVu?.tenDichVu || dv.chiTietDichVu?.tenChiTiet || dv.chiTietDichVu?.dichVu?.tenDichVu || 'Dịch vụ điều trị',
+      serviceGroup: dv.dichVu?.tenDichVu || dv.chiTietDichVu?.dichVu?.tenDichVu || null,
+      unit: dv.dichVu?.donViTinh || dv.chiTietDichVu?.donViTinh || 'Lần',
       toothPosition: dv.viTriRang || null,
       quantity: qty,
       unitPrice: price,

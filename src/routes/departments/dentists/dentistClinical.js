@@ -4,6 +4,7 @@ import {
   updateSlipStatus,
   getClinicalRecord,
   saveClinicalRecord,
+  getPatientExamHistory,
 } from '../../../controllers/departments/dentists/dentistClinicalController.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -47,5 +48,11 @@ router.post(
   validate(saveClinicalRecordRequestSchema, 'body'),
   saveClinicalRecord
 );
+
+/**
+ * [GET] /api/v1/dentist/clinical/patients/:patientId/history
+ * Lấy lịch sử khám bệnh và điều trị chi tiết của bệnh nhân
+ */
+router.get('/patients/:patientId/history', getPatientExamHistory);
 
 export default router;

@@ -45,6 +45,7 @@ export const receptionistUpdateAppointmentStatusRequestSchema = Joi.object({
       'DA_TIEP_NHAN',
       'CHO_KHAM',
       'DANG_KHAM',
+      'DANG_DIEU_TRI',
       'CHO_THANH_TOAN',
       'HOAN_THANH',
       'DA_HUY',
@@ -53,6 +54,7 @@ export const receptionistUpdateAppointmentStatusRequestSchema = Joi.object({
       'da_tiep_nhan',
       'cho_kham',
       'dang_kham',
+      'dang_dieu_tri',
       'cho_thanh_toan',
       'da_kham',
       'hoan_thanh',
@@ -98,6 +100,8 @@ export const mapStatusToFrontend = (dbStatus) => {
       return 'CHO_KHAM';
     case 'dang_kham':
       return 'DANG_KHAM';
+    case 'dang_dieu_tri':
+      return 'DANG_DIEU_TRI';
     case 'cho_thanh_toan':
       return 'CHO_THANH_TOAN';
     case 'da_kham':
@@ -122,6 +126,8 @@ export const mapStatusToDatabase = (feStatus) => {
       return 'cho_kham';
     case 'DANG_KHAM':
       return 'dang_kham';
+    case 'DANG_DIEU_TRI':
+      return 'dang_dieu_tri';
     case 'CHO_THANH_TOAN':
       return 'cho_thanh_toan';
     case 'HOAN_THANH':

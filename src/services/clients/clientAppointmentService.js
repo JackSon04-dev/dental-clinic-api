@@ -839,12 +839,6 @@ export const cancelAppointmentService = async (appointmentId, benhNhanId, userId
 export const getClientServicesService = async () => {
   const services = await prisma.dichVu.findMany({
     where: { trangThai: 'hoat_dong' },
-    include: {
-      chiTietDichVu: {
-        where: { trangThai: 'hoat_dong' },
-        orderBy: { gia: 'asc' },
-      },
-    },
     orderBy: { tenDichVu: 'asc' },
   });
 

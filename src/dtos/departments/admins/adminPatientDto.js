@@ -34,6 +34,27 @@ export const adminUpdatePatientRequestSchema = Joi.object({
   ghiChu: Joi.string().allow('', null),
 }).min(1);
 
+export const adminCreatePatientRequestSchema = Joi.object({
+  fullName: Joi.string().trim().min(2).max(150),
+  hoTen: Joi.string().trim().min(2).max(150),
+  birthDate: Joi.string().isoDate().allow('', null),
+  dateOfBirth: Joi.string().isoDate().allow('', null),
+  ngaySinh: Joi.string().isoDate().allow('', null),
+  gender: Joi.string().allow('', null),
+  gioiTinh: Joi.string().allow('', null),
+  phone: Joi.string().trim().max(20).allow('', null),
+  sdt: Joi.string().trim().max(20).allow('', null),
+  email: Joi.string().email().trim().max(150).allow('', null),
+  address: Joi.string().trim().max(500).allow('', null),
+  diaChi: Joi.string().trim().max(500).allow('', null),
+  medicalHistory: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())),
+  tienSuBenh: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())),
+  allergies: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())),
+  diUng: Joi.alternatives().try(Joi.string().allow('', null), Joi.array().items(Joi.string())),
+  notes: Joi.string().allow('', null),
+  ghiChu: Joi.string().allow('', null),
+}).unknown(true);
+
 // ============================================================================
 // 2. RESPONSE SCHEMAS & FORMATTERS (Chuẩn camelCase cho Frontend)
 // ============================================================================
@@ -75,36 +96,113 @@ export const adminPatientListItemResponseSchema = (patient) => {
 export const adminPatientDetailResponseSchema = (patient) => {
   if (!patient) return null;
 
-  // Format lịch sử khám từ lịch hẹn và hồ sơ bệnh án
+  // Format lịch sử khám từ lịch hẹn và hồ sơ bệnh án với đầy đủ chi tiết
   const examHistory = (patient.lichHen || []).map((lh) => {
-    let totalAmount = 0;
-    if (lh.hoSoBenhAn?.dichVuDieuTri) {
-      totalAmount = lh.hoSoBenhAn.dichVuDieuTri.reduce((sum, item) => {
-        const qty = Number(item.soLuong) || 1;
-        const price = Number(item.donGia) || 0;
-        return sum + qty * price;
-      }, 0);
-    }
-    if (lh.hoSoBenhAn?.vatTuSuDung) {
-      totalAmount += lh.hoSoBenhAn.vatTuSuDung.reduce((sum, item) => {
-        const qty = Number(item.soLuong) || 1;
-        const price = Number(item.donGia) || 0;
-        return sum + qty * price;
-      }, 0);
-    }
+    const hoSo = lh.hoSoBenhAn;
+
+    // 1. Danh sách răng & dịch vụ điều trị (treatedTeeth)
+    let totalServicesFee = 0;
+    const treatedTeeth = (hoSo?.dichVuDieuTri || []).map((dv) => {
+      const qty = Number(dv.soLuong) || 1;
+      const price = Number(dv.donGia) || 0;
+      const lineTotal = qty * price;
+      totalServicesFee += lineTotal;
+
+      const serviceName =
+        dv.dichVu?.tenDichVu ||
+        dv.chiTietDichVu?.tenChiTiet ||
+        dv.chiTietDichVu?.dichVu?.tenDichVu ||
+        'Dịch vụ điều trị';
+
+      return {
+        id: dv.id,
+        toothNumber: dv.viTriRang || '',
+        serviceName,
+        price,
+        quantity: qty,
+        totalAmount: lineTotal,
+        notes: dv.ghiChu || null,
+      };
+    });
+
+    // 2. Danh sách vật tư y tế đã sử dụng (materials)
+    let totalMaterialsFee = 0;
+    const materials = (hoSo?.vatTuSuDung || []).map((vt) => {
+      const qty = Number(vt.soLuong) || 1;
+      const price = Number(vt.donGia) || 0;
+      const lineTotal = qty * price;
+      totalMaterialsFee += lineTotal;
+
+      return {
+        id: vt.id,
+        productId: vt.sanPhamId,
+        productName: vt.sanPham?.tenSanPham || 'Vật tư nha khoa',
+        productCode: vt.sanPham?.maSanPham || '',
+        unit: vt.sanPham?.donViTinh || 'Cái',
+        quantity: qty,
+        price,
+        totalAmount: lineTotal,
+        notes: vt.ghiChu || null,
+      };
+    });
+
+    // 3. Danh sách đơn thuốc và từng dòng chi tiết (prescription)
+    const prescription = [];
+    (hoSo?.donThuoc || []).forEach((dt) => {
+      (dt.chiTietDonThuoc || []).forEach((ct) => {
+        prescription.push({
+          id: ct.id,
+          prescriptionId: dt.id,
+          prescriptionCode: dt.maDonThuoc,
+          medicineId: ct.thuocId,
+          medicineName: ct.tenThuoc || ct.thuoc?.tenThuoc || 'Thuốc kê đơn',
+          activeIngredient: ct.hoatChat || ct.thuoc?.hoatChat || '',
+          dosage: ct.lieuDung || ct.thuoc?.lieuDungMacDinh || '',
+          quantity: Number(ct.soLuong) || 1,
+          unit: ct.donViTinh || ct.thuoc?.donViTinh || 'Viên',
+          instructions: ct.huongDan || ct.thuoc?.huongDanMacDinh || '',
+          usageInstruction: ct.huongDan || ct.thuoc?.huongDanMacDinh || '',
+          timesPerDay: ct.soLanNgay || ct.thuoc?.soLanNgayMacDinh || null,
+          timeOfDay: ct.thoiDiemUong || ct.thuoc?.thoiDiemUongMacDinh || null,
+        });
+      });
+    });
+
+    const totalAmount = totalServicesFee + totalMaterialsFee;
 
     let status = 'DANG_KHAM';
     if (lh.trangThai === 'hoan_thanh') status = 'HOAN_THANH';
     else if (lh.trangThai === 'da_huy') status = 'DA_HUY';
+    else if (lh.trangThai === 'cho_thanh_toan') status = 'CHO_THANH_TOAN';
+    else if (lh.trangThai === 'dang_dieu_tri') status = 'DANG_DIEU_TRI';
 
     return {
-      id: lh.hoSoBenhAn?.id || lh.id,
+      id: hoSo?.id || lh.id,
+      appointmentId: lh.id,
+      appointmentCode: lh.maLichHen || null,
+      recordCode: hoSo?.maHoSo || null,
       date: lh.ngayHen ? lh.ngayHen.toISOString().slice(0, 10) : '',
+      time: lh.gioHen
+        ? typeof lh.gioHen === 'string'
+          ? lh.gioHen.slice(11, 16) || lh.gioHen.slice(0, 5)
+          : lh.gioHen.toISOString().slice(11, 16)
+        : null,
       doctorName: lh.caLamViec?.nhaSi?.hoTen || 'Bác sĩ điều trị',
+      roomName: lh.caLamViec?.phongDieuTri?.tenPhong || null,
       serviceName: lh.dichVu?.tenDichVu || 'Khám điều trị',
       status,
+      rawStatus: lh.trangThai,
       totalAmount,
-      diagnosis: lh.hoSoBenhAn?.chanDoan || lh.ghiChu || null,
+      diagnosis: hoSo?.chanDoan || lh.ghiChu || null,
+      treatmentMethod: hoSo?.phuongPhapDieuTri || null,
+      doctorAdvice: hoSo?.loiDan || null,
+      reExamDate: hoSo?.ngayTaiKham ? hoSo.ngayTaiKham.toISOString().slice(0, 10) : null,
+      oralHealthStatus: hoSo?.tinhTrangRangMieng || null,
+      notes: hoSo?.ghiChu || null,
+      // Đầy đủ 3 khối dữ liệu lâm sàng
+      treatedTeeth,
+      prescription,
+      materials,
     };
   });
 
@@ -178,8 +276,10 @@ export const adminPatientDetailResponseSchema = (patient) => {
   return {
     ...adminPatientListItemResponseSchema(patient),
     email: patient.email || null,
-    medicalHistory: parseListString(patient.tienSuBenh),
-    allergies: parseListString(patient.diUng),
+    medicalHistory: patient.tienSuBenh || null,
+    tienSuBenh: patient.tienSuBenh || null,
+    allergies: patient.diUng || null,
+    diUng: patient.diUng || null,
     emergencyContact,
     examHistory,
     treatmentPlans,

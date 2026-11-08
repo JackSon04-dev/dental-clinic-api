@@ -102,9 +102,9 @@ export const adminCreatePromotionRequestSchema = Joi.object({
     'date.format': 'Ngày kết thúc phải theo định dạng YYYY-MM-DD',
     'date.min': 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu',
   }),
-  maxUsageCount: Joi.number().integer().min(1).optional().allow(null).messages({
+  maxUsageCount: Joi.number().integer().min(0).optional().allow(null).messages({
     'number.base': 'Số lần sử dụng tối đa phải là số nguyên',
-    'number.min': 'Số lần sử dụng tối đa tối thiểu là 1',
+    'number.min': 'Số lần sử dụng tối đa tối thiểu là 0',
   }),
   status: Joi.string()
     .valid('hoat_dong', 'da_huy')
@@ -160,9 +160,9 @@ export const adminUpdatePromotionRequestSchema = Joi.object({
   endDate: Joi.date().iso().optional().messages({
     'date.format': 'Ngày kết thúc phải theo định dạng YYYY-MM-DD',
   }),
-  maxUsageCount: Joi.number().integer().min(1).optional().allow(null).messages({
+  maxUsageCount: Joi.number().integer().min(0).optional().allow(null).messages({
     'number.base': 'Số lần sử dụng tối đa phải là số nguyên',
-    'number.min': 'Số lần sử dụng tối đa tối thiểu là 1',
+    'number.min': 'Số lần sử dụng tối đa tối thiểu là 0',
   }),
   status: Joi.string()
     .valid('hoat_dong', 'het_han', 'da_huy')
@@ -186,6 +186,22 @@ export const adminUpdatePromotionStatusRequestSchema = Joi.object({
       'any.required': 'Trạng thái không được để trống',
       'any.only': 'Trạng thái phải là hoat_dong, het_han hoặc da_huy',
     }),
+});
+
+/**
+ * validatePromotionRequestSchema
+ * Kiểm thực payload cho endpoint kiểm tra voucher khuyến mãi
+ */
+export const validatePromotionRequestSchema = Joi.object({
+  code: Joi.string().trim().required().messages({
+    'any.required': 'Mã khuyến mãi không được để trống',
+    'string.empty': 'Mã khuyến mãi không được để trống',
+  }),
+  subtotal: Joi.number().min(0).required().messages({
+    'any.required': 'Tổng tiền chưa giảm (subtotal) không được để trống',
+    'number.base': 'Tổng tiền chưa giảm phải là số hợp lệ',
+    'number.min': 'Tổng tiền chưa giảm không được âm',
+  }),
 });
 
 // ============================================================================

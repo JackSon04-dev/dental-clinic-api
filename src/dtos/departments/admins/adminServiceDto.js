@@ -4,33 +4,15 @@ import Joi from 'joi';
 // 1. REQUEST SCHEMAS (Joi Validation)
 // ============================================================================
 
-/**
- * adminGetServicesQuerySchema
- * Kiểm thực query parameters cho API lấy danh sách dịch vụ cha
- */
 export const adminGetServicesQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1).messages({
-    'number.base': 'Tham số page phải là số nguyên',
-    'number.min': 'Tham số page tối thiểu là 1',
-  }),
-  limit: Joi.number().integer().min(1).max(100).default(10).messages({
-    'number.base': 'Tham số limit phải là số nguyên',
-    'number.min': 'Tham số limit tối thiểu là 1',
-    'number.max': 'Tham số limit tối đa là 100',
-  }),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
   status: Joi.string()
     .valid('ALL', 'hoat_dong', 'ngung_hoat_dong')
-    .default('ALL')
-    .messages({
-      'any.only': 'Tham số status phải là một trong các giá trị: ALL, hoat_dong, ngung_hoat_dong',
-    }),
+    .default('ALL'),
   search: Joi.string().trim().allow('').default(''),
 });
 
-/**
- * adminGetServiceDetailParamsSchema
- * Kiểm thực params :id (phải là UUID của dịch vụ cha)
- */
 export const adminGetServiceDetailParamsSchema = Joi.object({
   id: Joi.string().uuid().required().messages({
     'any.required': 'ID dịch vụ không được để trống',
@@ -40,81 +22,56 @@ export const adminGetServiceDetailParamsSchema = Joi.object({
 
 /**
  * adminCreateServiceRequestSchema
- * Kiểm thực dữ liệu tạo mới dịch vụ cha (Level 0)
+ * Chấp nhận cả price/unit (English) và gia/donViTinh (Tiếng Việt)
  */
 export const adminCreateServiceRequestSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(255).required().messages({
-    'any.required': 'Tên dịch vụ không được để trống',
-    'string.empty': 'Tên dịch vụ không được để trống',
-    'string.min': 'Tên dịch vụ tối thiểu 2 ký tự',
-    'string.max': 'Tên dịch vụ tối đa 255 ký tự',
-  }),
-  code: Joi.string()
-    .trim()
-    .max(20)
-    .pattern(/^[A-Za-z0-9_-]+$/)
-    .optional()
-    .allow('', null)
-    .messages({
-      'string.max': 'Mã dịch vụ tối đa 20 ký tự',
-      'string.pattern.base': 'Mã dịch vụ chỉ chứa chữ cái, số, gạch ngang hoặc gạch dưới',
-    }),
+  name: Joi.string().trim().min(2).max(255).optional(),
+  tenDichVu: Joi.string().trim().min(2).max(255).optional(),
+  code: Joi.string().trim().max(20).pattern(/^[A-Za-z0-9_-]+$/).optional().allow('', null),
+  maDichVu: Joi.string().trim().max(20).pattern(/^[A-Za-z0-9_-]+$/).optional().allow('', null),
+  price: Joi.number().min(0).optional(),
+  gia: Joi.number().min(0).optional(),
+  unit: Joi.string().trim().max(50).optional().allow('', null),
+  donViTinh: Joi.string().trim().max(50).optional().allow('', null),
   description: Joi.string().trim().optional().allow('', null),
+  moTa: Joi.string().trim().optional().allow('', null),
   processInfo: Joi.string().trim().optional().allow('', null),
-  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).default(30).messages({
-    'number.base': 'Thời gian dự kiến phải là số phút nguyên',
-    'number.min': 'Thời gian dự kiến tối thiểu 1 phút',
-    'number.max': 'Thời gian dự kiến tối đa 1440 phút (24 giờ)',
-  }),
-  status: Joi.string()
-    .valid('hoat_dong', 'ngung_hoat_dong')
-    .default('hoat_dong')
-    .messages({
-      'any.only': 'Trạng thái phải là hoat_dong hoặc ngung_hoat_dong',
-    }),
+  thongTinQuyTrinh: Joi.string().trim().optional().allow('', null),
+  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).default(30),
+  thoiGianDuKienPhut: Joi.number().integer().min(1).max(1440).optional(),
+  status: Joi.string().valid('hoat_dong', 'ngung_hoat_dong').default('hoat_dong'),
+  trangThai: Joi.string().valid('hoat_dong', 'ngung_hoat_dong').optional(),
+}).custom((value, helpers) => {
+  if (!value.name && !value.tenDichVu) {
+    return helpers.error('any.required', { message: 'Tên dịch vụ không được để trống (name hoặc tenDichVu)' });
+  }
+  return value;
 });
 
 /**
  * adminUpdateServiceRequestSchema
- * Kiểm thực dữ liệu cập nhật thông tin dịch vụ cha
  */
 export const adminUpdateServiceRequestSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(255).optional().messages({
-    'string.empty': 'Tên dịch vụ không được để trống',
-    'string.min': 'Tên dịch vụ tối thiểu 2 ký tự',
-    'string.max': 'Tên dịch vụ tối đa 255 ký tự',
-  }),
-  code: Joi.string()
-    .trim()
-    .max(20)
-    .pattern(/^[A-Za-z0-9_-]+$/)
-    .optional()
-    .allow('', null)
-    .messages({
-      'string.max': 'Mã dịch vụ tối đa 20 ký tự',
-      'string.pattern.base': 'Mã dịch vụ chỉ chứa chữ cái, số, gạch ngang hoặc gạch dưới',
-    }),
+  name: Joi.string().trim().min(2).max(255).optional(),
+  tenDichVu: Joi.string().trim().min(2).max(255).optional(),
+  code: Joi.string().trim().max(20).pattern(/^[A-Za-z0-9_-]+$/).optional().allow('', null),
+  maDichVu: Joi.string().trim().max(20).pattern(/^[A-Za-z0-9_-]+$/).optional().allow('', null),
+  price: Joi.number().min(0).optional(),
+  gia: Joi.number().min(0).optional(),
+  unit: Joi.string().trim().max(50).optional().allow('', null),
+  donViTinh: Joi.string().trim().max(50).optional().allow('', null),
   description: Joi.string().trim().optional().allow('', null),
+  moTa: Joi.string().trim().optional().allow('', null),
   processInfo: Joi.string().trim().optional().allow('', null),
-  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).optional().messages({
-    'number.base': 'Thời gian dự kiến phải là số phút nguyên',
-    'number.min': 'Thời gian dự kiến tối thiểu 1 phút',
-    'number.max': 'Thời gian dự kiến tối đa 1440 phút (24 giờ)',
-  }),
-  status: Joi.string()
-    .valid('hoat_dong', 'ngung_hoat_dong')
-    .optional()
-    .messages({
-      'any.only': 'Trạng thái phải là hoat_dong hoặc ngung_hoat_dong',
-    }),
+  thongTinQuyTrinh: Joi.string().trim().optional().allow('', null),
+  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).optional(),
+  thoiGianDuKienPhut: Joi.number().integer().min(1).max(1440).optional(),
+  status: Joi.string().valid('hoat_dong', 'ngung_hoat_dong').optional(),
+  trangThai: Joi.string().valid('hoat_dong', 'ngung_hoat_dong').optional(),
 }).min(1).messages({
   'object.min': 'Cần ít nhất một trường dữ liệu để cập nhật',
 });
 
-/**
- * adminUpdateServiceStatusRequestSchema
- * Kiểm thực thay đổi trạng thái hoạt động dịch vụ cha
- */
 export const adminUpdateServiceStatusRequestSchema = Joi.object({
   status: Joi.string()
     .valid('hoat_dong', 'ngung_hoat_dong')
@@ -125,191 +82,41 @@ export const adminUpdateServiceStatusRequestSchema = Joi.object({
     }),
 });
 
-/**
- * adminCreateServiceItemRequestSchema
- * Kiểm thực dữ liệu thêm mới gói / chi tiết dịch vụ (Level 1)
- */
-export const adminCreateServiceItemRequestSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(200).required().messages({
-    'any.required': 'Tên chi tiết dịch vụ không được để trống',
-    'string.empty': 'Tên chi tiết dịch vụ không được để trống',
-    'string.min': 'Tên chi tiết dịch vụ tối thiểu 2 ký tự',
-    'string.max': 'Tên chi tiết dịch vụ tối đa 200 ký tự',
-  }),
-  code: Joi.string()
-    .trim()
-    .max(20)
-    .pattern(/^[A-Za-z0-9_-]+$/)
-    .optional()
-    .allow('', null)
-    .messages({
-      'string.max': 'Mã chi tiết tối đa 20 ký tự',
-      'string.pattern.base': 'Mã chi tiết chỉ chứa chữ cái, số, gạch ngang hoặc gạch dưới',
-    }),
-  price: Joi.number().min(0).required().messages({
-    'any.required': 'Đơn giá không được để trống',
-    'number.base': 'Đơn giá phải là số hợp lệ',
-    'number.min': 'Đơn giá phải lớn hơn hoặc bằng 0',
-  }),
-  unit: Joi.string().trim().max(50).required().messages({
-    'any.required': 'Đơn vị tính không được để trống',
-    'string.empty': 'Đơn vị tính không được để trống',
-    'string.max': 'Đơn vị tính tối đa 50 ký tự',
-  }),
-  status: Joi.string()
-    .valid('hoat_dong', 'ngung_hoat_dong')
-    .default('hoat_dong')
-    .messages({
-      'any.only': 'Trạng thái phải là hoat_dong hoặc ngung_hoat_dong',
-    }),
-});
-
-/**
- * adminCreateServiceItemParamsSchema
- * Kiểm thực params :serviceId
- */
-export const adminCreateServiceItemParamsSchema = Joi.object({
-  serviceId: Joi.string().uuid().required().messages({
-    'any.required': 'ID dịch vụ cha không được để trống',
-    'string.guid': 'ID dịch vụ cha phải là UUID hợp lệ',
-  }),
-});
-
-/**
- * adminServiceItemParamsSchema
- * Kiểm thực params :itemId
- */
-export const adminServiceItemParamsSchema = Joi.object({
-  itemId: Joi.string().uuid().required().messages({
-    'any.required': 'ID chi tiết dịch vụ không được để trống',
-    'string.guid': 'ID chi tiết dịch vụ phải là UUID hợp lệ',
-  }),
-});
-
-/**
- * adminUpdateServiceItemRequestSchema
- * Kiểm thực dữ liệu cập nhật gói chi tiết dịch vụ
- */
-export const adminUpdateServiceItemRequestSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(200).optional().messages({
-    'string.empty': 'Tên chi tiết dịch vụ không được để trống',
-    'string.min': 'Tên chi tiết dịch vụ tối thiểu 2 ký tự',
-    'string.max': 'Tên chi tiết dịch vụ tối đa 200 ký tự',
-  }),
-  code: Joi.string()
-    .trim()
-    .max(20)
-    .pattern(/^[A-Za-z0-9_-]+$/)
-    .optional()
-    .allow('', null)
-    .messages({
-      'string.max': 'Mã chi tiết tối đa 20 ký tự',
-      'string.pattern.base': 'Mã chi tiết chỉ chứa chữ cái, số, gạch ngang hoặc gạch dưới',
-    }),
-  price: Joi.number().min(0).optional().messages({
-    'number.base': 'Đơn giá phải là số hợp lệ',
-    'number.min': 'Đơn giá phải lớn hơn hoặc bằng 0',
-  }),
-  unit: Joi.string().trim().max(50).optional().messages({
-    'string.empty': 'Đơn vị tính không được để trống',
-    'string.max': 'Đơn vị tính tối đa 50 ký tự',
-  }),
-  status: Joi.string()
-    .valid('hoat_dong', 'ngung_hoat_dong')
-    .optional()
-    .messages({
-      'any.only': 'Trạng thái phải là hoat_dong hoặc ngung_hoat_dong',
-    }),
-}).min(1).messages({
-  'object.min': 'Cần ít nhất một trường dữ liệu để cập nhật',
-});
-
-/**
- * adminUpdateServiceItemStatusRequestSchema
- * Kiểm thực cập nhật trạng thái gói chi tiết dịch vụ
- */
-export const adminUpdateServiceItemStatusRequestSchema = Joi.object({
-  status: Joi.string()
-    .valid('hoat_dong', 'ngung_hoat_dong')
-    .required()
-    .messages({
-      'any.required': 'Trạng thái không được để trống',
-      'any.only': 'Trạng thái phải là hoat_dong hoặc ngung_hoat_dong',
-    }),
-});
-
 // ============================================================================
-// 2. RESPONSE SCHEMAS (Sanitizers & Formatters chuẩn camelCase)
+// 2. RESPONSE SCHEMAS
 // ============================================================================
 
-/**
- * adminServiceItemResponseSchema
- * Format chi tiết dịch vụ lâm sàng (chi_tiet_dich_vu)
- */
-export const adminServiceItemResponseSchema = (item) => {
-  if (!item) return null;
-
-  return {
-    id: item.id,
-    serviceId: item.dichVuId,
-    code: item.maChiTiet || null,
-    name: item.tenChiTiet,
-    price: Number(item.gia),
-    unit: item.donViTinh || null,
-    status: item.trangThai,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  };
-};
-
-/**
- * adminServiceDetailResponseSchema
- * Format thông tin chi tiết dịch vụ cha kèm toàn bộ danh sách gói chi tiết
- */
 export const adminServiceDetailResponseSchema = (service) => {
   if (!service) return null;
 
-  const items = Array.isArray(service.chiTietDichVu)
-    ? service.chiTietDichVu.map(adminServiceItemResponseSchema)
-    : [];
-
   const rawProducts = Array.isArray(service.sanPham) ? service.sanPham : [];
   const productsCount = service._count?.sanPham ?? rawProducts.length;
-
-  let minPrice = null;
-  let maxPrice = null;
-  let isProductDependent = false;
-
-  if (items.length > 0) {
-    const prices = items
-      .filter((i) => i.status === 'hoat_dong' || items.length === 1)
-      .map((i) => Number(i.price));
-
-    if (prices.length > 0) {
-      minPrice = Math.min(...prices);
-      maxPrice = Math.max(...prices);
-    }
-  } else if (productsCount > 0) {
-    // Không có biến thể nhưng có ít nhất 1 sản phẩm liên kết: giá là 0 đồng (chi phí phụ thuộc sản phẩm)
-    minPrice = 0;
-    maxPrice = 0;
-    isProductDependent = true;
-  }
+  const directPrice = Number(service.gia ?? 0);
+  const directUnit = service.donViTinh || 'Lần';
 
   return {
     id: service.id,
     code: service.maDichVu || null,
+    maDichVu: service.maDichVu || null,
     name: service.tenDichVu,
+    tenDichVu: service.tenDichVu,
+    price: directPrice,
+    gia: directPrice,
+    unit: directUnit,
+    donViTinh: directUnit,
+    minPrice: directPrice,
+    maxPrice: directPrice,
     description: service.moTa || null,
+    moTa: service.moTa || null,
     processInfo: service.thongTinQuyTrinh || null,
+    thongTinQuyTrinh: service.thongTinQuyTrinh || null,
     estimatedDurationMinutes: service.thoiGianDuKienPhut ?? 30,
+    thoiGianDuKienPhut: service.thoiGianDuKienPhut ?? 30,
     status: service.trangThai,
-    itemsCount: items.length,
+    trangThai: service.trangThai,
+    itemsCount: 0,
     productsCount,
-    isProductDependent,
-    minPrice,
-    maxPrice,
-    items,
+    items: [],
     products: rawProducts.map((p) => ({
       id: p.id,
       code: p.maSanPham || null,
@@ -322,51 +129,36 @@ export const adminServiceDetailResponseSchema = (service) => {
   };
 };
 
-/**
- * adminServiceListItemResponseSchema
- * Format phần tử dịch vụ cha trong danh sách tổng quan
- */
 export const adminServiceListItemResponseSchema = (service) => {
   if (!service) return null;
 
-  const rawItems = Array.isArray(service.chiTietDichVu) ? service.chiTietDichVu : [];
   const rawProducts = Array.isArray(service.sanPham) ? service.sanPham : [];
-  const itemsCount = service._count?.chiTietDichVu ?? rawItems.length;
   const productsCount = service._count?.sanPham ?? rawProducts.length;
-
-  let minPrice = null;
-  let maxPrice = null;
-  let isProductDependent = false;
-
-  if (rawItems.length > 0) {
-    const prices = rawItems
-      .filter((i) => i.trangThai === 'hoat_dong' || rawItems.length === 1)
-      .map((i) => Number(i.gia));
-
-    if (prices.length > 0) {
-      minPrice = Math.min(...prices);
-      maxPrice = Math.max(...prices);
-    }
-  } else if (productsCount > 0) {
-    // Không có biến thể nhưng có ít nhất 1 sản phẩm liên kết: giá là 0 đồng (chi phí phụ thuộc sản phẩm)
-    minPrice = 0;
-    maxPrice = 0;
-    isProductDependent = true;
-  }
+  const directPrice = Number(service.gia ?? 0);
+  const directUnit = service.donViTinh || 'Lần';
 
   return {
     id: service.id,
     code: service.maDichVu || null,
+    maDichVu: service.maDichVu || null,
     name: service.tenDichVu,
+    tenDichVu: service.tenDichVu,
+    price: directPrice,
+    gia: directPrice,
+    unit: directUnit,
+    donViTinh: directUnit,
+    minPrice: directPrice,
+    maxPrice: directPrice,
     description: service.moTa || null,
+    moTa: service.moTa || null,
     processInfo: service.thongTinQuyTrinh || null,
+    thongTinQuyTrinh: service.thongTinQuyTrinh || null,
     estimatedDurationMinutes: service.thoiGianDuKienPhut ?? 30,
+    thoiGianDuKienPhut: service.thoiGianDuKienPhut ?? 30,
     status: service.trangThai,
-    itemsCount,
+    trangThai: service.trangThai,
+    itemsCount: 0,
     productsCount,
-    isProductDependent,
-    minPrice,
-    maxPrice,
     createdAt: service.createdAt,
     updatedAt: service.updatedAt,
   };

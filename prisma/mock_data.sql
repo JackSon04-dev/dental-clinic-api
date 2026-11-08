@@ -40,54 +40,54 @@ ON CONFLICT (username) DO NOTHING;
 -- 10 dịch vụ chính với đầy đủ mô tả, quy trình và thời gian dự kiến
 -- ============================================================================
 
-INSERT INTO dich_vu (ma_dich_vu, ten_dich_vu, mo_ta, thong_tin_quy_trinh, thoi_gian_du_kien_phut, trang_thai)
+INSERT INTO dich_vu (ma_dich_vu, ten_dich_vu, gia, don_vi_tinh, mo_ta, thong_tin_quy_trinh, thoi_gian_du_kien_phut, trang_thai)
 VALUES
-    ('DV_CAORANG', 'Lấy cao răng',
+    ('DV_CAORANG', 'Lấy cao răng', 300000, '2 hàm',
      'Loại bỏ cao răng, mảng bám và vi khuẩn dưới nướu. Phòng ngừa viêm nướu, viêm nha chu, hôi miệng và sâu răng. Đây là dịch vụ phòng ngừa cơ bản nhất.',
      'Sử dụng máy siêu âm kết hợp dụng cụ cầm tay làm sạch -> đánh bóng răng -> có thể bôi fluoride. Thời gian thực hiện khoảng 30-60 phút tùy mức độ cao răng.',
      45, 'hoat_dong'),
 
-    ('DV_TRAMRANG', 'Trám răng',
+    ('DV_TRAMRANG', 'Trám răng', 600000, '1 răng',
      'Phục hồi răng bị sâu, mẻ hoặc khuyết bằng vật liệu composite hoặc GIC. Ngăn sâu lan rộng và bảo vệ tủy răng.',
      'Làm sạch lỗ sâu -> đặt vật liệu trám -> chiếu đèn quang trùng hợp cứng hóa. Trường hợp lỗ sâu lớn có thể sử dụng kỹ thuật Inlay/Onlay.',
      30, 'hoat_dong'),
 
-    ('DV_NHORANG', 'Nhổ răng (răng sữa & thông thường)',
+    ('DV_NHORANG', 'Nhổ răng (răng sữa & thông thường)', 200000, '1 răng',
      'Loại bỏ răng sữa lung lay ở trẻ em, răng sâu nặng không thể cứu được hoặc răng lung lay do viêm nha chu.',
      'Gây tê tại chỗ -> nhổ bằng kẹp hoặc đòn bẩy chuyên dụng -> cầm máu. Trường hợp khó có thể cần cắt xương nhẹ.',
      30, 'hoat_dong'),
 
-    ('DV_RANGKHON', 'Nhổ răng khôn',
+    ('DV_RANGKHON', 'Nhổ răng khôn', 1500000, '1 răng',
      'Loại bỏ răng khôn mọc lệch, mọc ngầm, gây đau, viêm hoặc ảnh hưởng đến răng bên cạnh.',
      'Gây tê -> rạch nướu (nếu cần) -> cắt xương/chia thân răng -> lấy răng -> khâu đóng. Có thể kết hợp PRF hoặc ghép xương tùy trường hợp.',
      45, 'hoat_dong'),
 
-    ('DV_KHAMTQ', 'Khám tổng quát nha khoa',
+    ('DV_KHAMTQ', 'Khám tổng quát nha khoa', 0, '1 lần khám',
      'Phát hiện sớm sâu răng, viêm nướu, lệch khớp cắn và các vấn đề răng miệng khác. Kết hợp tư vấn vệ sinh và lập kế hoạch điều trị.',
      'Khám lâm sàng toàn diện + chụp phim nếu cần. Thời gian khoảng 15-30 phút.',
      20, 'hoat_dong'),
 
-    ('DV_TUYRANG', 'Điều trị tủy răng',
+    ('DV_TUYRANG', 'Điều trị tủy răng', 2200000, '1 răng',
      'Loại bỏ tủy bị viêm hoặc nhiễm trùng nhằm giữ lại răng thật thay vì phải nhổ bỏ.',
      'Mở buồng tủy -> làm sạch và tạo hình ống tủy -> trám bít ống tủy. Thường kết hợp bọc sứ sau khi điều trị xong.',
      60, 'hoat_dong'),
 
-    ('DV_NIENGRANG', 'Niềng răng',
+    ('DV_NIENGRANG', 'Niềng răng', 25000000, 'Liệu trình',
      'Chỉnh răng lệch lạc, hô, móm, thưa, khớp cắn sai để cải thiện thẩm mỹ và chức năng nhai.',
      'Gắn mắc cài hoặc mang khay Invisalign -> tái khám định kỳ 4-6 tuần trong thời gian 12-24 tháng.',
      60, 'hoat_dong'),
 
-    ('DV_TAYTRANG', 'Tẩy trắng răng',
+    ('DV_TAYTRANG', 'Tẩy trắng răng', 1500000, '2 hàm / 1 liệu trình',
      'Làm sáng màu răng bị ố vàng do cà phê, thuốc lá, tuổi tác hoặc kháng sinh.',
      'Bôi gel tẩy trắng + chiếu đèn Laser/Plasma (tại phòng khám) hoặc mang máng tại nhà. Kết quả thường duy trì từ 6-18 tháng.',
      45, 'hoat_dong'),
 
-    ('DV_IMPLANT', 'Trồng răng',
+    ('DV_IMPLANT', 'Trồng răng', 15000000, 'Trụ',
      'Thay thế răng đã mất bằng trụ titanium cắm vào xương hàm kết hợp mão sứ trên trụ. Phục hồi chức năng nhai gần như răng thật và ngăn tiêu xương hàm.',
      'Cấy trụ Implant -> chờ tích hợp xương 3-6 tháng -> gắn abutment + mão sứ. Có thể gắn răng tạm ngay sau khi cấy trụ.',
      60, 'hoat_dong'),
 
-    ('DV_BOCSU', 'Bọc sứ',
+    ('DV_BOCSU', 'Bọc sứ', 4000000, 'Răng',
      'Phục hình răng sâu lớn, gãy, đổi màu, thưa hoặc cải thiện thẩm mỹ nụ cười.',
      'Mài răng (đối với bọc sứ) hoặc mài rất ít (đối với Veneer) -> lấy dấu -> gắn mão sứ hoặc dán Veneer. Thường hoàn thành trong 2-3 buổi hẹn.',
      45, 'hoat_dong')
@@ -484,58 +484,7 @@ ON CONFLICT (ma_phong) DO UPDATE SET
 -- Phụ thuộc: dich_vu
 -- ============================================================================
 
-INSERT INTO chi_tiet_dich_vu (dich_vu_id, ma_chi_tiet, ten_chi_tiet, gia, don_vi_tinh, trang_thai)
-VALUES
-    -- 1. Lấy cao răng (DV_CAORANG)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'),
-     'CTDV_CR_NHE', 'Lấy cao răng mức độ nhẹ (cao răng mỏng)', 300000, '2 hàm', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'),
-     'CTDV_CR_TB', 'Lấy cao răng mức độ trung bình - nặng', 550000, '2 hàm', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'),
-     'CTDV_CR_COMBO', 'Combo (lấy cao + đánh bóng + thổi cát + fluoride)', 800000, '2 hàm', 'hoat_dong'),
-
-    -- 2. Trám răng (DV_TRAMRANG)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
-     'CTDV_TR_NHO', 'Trám composite nhỏ - vừa', 600000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
-     'CTDV_TR_LON', 'Trám thẩm mỹ lớn hoặc răng cửa', 1000000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
-     'CTDV_TR_INLAY', 'Trám kỹ thuật cao / Inlay-Onlay sứ', 3500000, '1 răng', 'hoat_dong'),
-
-    -- 3. Nhổ răng thường (DV_NHORANG)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_NHORANG'),
-     'CTDV_NR_SUA', 'Nhổ răng sữa', 200000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_NHORANG'),
-     'CTDV_NR_VINH', 'Nhổ răng vĩnh viễn bị lung lay', 700000, '1 răng', 'hoat_dong'),
-
-    -- 4. Nhổ răng khôn (DV_RANGKHON)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_RANGKHON'),
-     'CTDV_RK_TREN', 'Răng khôn hàm trên dễ', 1500000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_RANGKHON'),
-     'CTDV_RK_DUOI', 'Răng khôn hàm dưới / tiểu phẫu khó', 3000000, '1 răng', 'hoat_dong'),
-
-    -- 5. Khám tổng quát nha khoa (DV_KHAMTQ)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_KHAMTQ'),
-     'CTDV_KTQ_ALL', 'Khám + tư vấn + chụp phim toàn cảnh', 0, '1 lần khám', 'hoat_dong'),
-
-    -- 6. Điều trị tủy răng (DV_TUYRANG)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TUYRANG'),
-     'CTDV_TUY_CUA', 'Điều trị tủy răng cửa / nanh', 2200000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TUYRANG'),
-     'CTDV_TUY_TIEN', 'Điều trị tủy răng tiền cối', 3200000, '1 răng', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TUYRANG'),
-     'CTDV_TUY_COI', 'Điều trị tủy răng cối lớn', 4500000, '1 răng', 'hoat_dong'),
-
-    -- 8. Tẩy trắng răng (DV_TAYTRANG)
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TAYTRANG'),
-     'CTDV_TT_NHA', 'Tẩy trắng tại nhà (máng + thuốc)', 1500000, '2 hàm / 1 liệu trình', 'hoat_dong'),
-    ((SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TAYTRANG'),
-     'CTDV_TT_PHONG', 'Tẩy trắng tại phòng khám (Laser/Plasma)', 2500000, '2 hàm / 1 liệu trình', 'hoat_dong')
-ON CONFLICT (ma_chi_tiet) DO UPDATE SET
-    ten_chi_tiet = EXCLUDED.ten_chi_tiet,
-    gia = EXCLUDED.gia,
-    don_vi_tinh = EXCLUDED.don_vi_tinh,
-    trang_thai = EXCLUDED.trang_thai;
+-- [REMOVED FOR DIRECT SERVICES MIGRATION] chi_tiet_dich_vu eliminated; price & unit are now direct on dich_vu.
 
 -- ============================================================================
 -- DỮ LIỆU MẪU: BẢNG BỆNH NHÂN (Level 1)
@@ -1527,14 +1476,14 @@ ON CONFLICT (phac_do_id, buoc_so) DO UPDATE SET
 -- ============================================================================
 
 INSERT INTO dich_vu_dieu_tri (
-    ho_so_id, chi_tiet_dich_vu_id, so_luong, don_gia, vi_tri_rang, ghi_chu
+    ho_so_id, dich_vu_id, so_luong, don_gia, vi_tri_rang, ghi_chu
 )
 VALUES
     -- 1. HSBA_KHAMLE_01 (BN001 - Khám lẻ ngày 05/10/2026):
     -- Dịch vụ 1: Lấy cao răng mức độ nhẹ (300.000 VNĐ)
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_01'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_CR_NHE'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'),
         1,
         300000,
         '2 hàm',
@@ -1544,7 +1493,7 @@ VALUES
     -- Dịch vụ 2: Trám composite nhỏ - vừa răng 16 (600.000 VNĐ)
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_01'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TR_NHO'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
         1,
         600000,
         'Răng 16',
@@ -2334,13 +2283,13 @@ ON CONFLICT (phac_do_id, buoc_so) DO NOTHING;
 
 -- 8. BẢNG DỊCH VỤ ĐIỀU TRỊ (Level 5)
 INSERT INTO dich_vu_dieu_tri (
-    ho_so_id, chi_tiet_dich_vu_id, so_luong, don_gia, vi_tri_rang, ghi_chu
+    ho_so_id, dich_vu_id, so_luong, don_gia, vi_tri_rang, ghi_chu
 )
 VALUES
     -- BN005 (10/08/2026): Nhổ răng khôn khó + Lấy cao răng trung bình
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_RK_DUOI'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_RANGKHON'),
         1,
         3000000,
         'Răng 38',
@@ -2348,7 +2297,7 @@ VALUES
     ),
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0810'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_CR_TB'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'),
         1,
         550000,
         '2 hàm',
@@ -2358,7 +2307,7 @@ VALUES
     -- BN007 (25/08/2026): Tẩy trắng tại phòng khám + Trám composite
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0825'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TT_PHONG'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TAYTRANG'),
         1,
         2500000,
         '2 hàm',
@@ -2366,7 +2315,7 @@ VALUES
     ),
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0825'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TR_NHO'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
         1,
         750000,
         'Răng 21',
@@ -2376,7 +2325,7 @@ VALUES
     -- BN010 (24/09/2026): Điều trị tủy răng cối + Trám composite lớn
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TUY_COI'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TUYRANG'),
         1,
         4500000,
         'Răng 46',
@@ -2384,7 +2333,7 @@ VALUES
     ),
     (
         (SELECT id FROM ho_so_benh_an WHERE ma_ho_so = 'HSBA_KHAMLE_0924'),
-        (SELECT id FROM chi_tiet_dich_vu WHERE ma_chi_tiet = 'CTDV_TR_LON'),
+        (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'),
         1,
         1000000,
         'Răng 46',
@@ -2616,8 +2565,7 @@ SELECT
     hd.ngay_thanh_toan,
     hd.id AS hoa_don_id
 FROM dich_vu_dieu_tri dvdt
-JOIN chi_tiet_dich_vu ctdv ON dvdt.chi_tiet_dich_vu_id = ctdv.id
-JOIN dich_vu dv ON ctdv.dich_vu_id = dv.id
+JOIN dich_vu dv ON dvdt.dich_vu_id = dv.id
 JOIN ho_so_benh_an hsba ON dvdt.ho_so_id = hsba.id
 JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
 WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'

@@ -3,6 +3,8 @@ import {
   getWorkShiftsMatrix,
   updateWorkShiftStatus,
   generateWorkShiftsFromTemplate,
+  getDoctorsWorkShiftsOverview,
+  getShiftAppointments,
 } from '../../../controllers/departments/admins/adminWorkShift.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -11,12 +13,23 @@ import {
   adminWorkShiftIdParamSchema,
   adminUpdateWorkShiftStatusRequestSchema,
   adminGenerateWorkShiftsRequestSchema,
+  adminGetDoctorsOverviewQuerySchema,
 } from '../../../dtos/departments/admins/adminWorkShiftDto.js';
 
 const router = express.Router();
 
 // Tất cả endpoints quản lý ca làm việc thực tế yêu cầu xác thực Admin
 router.use(verifyToken, restrictToRoles('ADMIN'));
+
+/**
+ * [GET] /api/v1/admin/work-shifts/doctors-overview
+ * Lấy danh sách bác sĩ kèm KPI ca trực: số ca trong ngày được chọn, tổng số ca trong tuần, và danh sách ca trực trong tuần
+ */
+router.get(
+  '/doctors-overview',
+  validate(adminGetDoctorsOverviewQuerySchema, 'query'),
+  getDoctorsWorkShiftsOverview
+);
 
 /**
  * [GET] /api/v1/admin/work-shifts
@@ -26,6 +39,16 @@ router.get(
   '/',
   validate(adminGetWorkShiftsQuerySchema, 'query'),
   getWorkShiftsMatrix
+);
+
+/**
+ * [GET] /api/v1/admin/work-shifts/:id/appointments
+ * Lấy chi tiết ca làm việc kèm danh sách bệnh nhân và lịch hẹn
+ */
+router.get(
+  '/:id/appointments',
+  validate(adminWorkShiftIdParamSchema, 'params'),
+  getShiftAppointments
 );
 
 /**

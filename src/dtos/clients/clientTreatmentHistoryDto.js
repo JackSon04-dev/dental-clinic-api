@@ -266,12 +266,13 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       return {
         id: dv.id,
         serviceName:
+          dv.dichVu?.tenDichVu ||
           dv.chiTietDichVu?.tenChiTiet ||
           dv.chiTietDichVu?.dichVu?.tenDichVu ||
           'Dịch vụ điều trị',
         toothPosition: dv.viTriRang || null,
         quantity: qty,
-        unit: dv.chiTietDichVu?.donViTinh || 'Lần',
+        unit: dv.dichVu?.donViTinh || dv.chiTietDichVu?.donViTinh || 'Lần',
         unitPrice: unitPrice,
         totalPrice: qty * unitPrice,
         notes: dv.ghiChu || null,

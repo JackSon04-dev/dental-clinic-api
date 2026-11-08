@@ -27,11 +27,7 @@ const invoiceRelationsInclude = {
         include: {
           dichVuDieuTri: {
             include: {
-              chiTietDichVu: {
-                include: {
-                  dichVu: true,
-                },
-              },
+              dichVu: true,
             },
           },
           vatTuSuDung: {
@@ -46,6 +42,12 @@ const invoiceRelationsInclude = {
   phacDoDieuTri: true,
   nhanVien: true,
   khuyenMai: true,
+  chiTietHoaDon: {
+    include: {
+      dichVu: true,
+      sanPham: true,
+    },
+  },
 };
 
 /**
@@ -60,12 +62,18 @@ export const getInvoicesListService = async ({
   fromDate = null,
   toDate = null,
   search = '',
+  appointmentId = null,
 }) => {
   const pageNum = Number(page) || 1;
   const limitNum = Number(limit) || 10;
   const skip = (pageNum - 1) * limitNum;
 
   const where = {};
+
+  // Bộ lọc theo lịch hẹn cụ thể
+  if (appointmentId) {
+    where.lichHenId = appointmentId;
+  }
 
   // Bộ lọc theo trạng thái thanh toán
   if (status && status !== 'ALL') {
@@ -120,7 +128,7 @@ export const getInvoicesListService = async ({
       where,
       skip,
       take: limitNum,
-      orderBy: { ngayLap: 'desc' },
+      orderBy: [{ ngayLap: 'desc' }, { dotThanhToan: 'asc' }],
       include: invoiceRelationsInclude,
     }),
   ]);
@@ -162,7 +170,17 @@ export const getInvoiceDetailService = async (id) => {
  */
 export const updateInvoicePaymentService = async (
   id,
-  { paymentMethod, paymentDate, note }
+  {
+    paymentMethod,
+    paymentDate,
+    note,
+    khuyenMaiId,
+    voucherId,
+    giamGia,
+    discountAmount,
+    soTienThanhToan,
+    finalAmount,
+  }
 ) => {
   const invoice = await prisma.hoaDon.findUnique({
     where: { id },
@@ -179,14 +197,23 @@ export const updateInvoicePaymentService = async (
     throw new ApiError(404, 'Không tìm thấy hóa đơn viện phí');
   }
 
+  const targetVoucherId = khuyenMaiId || voucherId || invoice.khuyenMaiId || null;
+  const targetDiscount = discountAmount !== undefined ? discountAmount : (giamGia !== undefined ? giamGia : undefined);
+  const targetFinal = finalAmount !== undefined ? finalAmount : (soTienThanhToan !== undefined ? soTienThanhToan : undefined);
+
   if (invoice.trangThaiThanhToan === 'da_thanh_toan') {
     // Hóa đơn đã thanh toán: cho phép cập nhật lại phương thức thanh toán và ghi chú đối soát
+    const updateData = {
+      phuongThucThanhToan: paymentMethod,
+      ghiChu: note !== undefined ? note : invoice.ghiChu,
+    };
+    if (targetVoucherId) updateData.khuyenMaiId = targetVoucherId;
+    if (targetDiscount !== undefined) updateData.giamGia = targetDiscount;
+    if (targetFinal !== undefined) updateData.soTienThanhToan = targetFinal;
+
     await prisma.hoaDon.update({
       where: { id },
-      data: {
-        phuongThucThanhToan: paymentMethod,
-        ghiChu: note !== undefined ? note : invoice.ghiChu,
-      },
+      data: updateData,
     });
     const updatedInvoice = await prisma.hoaDon.findUnique({
       where: { id },
@@ -204,22 +231,39 @@ export const updateInvoicePaymentService = async (
   // Thực hiện transaction cập nhật hóa đơn và đồng bộ giai đoạn phác đồ nếu có
   await prisma.$transaction(async (tx) => {
     // 1. Cập nhật hóa đơn
+    const updateData = {
+      trangThaiThanhToan: 'da_thanh_toan',
+      phuongThucThanhToan: paymentMethod,
+      ngayThanhToan: paidTimestamp,
+      ghiChu: note !== undefined ? note : invoice.ghiChu,
+    };
+    if (targetVoucherId) updateData.khuyenMaiId = targetVoucherId;
+    if (targetDiscount !== undefined) updateData.giamGia = targetDiscount;
+    if (targetFinal !== undefined) updateData.soTienThanhToan = targetFinal;
+
     await tx.hoaDon.update({
       where: { id },
-      data: {
-        trangThaiThanhToan: 'da_thanh_toan',
-        phuongThucThanhToan: paymentMethod,
-        ngayThanhToan: paidTimestamp,
-        ghiChu: note !== undefined ? note : invoice.ghiChu,
-      },
+      data: updateData,
     });
+
+    // 1.1. Nếu áp dụng voucher khuyến mãi, tăng 1 lượt đã sử dụng cho chương trình
+    if (targetVoucherId) {
+      await tx.khuyenMai.update({
+        where: { id: targetVoucherId },
+        data: {
+          soLanDaSuDung: {
+            increment: 1,
+          },
+        },
+      });
+    }
 
     // 2. Cập nhật trạng thái ca hẹn sang 'hoan_thanh' để kết thúc quy trình khám
     if (invoice.lichHenId) {
       await tx.lichHen.update({
         where: { id: invoice.lichHenId },
         data: {
-          trangThai: 'hoan_thanh',
+          trangThai: 'dang_dieu_tri',
           updatedAt: new Date(),
         },
       });
@@ -266,6 +310,11 @@ export const cancelInvoiceService = async (id, { cancelReason }) => {
     throw new ApiError(404, 'Không tìm thấy hóa đơn viện phí');
   }
 
+  // RÀNG BUỘC R1: Bất biến hóa đơn viện phí đã hoàn tất thanh toán
+  if (invoice.trangThaiThanhToan === 'da_thanh_toan') {
+    throw new ApiError(400, 'Không thể hủy hóa đơn đã hoàn tất thanh toán viện phí');
+  }
+
   if (invoice.trangThaiThanhToan === 'da_huy') {
     throw new ApiError(400, 'Hóa đơn này đã được hủy trước đó');
   }
@@ -280,6 +329,18 @@ export const cancelInvoiceService = async (id, { cancelReason }) => {
         lyDoHuy: cancelReason,
       },
     });
+
+    // 1.1. Nếu hóa đơn có áp dụng voucher khuyến mãi, hoàn lại 1 lượt sử dụng cho chương trình
+    if (invoice.khuyenMaiId) {
+      await tx.khuyenMai.update({
+        where: { id: invoice.khuyenMaiId },
+        data: {
+          soLanDaSuDung: {
+            decrement: 1,
+          },
+        },
+      });
+    }
 
     // 2. Nếu gắn với giai đoạn phác đồ thì hoàn nguyên trạng thái giai đoạn về chua_thanh_toan
     const giaiDoanId = invoice.lichHen?.giaiDoanPhacDo?.id;

@@ -10,6 +10,9 @@ import {
 import {
   clinicalRecordResponseSchema,
 } from '../../../dtos/departments/dentists/dentistClinicalDto.js';
+import {
+  adminPatientDetailResponseSchema,
+} from '../../../dtos/departments/admins/adminPatientDto.js';
 
 /**
  * Sinh mã hồ sơ bệnh án ngẫu nhiên không trùng lặp
@@ -75,6 +78,7 @@ export const getClinicalQueueService = async (dentistId) => {
     'cho_kham',
     'dang_kham',
     'cho_thanh_toan',
+    'dang_dieu_tri',
     'da_kham',
     'hoan_thanh',
   ];
@@ -142,6 +146,9 @@ export const updateSlipStatusService = async (slipId, status) => {
     case 'DANG_KHAM':
       dbStatus = 'dang_kham';
       break;
+    case 'DANG_DIEU_TRI':
+      dbStatus = 'dang_dieu_tri';
+      break;
     case 'CHO_THANH_TOAN':
       dbStatus = 'cho_thanh_toan';
       break;
@@ -161,6 +168,19 @@ export const updateSlipStatusService = async (slipId, status) => {
 
   if (!existing) {
     throw new ApiError(404, 'Không tìm thấy phiếu khám / lịch hẹn tương ứng');
+  }
+
+  // RÀNG BUỘC TOÀN VẸN: Không được đóng ca nếu còn bất kỳ hóa đơn nào chưa thanh toán
+  if (status === 'HOAN_THANH') {
+    const unpaidInvoices = await prisma.hoaDon.findMany({
+      where: {
+        lichHenId: slipId,
+        trangThaiThanhToan: 'chua_thanh_toan',
+      },
+    });
+    if (unpaidInvoices.length > 0) {
+      throw new ApiError(400, 'Không thể đóng ca khám: Bệnh nhân vẫn còn hóa đơn chưa thanh toán tại quầy thu ngân!');
+    }
   }
 
   const updated = await prisma.lichHen.update({
@@ -198,15 +218,17 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
             nhaSi: true,
           },
         },
+        hoaDon: {
+          include: {
+            chiTietHoaDon: true,
+          },
+          orderBy: { dotThanhToan: 'asc' },
+        },
       },
     },
     dichVuDieuTri: {
       include: {
-        chiTietDichVu: {
-          include: {
-            dichVu: true,
-          },
-        },
+        dichVu: true,
       },
     },
     donThuoc: {
@@ -256,9 +278,14 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
     reExamDate,
     notes,
     oralHealthStatus,
+    medicalHistory,
+    tienSuBenh,
+    allergies,
+    diUng,
     treatments = [],
     materials = [],
     prescription = [],
+    medicines = [],
     daysOfSupply = 3,
   } = payload;
 
@@ -344,6 +371,30 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       });
     }
 
+    // 1.1. RÀNG BUỘC R2: Cập nhật thông tin tiền sử bệnh và dị ứng thuốc của bệnh nhân
+    const medHistoryVal = medicalHistory !== undefined ? medicalHistory : tienSuBenh;
+    const allergiesVal = allergies !== undefined ? allergies : diUng;
+    const targetPatientId = patientId || targetLichHen.benhNhanId;
+
+    if (targetPatientId && (medHistoryVal !== undefined || allergiesVal !== undefined)) {
+      const patientUpdateData = {};
+      if (medHistoryVal !== undefined) {
+        patientUpdateData.tienSuBenh = Array.isArray(medHistoryVal)
+          ? medHistoryVal.join(', ')
+          : (medHistoryVal ? String(medHistoryVal).trim() : null);
+      }
+      if (allergiesVal !== undefined) {
+        patientUpdateData.diUng = Array.isArray(allergiesVal)
+          ? allergiesVal.join(', ')
+          : (allergiesVal ? String(allergiesVal).trim() : null);
+      }
+
+      await tx.benhNhan.update({
+        where: { id: targetPatientId },
+        data: patientUpdateData,
+      });
+    }
+
     // 2. Tạo hoặc Cập nhật Hồ Sơ Bệnh Án (HoSoBenhAn)
     let hoSo = await tx.hoSoBenhAn.findUnique({
       where: { lichHenId: targetLichHen.id },
@@ -389,45 +440,24 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
 
     if (treatments.length > 0) {
       for (const t of treatments) {
-        let chiTietId = t.serviceDetailId;
-
-        // Nếu chỉ truyền serviceId (dịch vụ cha), lấy chi tiết dịch vụ con đầu tiên
-        if (!chiTietId && t.serviceId) {
-          const detail = await tx.chiTietDichVu.findFirst({
-            where: { dichVuId: t.serviceId, trangThai: 'hoat_dong' },
+        const targetServiceId = t.serviceId || t.dichVuId || t.serviceDetailId;
+        if (targetServiceId) {
+          const serviceRecord = await tx.dichVu.findUnique({
+            where: { id: targetServiceId },
           });
-          if (detail) {
-            chiTietId = detail.id;
-          } else {
-            // Tự động tạo một chi tiết dịch vụ mặc định nếu chưa có
-            const parentService = await tx.dichVu.findUnique({
-              where: { id: t.serviceId },
+
+          if (serviceRecord) {
+            await tx.dichVuDieuTri.create({
+              data: {
+                hoSoId: hoSo.id,
+                dichVuId: serviceRecord.id,
+                soLuong: Number(t.quantity) || 1,
+                donGia: t.price !== undefined ? Number(t.price) : Number(serviceRecord.gia),
+                viTriRang: t.toothNumber ? String(t.toothNumber) : null,
+                ghiChu: t.notes || null,
+              },
             });
-            if (parentService) {
-              const newDetail = await tx.chiTietDichVu.create({
-                data: {
-                  dichVuId: parentService.id,
-                  tenChiTiet: parentService.tenDichVu,
-                  gia: t.price || 0,
-                  donViTinh: 'Lần',
-                },
-              });
-              chiTietId = newDetail.id;
-            }
           }
-        }
-
-        if (chiTietId) {
-          await tx.dichVuDieuTri.create({
-            data: {
-              hoSoId: hoSo.id,
-              chiTietDichVuId: chiTietId,
-              soLuong: Number(t.quantity) || 1,
-              donGia: Number(t.price) || 0,
-              viTriRang: t.toothNumber ? String(t.toothNumber) : null,
-              ghiChu: t.notes || null,
-            },
-          });
         }
       }
     }
@@ -455,8 +485,10 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       }
     }
 
-    // 4. Xử lý Đơn Thuốc (DonThuoc & ChiTietDonThuoc)
-    if (prescription.length > 0) {
+    // 4. RÀNG BUỘC R2: Xử lý Đơn Thuốc tự động điền liều dùng & hướng dẫn mặc định từ bảng Thuoc
+    const rawPrescriptions = prescription.length > 0 ? prescription : medicines;
+
+    if (rawPrescriptions.length > 0) {
       // Xóa các đơn thuốc cũ của hồ sơ này
       const oldPrescriptions = await tx.donThuoc.findMany({
         where: { hoSoId: hoSo.id },
@@ -485,51 +517,168 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
         },
       });
 
-      for (const med of prescription) {
+      // Lấy danh sách ID thuốc để tra cứu giá trị mặc định từ CSDL
+      const thuocIds = rawPrescriptions
+        .map((m) => m.medicineId || m.thuocId || m.id)
+        .filter(Boolean);
+
+      const defaultThuocMap = new Map();
+      if (thuocIds.length > 0) {
+        const foundThuocs = await tx.thuoc.findMany({
+          where: { id: { in: thuocIds } },
+        });
+        foundThuocs.forEach((t) => defaultThuocMap.set(t.id, t));
+      }
+
+      for (const med of rawPrescriptions) {
+        const medId = med.medicineId || med.thuocId || med.id || null;
+        const defaultThuoc = medId ? defaultThuocMap.get(medId) : null;
+
+        const tenThuoc = med.medicineName || med.tenThuoc || defaultThuoc?.tenThuoc || 'Thuốc điều trị';
+        const hoatChat = med.activeIngredient || med.hoatChat || defaultThuoc?.hoatChat || null;
+        const hamLuong = med.hamLuong || defaultThuoc?.hamLuong || null;
+        const dangBaoChe = med.dangBaoChe || defaultThuoc?.dangBaoChe || null;
+        const donViTinh = med.unit || med.donViTinh || defaultThuoc?.donViTinh || 'Viên';
+
+        // Tự động fallback sang lieuDungMacDinh và huongDanMacDinh nếu không truyền
+        const lieuDung = med.dosage || med.lieuDung || defaultThuoc?.lieuDungMacDinh || null;
+        const huongDan = med.usageInstruction || med.instructions || med.huongDan || defaultThuoc?.huongDanMacDinh || null;
+        const soLanNgay = med.soLanNgay !== undefined ? Number(med.soLanNgay) : (defaultThuoc?.soLanNgayMacDinh ?? null);
+        const thoiDiemUong = med.thoiDiemUong || defaultThuoc?.thoiDiemUongMacDinh || null;
+
         await tx.chiTietDonThuoc.create({
           data: {
             donThuocId: newDonThuoc.id,
-            thuocId: med.medicineId || null,
-            tenThuoc: med.medicineName,
-            hoatChat: med.activeIngredient || null,
-            lieuDung: med.dosage || null,
-            soLuong: Number(med.quantity) || 1,
-            donViTinh: med.unit || 'Viên',
-            huongDan: med.usageInstruction || null,
+            thuocId: medId,
+            tenThuoc,
+            hoatChat,
+            hamLuong,
+            dangBaoChe,
+            lieuDung,
+            soLuong: Number(med.quantity || med.soLuong) || 1,
+            donViTinh,
+            soLanNgay,
+            thoiDiemUong,
+            huongDan,
           },
         });
       }
     }
 
-    // 5. Tạo hoặc tái sử dụng Hóa đơn viện phí (trạng thái chua_thanh_toan)
-    let hoaDon = await tx.hoaDon.findFirst({
+    // 5. Xử lý Hóa đơn viện phí theo đợt & Lưu bảng kê chi tiết (ChiTietHoaDon 3NF)
+    const existingInvoices = await tx.hoaDon.findMany({
       where: { lichHenId: targetLichHen.id },
+      include: { chiTietHoaDon: true },
+      orderBy: { dotThanhToan: 'asc' },
     });
 
-    if (!hoaDon) {
-      const defaultStaff =
-        (await tx.nhanVien.findFirst({
-          where: { trangThai: 'dang_lam_viec' },
-        })) || (await tx.nhanVien.findFirst());
+    let currentInvoice = existingInvoices.find(inv => inv.trangThaiThanhToan === 'chua_thanh_toan');
 
+    // Xác định đợt thanh toán và phân loại hóa đơn
+    const dotThanhToan = currentInvoice ? currentInvoice.dotThanhToan : (existingInvoices.length + 1);
+    const loaiHoaDon = dotThanhToan === 1 ? 'thanh_toan_truoc' : 'phat_sinh';
+
+    const defaultStaff =
+      (await tx.nhanVien.findFirst({
+        where: { trangThai: 'dang_lam_viec' },
+      })) || (await tx.nhanVien.findFirst());
+
+    if (!currentInvoice) {
       const maHoaDon = await generateUniqueInvoiceCode(tx);
-      await tx.hoaDon.create({
+      currentInvoice = await tx.hoaDon.create({
         data: {
           maHoaDon,
           lichHenId: targetLichHen.id,
           nhanVienId: defaultStaff.id,
+          dotThanhToan,
+          loaiHoaDon,
           trangThaiThanhToan: 'chua_thanh_toan',
-          ghiChu: notes || 'Hóa đơn ca khám lâm sàng chờ thu tiền',
+          ghiChu: notes || (dotThanhToan === 1 ? 'Hóa đơn chỉ định thủ thuật đợt 1' : `Hóa đơn phát sinh đợt ${dotThanhToan}`),
           ngayLap: new Date(),
         },
       });
     }
 
-    // 6. Cập nhật trạng thái Lịch Hẹn sang 'cho_thanh_toan' (Chuyển sang Quầy Thu Ngân)
+    // Làm mới chi tiết bảng kê của hóa đơn hiện hành
+    await tx.chiTietHoaDon.deleteMany({
+      where: { hoaDonId: currentInvoice.id },
+    });
+
+    let invoiceSubtotal = 0;
+
+    // Chi tiết dịch vụ
+    for (const t of treatments) {
+      const targetServiceId = t.serviceId || t.dichVuId || t.serviceDetailId;
+      let serviceRecord = null;
+      if (targetServiceId) {
+        serviceRecord = await tx.dichVu.findUnique({
+          where: { id: targetServiceId },
+        });
+      }
+      const qty = Number(t.quantity) || 1;
+      const unitPrice = t.price !== undefined ? Number(t.price) : Number(serviceRecord?.gia ?? 0);
+      const lineTotal = qty * unitPrice;
+      invoiceSubtotal += lineTotal;
+
+      await tx.chiTietHoaDon.create({
+        data: {
+          hoaDonId: currentInvoice.id,
+          dichVuId: serviceRecord ? serviceRecord.id : null,
+          loaiMuc: 'dich_vu',
+          tenMuc: t.serviceName || serviceRecord?.tenDichVu || 'Dịch vụ điều trị',
+          donViTinh: serviceRecord?.donViTinh || 'Lần',
+          soLuong: qty,
+          donGia: unitPrice,
+          thanhTien: lineTotal,
+          viTriRang: t.toothNumber ? String(t.toothNumber) : null,
+          ghiChu: t.notes || null,
+        },
+      });
+    }
+
+    // Chi tiết vật tư tiêu hao
+    for (const m of materials) {
+      if (m.productId) {
+        const qty = Number(m.quantity) || 1;
+        const unitPrice = Number(m.price) || 0;
+        const lineTotal = qty * unitPrice;
+        invoiceSubtotal += lineTotal;
+
+        await tx.chiTietHoaDon.create({
+          data: {
+            hoaDonId: currentInvoice.id,
+            sanPhamId: m.productId,
+            loaiMuc: 'vat_tu',
+            tenMuc: m.productName || 'Vật tư nha khoa',
+            donViTinh: m.unit || 'Cái',
+            soLuong: qty,
+            donGia: unitPrice,
+            thanhTien: lineTotal,
+            viTriRang: m.toothNumber ? String(m.toothNumber) : null,
+            ghiChu: m.notes || null,
+          },
+        });
+      }
+    }
+
+    const finalAmount = Math.max(0, invoiceSubtotal);
+    await tx.hoaDon.update({
+      where: { id: currentInvoice.id },
+      data: {
+        tongTien: invoiceSubtotal,
+        giamGia: 0,
+        soTienThanhToan: finalAmount,
+      },
+    });
+
+    // 6. Cập nhật trạng thái Lịch Hẹn:
+    // Có chi phí cần thanh toán -> chuyển sang 'cho_thanh_toan' (Quầy Thu Ngân)
+    // Nếu không có phí (chỉ khám tư vấn miễn phí) -> chuyển sang 'dang_dieu_tri'
+    const nextStatus = finalAmount > 0 ? 'cho_thanh_toan' : 'dang_dieu_tri';
     await tx.lichHen.update({
       where: { id: targetLichHen.id },
       data: {
-        trangThai: 'cho_thanh_toan',
+        trangThai: nextStatus,
         updatedAt: new Date(),
       },
     });
@@ -546,15 +695,17 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
                 nhaSi: true,
               },
             },
+            hoaDon: {
+              include: {
+                chiTietHoaDon: true,
+              },
+              orderBy: { dotThanhToan: 'asc' },
+            },
           },
         },
         dichVuDieuTri: {
           include: {
-            chiTietDichVu: {
-              include: {
-                dichVu: true,
-              },
-            },
+            dichVu: true,
           },
         },
         donThuoc: {
@@ -574,9 +725,69 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
   });
 };
 
+/**
+ * getPatientExamHistoryService
+ * Lấy toàn bộ lịch sử chi tiết các lần khám và điều trị của bệnh nhân dành cho Bác sĩ
+ */
+export const getPatientExamHistoryService = async (patientId) => {
+  const patient = await prisma.benhNhan.findUnique({
+    where: { id: patientId },
+    include: {
+      lichHen: {
+        orderBy: { ngayHen: 'desc' },
+        include: {
+          dichVu: true,
+          caLamViec: {
+            include: { nhaSi: true, phongDieuTri: true },
+          },
+          hoSoBenhAn: {
+            include: {
+              dichVuDieuTri: {
+                include: {
+                  dichVu: true,
+                },
+              },
+              donThuoc: {
+                include: {
+                  chiTietDonThuoc: {
+                    include: {
+                      thuoc: true,
+                    },
+                  },
+                },
+              },
+              vatTuSuDung: {
+                include: {
+                  sanPham: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      phacDoDieuTri: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          nhaSi: true,
+          giaiDoanPhacDo: {
+            orderBy: { buocSo: 'asc' },
+          },
+        },
+      },
+    },
+  });
+
+  if (!patient) {
+    throw new ApiError(404, 'Không tìm thấy hồ sơ bệnh nhân yêu cầu');
+  }
+
+  return adminPatientDetailResponseSchema(patient);
+};
+
 export default {
   getClinicalQueueService,
   updateSlipStatusService,
   getClinicalRecordService,
   saveClinicalRecordService,
+  getPatientExamHistoryService,
 };
