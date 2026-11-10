@@ -1,6 +1,8 @@
 import express from 'express';
 import {
   getAppointments,
+  getAvailableSlots,
+  getAvailableReassignShifts,
   createAppointment,
   updateAppointmentStatus,
   updateAppointment,
@@ -10,6 +12,8 @@ import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuar
 import { validate } from '../../../common/validateMiddleware.js';
 import {
   receptionistGetAppointmentsQuerySchema,
+  receptionistGetAvailableSlotsQuerySchema,
+  receptionistGetAvailableReassignQuerySchema,
   receptionistCreateAppointmentRequestSchema,
   receptionistUpdateAppointmentStatusRequestSchema,
   receptionistReassignAppointmentRequestSchema,
@@ -20,6 +24,26 @@ const router = express.Router();
 
 // Yêu cầu quyền LE_TAN, ADMIN hoặc BAC_SI
 router.use(verifyToken, restrictToRoles('LE_TAN', 'ADMIN', 'BAC_SI'));
+
+/**
+ * [GET] /api/v1/receptionist/appointments/available-slots
+ * Tra cứu danh sách ca khám khả dụng kèm trạng thái mở/khóa theo dịch vụ và bác sĩ (tương tự luồng Bệnh nhân)
+ */
+router.get(
+  '/available-slots',
+  validate(receptionistGetAvailableSlotsQuerySchema, 'query'),
+  getAvailableSlots
+);
+
+/**
+ * [GET] /api/v1/receptionist/appointments/available-reassign-shifts
+ * Lấy danh sách ca làm việc thực tế đang trống và khả dụng để Lễ tân điều phối đổi Bác sĩ / Phòng
+ */
+router.get(
+  '/available-reassign-shifts',
+  validate(receptionistGetAvailableReassignQuerySchema, 'query'),
+  getAvailableReassignShifts
+);
 
 /**
  * [GET] /api/v1/receptionist/appointments

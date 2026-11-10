@@ -194,6 +194,11 @@ export const updatePatientService = async (id, data) => {
   const notesVal = data.notes ?? data.ghiChu;
   if (notesVal !== undefined) updateData.ghiChu = notesVal ? String(notesVal).trim() : null;
 
+  const avatarVal = data.avatarUrl ?? data.hinhAnhUrl;
+  if (avatarVal !== undefined) {
+    updateData.hinhAnhUrl = avatarVal ? String(avatarVal).trim() : null;
+  }
+
   const updatedPatient = await prisma.benhNhan.update({
     where: { id },
     data: updateData,
@@ -242,6 +247,7 @@ export const createPatientService = async (data) => {
   const ngaySinh = rawDob ? new Date(rawDob) : null;
   const gioiTinh = data.gender || data.gioiTinh || 'khac';
   const diaChi = data.address || data.diaChi || null;
+  const hinhAnhUrl = data.avatarUrl || data.hinhAnhUrl || null;
   const tienSuBenh = data.medicalHistory || data.tienSuBenh ? String(data.medicalHistory || data.tienSuBenh).trim() : null;
   const diUng = data.allergies || data.diUng ? String(data.allergies || data.diUng).trim() : null;
 
@@ -251,6 +257,7 @@ export const createPatientService = async (data) => {
       hoTen,
       sdt,
       email,
+      hinhAnhUrl,
       ngaySinh,
       gioiTinh,
       diaChi,

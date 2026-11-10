@@ -15,9 +15,6 @@ export const createDentistTreatmentPlanRequestSchema = Joi.object({
   }),
   samplePlanId: Joi.string().uuid().allow('', null).optional(),
   initialDiagnosis: Joi.string().allow('', null).optional(),
-  paymentMethod: Joi.string()
-    .valid('tung_giai_doan', 'tron_goi')
-    .default('tung_giai_doan'),
   startDate: Joi.string().allow('', null).optional(),
   estimatedEndDate: Joi.string().allow('', null).optional(),
   notes: Joi.string().allow('', null).optional(),
@@ -31,8 +28,8 @@ export const createDentistTreatmentPlanRequestSchema = Joi.object({
         }),
         description: Joi.string().allow('', null).optional(),
         serviceDescription: Joi.string().allow('', null).optional(),
-        cost: Joi.number().min(0).default(0),
         estimatedDate: Joi.string().allow('', null).optional(),
+        notes: Joi.string().allow('', null).optional(),
       })
     )
     .default([]),
@@ -46,6 +43,8 @@ export const updateDentistPhaseStatusRequestSchema = Joi.object({
       'any.required': 'Trạng thái là bắt buộc',
     }),
   completedDate: Joi.string().allow('', null).optional(),
+  appointmentCode: Joi.string().trim().allow('', null).optional(),
+  appointmentId: Joi.string().uuid().allow('', null).optional(),
 });
 
 // ============================================================================
@@ -91,7 +90,16 @@ export const dentistTreatmentPlanListItemResponseSchema = (plan) => {
     (p) => p.trangThai === 'hoan_thanh' || p.trangThai === 'COMPLETED'
   ).length;
 
-  const totalCost = phases.reduce((sum, p) => sum + Number(p.chiPhi || 0), 0);
+  const isAllCompleted =
+    phases.length > 0 &&
+    phases.every(
+      (p) => p.trangThai === 'hoan_thanh' || p.trangThai === 'COMPLETED'
+    );
+
+  const finalStatus = isAllCompleted
+    ? 'COMPLETED'
+    : mapPlanStatusToFrontend(plan.trangThai);
+  const finalRawStatus = isAllCompleted ? 'hoan_thanh' : plan.trangThai;
 
   return {
     id: plan.id,
@@ -103,8 +111,9 @@ export const dentistTreatmentPlanListItemResponseSchema = (plan) => {
     patientPhone: bn.sdt,
     dentistId: ns.id,
     dentistName: ns.hoTen,
-    status: mapPlanStatusToFrontend(plan.trangThai),
-    rawStatus: plan.trangThai,
+    samplePlanId: plan.phacDoMauId || null,
+    status: finalStatus,
+    rawStatus: finalRawStatus,
     startDate: plan.ngayBatDau ? formatDateYYYYMMDD(plan.ngayBatDau) : '',
     estimatedEndDate: plan.ngayDuKienHoanThanh
       ? formatDateYYYYMMDD(plan.ngayDuKienHoanThanh)
@@ -112,25 +121,43 @@ export const dentistTreatmentPlanListItemResponseSchema = (plan) => {
     actualEndDate: plan.ngayHoanThanhThucTe
       ? formatDateYYYYMMDD(plan.ngayHoanThanhThucTe)
       : null,
-    totalCost,
-    totalEstimatedCost: totalCost,
-    paidAmount: 0,
+    initialDiagnosis: plan.chanDoanBanDau || null,
+    notes: plan.ghiChu || null,
     totalPhases: phases.length,
     completedPhases,
-    phases: phases.map((p) => ({
-      id: p.id,
-      stepNumber: p.buocSo,
-      phaseNumber: p.buocSo,
-      name: p.tenGiaiDoan,
-      title: p.tenGiaiDoan,
-      status: mapPhaseStatusToFrontend(p.trangThai),
-      cost: Number(p.chiPhi || 0),
-      estimatedCost: Number(p.chiPhi || 0),
-      estimatedDate: p.ngayDuKien ? formatDateYYYYMMDD(p.ngayDuKien) : '',
-      completedDate: p.ngayThucHien ? formatDateYYYYMMDD(p.ngayThucHien) : null,
-      description: p.moTa,
-    })),
+    phases: phases.map((p) => {
+      const appt = p.lichHen || {};
+      const apptDoctor = appt.caLamViec?.nhaSi?.hoTen || null;
+      const apptService = appt.dichVu?.tenDichVu || null;
+
+      return {
+        id: p.id,
+        stepNumber: p.buocSo,
+        phaseNumber: p.buocSo,
+        name: p.tenGiaiDoan,
+        title: p.tenGiaiDoan,
+        status: mapPhaseStatusToFrontend(p.trangThai),
+        rawStatus: p.trangThai,
+        estimatedDate: p.ngayDuKien ? formatDateYYYYMMDD(p.ngayDuKien) : (p.ghiChu || ''),
+        nextAppointmentDate: p.ngayDuKien ? formatDateYYYYMMDD(p.ngayDuKien) : (p.ghiChu || ''),
+        completedDate: p.ngayThucHien ? formatDateYYYYMMDD(p.ngayThucHien) : null,
+        description: p.moTa || '',
+        serviceDescription: p.moTaVatTuDichVu || '',
+        notes: p.ghiChu || null,
+        // Minh chứng lâm sàng (Clinical Proof)
+        appointmentId: p.lichHenId || null,
+        appointmentCode: appt.maLichHen || null,
+        appointmentDate: appt.ngayHen
+          ? formatDateYYYYMMDD(appt.ngayHen)
+          : p.ngayThucHien
+          ? formatDateYYYYMMDD(p.ngayThucHien)
+          : null,
+        appointmentService: apptService,
+        appointmentDoctor: apptDoctor,
+      };
+    }),
     createdAt: plan.createdAt,
+    updatedAt: plan.updatedAt,
   };
 };
 

@@ -12,6 +12,21 @@ import {
 /**
  * Sinh mã phác đồ điều trị ngẫu nhiên không trùng lặp
  */
+const parseSafeDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+};
+
 const generateUniquePlanCode = async () => {
   const dateStr = getVietnamTodayDateString().replace(/-/g, '').slice(0, 6);
   for (let i = 0; i < 5; i++) {
@@ -24,6 +39,26 @@ const generateUniquePlanCode = async () => {
     if (!existing) return candidate;
   }
   return `PT-${dateStr}-${Date.now().toString(36).toUpperCase()}`;
+};
+
+const planIncludeQuery = {
+  benhNhan: true,
+  nhaSi: true,
+  giaiDoanPhacDo: {
+    include: {
+      lichHen: {
+        include: {
+          dichVu: true,
+          caLamViec: {
+            include: {
+              nhaSi: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { buocSo: 'asc' },
+  },
 };
 
 /**
@@ -67,15 +102,30 @@ export const getTreatmentPlansService = async ({
 
   const plans = await prisma.phacDoDieuTri.findMany({
     where,
-    include: {
-      benhNhan: true,
-      nhaSi: true,
-      giaiDoanPhacDo: {
-        orderBy: { buocSo: 'asc' },
-      },
-    },
+    include: planIncludeQuery,
     orderBy: { createdAt: 'desc' },
   });
+
+  // Đồng bộ trạng thái phác đồ: Nếu toàn bộ giai đoạn đã hoàn thành, cập nhật phác đồ sang hoan_thanh
+  for (const p of plans) {
+    const phases = p.giaiDoanPhacDo || [];
+    const isAllCompleted =
+      phases.length > 0 &&
+      phases.every(
+        (ph) => ph.trangThai === 'hoan_thanh' || ph.trangThai === 'COMPLETED'
+      );
+    if (isAllCompleted && p.trangThai !== 'hoan_thanh') {
+      await prisma.phacDoDieuTri.update({
+        where: { id: p.id },
+        data: {
+          trangThai: 'hoan_thanh',
+          ngayHoanThanhThucTe: p.ngayHoanThanhThucTe || new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      p.trangThai = 'hoan_thanh';
+    }
+  }
 
   return plans.map(dentistTreatmentPlanListItemResponseSchema);
 };
@@ -86,13 +136,7 @@ export const getTreatmentPlansService = async ({
 export const getTreatmentPlanDetailService = async (planId) => {
   const plan = await prisma.phacDoDieuTri.findUnique({
     where: { id: planId },
-    include: {
-      benhNhan: true,
-      nhaSi: true,
-      giaiDoanPhacDo: {
-        orderBy: { buocSo: 'asc' },
-      },
-    },
+    include: planIncludeQuery,
   });
 
   if (!plan) {
@@ -111,7 +155,6 @@ export const createTreatmentPlanService = async (dentistId, payload) => {
     title,
     samplePlanId,
     initialDiagnosis,
-    paymentMethod = 'tung_giai_doan',
     startDate,
     estimatedEndDate,
     notes,
@@ -143,17 +186,21 @@ export const createTreatmentPlanService = async (dentistId, payload) => {
         phacDoMauId: samplePlanId || null,
         tenPhacDo: title,
         chanDoanBanDau: initialDiagnosis || null,
-        hinhThucThanhToan: paymentMethod,
         trangThai: 'dang_dieu_tri',
-        ngayBatDau: startDate ? new Date(startDate) : new Date(),
-        ngayDuKienHoanThanh: estimatedEndDate ? new Date(estimatedEndDate) : null,
+        ngayBatDau: parseSafeDate(startDate) || new Date(),
+        ngayDuKienHoanThanh: parseSafeDate(estimatedEndDate),
         ghiChu: notes || null,
       },
     });
 
-    // Tạo các giai đoạn phác đồ
+    // Tạo các giai đoạn phác đồ (thuần chuyên môn & tiến độ, không còn trường chi phí)
     if (phases.length > 0) {
       for (const phase of phases) {
+        const validNgayDuKien = parseSafeDate(phase.estimatedDate);
+        const ghiChu = validNgayDuKien
+          ? (phase.notes || null)
+          : (phase.notes ? `${phase.notes} (${phase.estimatedDate})` : (phase.estimatedDate || null));
+
         await tx.giaiDoanPhacDo.create({
           data: {
             phacDoId: createdPlan.id,
@@ -161,9 +208,9 @@ export const createTreatmentPlanService = async (dentistId, payload) => {
             tenGiaiDoan: phase.name,
             moTa: phase.description || null,
             moTaVatTuDichVu: phase.serviceDescription || null,
-            chiPhi: Number(phase.cost) || 0,
             trangThai: 'chua_thuc_hien',
-            ngayDuKien: phase.estimatedDate ? new Date(phase.estimatedDate) : null,
+            ngayDuKien: validNgayDuKien,
+            ghiChu,
           },
         });
       }
@@ -171,13 +218,7 @@ export const createTreatmentPlanService = async (dentistId, payload) => {
 
     return await tx.phacDoDieuTri.findUnique({
       where: { id: createdPlan.id },
-      include: {
-        benhNhan: true,
-        nhaSi: true,
-        giaiDoanPhacDo: {
-          orderBy: { buocSo: 'asc' },
-        },
-      },
+      include: planIncludeQuery,
     });
   });
 
@@ -186,13 +227,39 @@ export const createTreatmentPlanService = async (dentistId, payload) => {
 
 /**
  * Cập nhật trạng thái của một giai đoạn trong phác đồ điều trị
+ * Hỗ trợ nhận appointmentCode hoặc appointmentId làm minh chứng điều trị
  */
 export const updatePhaseStatusService = async (
-  planId,
-  phaseId,
-  status,
-  completedDate = null
+  arg1,
+  arg2,
+  arg3,
+  arg4 = null,
+  arg5 = null,
+  arg6 = null
 ) => {
+  let planId;
+  let phaseId;
+  let status;
+  let completedDate;
+  let appointmentCode;
+  let appointmentId;
+
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    planId = arg1.planId;
+    phaseId = arg1.phaseId;
+    status = arg1.status;
+    completedDate = arg1.completedDate;
+    appointmentCode = arg1.appointmentCode;
+    appointmentId = arg1.appointmentId;
+  } else {
+    planId = arg1;
+    phaseId = arg2;
+    status = arg3;
+    completedDate = arg4;
+    appointmentCode = arg5;
+    appointmentId = arg6;
+  }
+
   let dbStatus = 'chua_thuc_hien';
   if (status === 'COMPLETED' || status === 'hoan_thanh') {
     dbStatus = 'hoan_thanh';
@@ -204,22 +271,68 @@ export const updatePhaseStatusService = async (
 
   const phase = await prisma.giaiDoanPhacDo.findFirst({
     where: { id: phaseId, phacDoId: planId },
+    include: { phacDoDieuTri: true },
   });
 
   if (!phase) {
     throw new ApiError(404, 'Không tìm thấy giai đoạn điều trị');
   }
 
+  let targetLichHenId = phase.lichHenId;
+  let actualCompletedDate = completedDate ? new Date(completedDate) : new Date();
+
+  // Khi hoàn thành giai đoạn, tìm và liên kết lịch hẹn làm minh chứng
+  if (dbStatus === 'hoan_thanh') {
+    let appointment = null;
+
+    if (appointmentId) {
+      appointment = await prisma.lichHen.findUnique({
+        where: { id: appointmentId },
+      });
+    } else if (appointmentCode) {
+      appointment = await prisma.lichHen.findFirst({
+        where: {
+          maLichHen: { equals: appointmentCode.trim(), mode: 'insensitive' },
+        },
+      });
+    }
+
+    if (appointment) {
+      // Xác thực lịch hẹn phải thuộc đúng bệnh nhân của phác đồ
+      if (appointment.benhNhanId !== phase.phacDoDieuTri.benhNhanId) {
+        throw new ApiError(
+          400,
+          `Lịch hẹn #${appointment.maLichHen} không thuộc về bệnh nhân của phác đồ này.`
+        );
+      }
+      targetLichHenId = appointment.id;
+      actualCompletedDate = parseSafeDate(completedDate)
+        || (appointment ? parseSafeDate(appointment.ngayHen) : null)
+        || new Date();
+
+      // Tránh lỗi Unique constraint nếu lịch hẹn này từng được gán cho giai đoạn khác
+      await prisma.giaiDoanPhacDo.updateMany({
+        where: {
+          lichHenId: appointment.id,
+          NOT: { id: phaseId },
+        },
+        data: {
+          lichHenId: null,
+        },
+      });
+    }
+  } else {
+    // Nếu chuyển về chưa thực hiện hoặc đang thực hiện -> xóa liên kết minh chứng
+    targetLichHenId = null;
+    actualCompletedDate = null;
+  }
+
   await prisma.giaiDoanPhacDo.update({
     where: { id: phaseId },
     data: {
       trangThai: dbStatus,
-      ngayThucHien:
-        dbStatus === 'hoan_thanh'
-          ? completedDate
-            ? new Date(completedDate)
-            : new Date()
-          : null,
+      lichHenId: targetLichHenId,
+      ngayThucHien: actualCompletedDate,
       updatedAt: new Date(),
     },
   });
@@ -229,8 +342,8 @@ export const updatePhaseStatusService = async (
     where: { phacDoId: planId },
   });
 
-  const isAllCompleted = allPhases.every((p) => p.trangThai === 'hoan_thanh');
-  if (isAllCompleted && allPhases.length > 0) {
+  const isAllCompleted = allPhases.length > 0 && allPhases.every((p) => p.trangThai === 'hoan_thanh');
+  if (isAllCompleted) {
     await prisma.phacDoDieuTri.update({
       where: { id: planId },
       data: {
@@ -239,17 +352,21 @@ export const updatePhaseStatusService = async (
         updatedAt: new Date(),
       },
     });
+  } else if (phase.phacDoDieuTri.trangThai === 'hoan_thanh') {
+    // Nếu trước đó là hoan_thanh nhưng giờ có bước chưa xong -> chuyển lại dang_dieu_tri
+    await prisma.phacDoDieuTri.update({
+      where: { id: planId },
+      data: {
+        trangThai: 'dang_dieu_tri',
+        ngayHoanThanhThucTe: null,
+        updatedAt: new Date(),
+      },
+    });
   }
 
   const updatedPlan = await prisma.phacDoDieuTri.findUnique({
     where: { id: planId },
-    include: {
-      benhNhan: true,
-      nhaSi: true,
-      giaiDoanPhacDo: {
-        orderBy: { buocSo: 'asc' },
-      },
-    },
+    include: planIncludeQuery,
   });
 
   return dentistTreatmentPlanDetailResponseSchema(updatedPlan);

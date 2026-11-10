@@ -1,5 +1,6 @@
 import prisma from '../../config/prisma.js';
 import { ApiError } from '../../common/errorMiddleware.js';
+import { uploadBufferToCloudinary } from '../../config/cloudinary.js';
 import {
   clientProfileDetailResponseSchema,
   normalizeGenderForDb,
@@ -114,6 +115,11 @@ export const updateProfileService = async (profileId, userId, updateData) => {
     dataToUpdate.diaChi = updateData.address ? updateData.address.trim() : null;
   }
 
+  // 6. Cập nhật URL ảnh đại diện trực tiếp (nếu có)
+  if (updateData.avatarUrl !== undefined) {
+    dataToUpdate.hinhAnhUrl = updateData.avatarUrl ? updateData.avatarUrl.trim() : null;
+  }
+
   const updatedPatient = await prisma.benhNhan.update({
     where: { id: existingPatient.id },
     data: dataToUpdate,
@@ -130,8 +136,176 @@ export const updateProfileService = async (profileId, userId, updateData) => {
   return clientProfileDetailResponseSchema(updatedPatient);
 };
 
+/**
+ * uploadAvatarService
+ * Upload ảnh đại diện lên Cloudinary và lưu URL vào database
+ * Hỗ trợ toàn bộ user trừ admin (BENH_NHAN, BAC_SI, LE_TAN)
+ * Yêu cầu: UUID của access token phải khớp với UUID của record muốn cập nhật
+ */
+export const uploadAvatarService = async (authInfo, maybeFile) => {
+  // Chuẩn hóa tham số: hỗ trợ cả signature cũ (profileId, userId, file) và mới ({ role, profileId, userId, targetId }, file)
+  let role = 'BENH_NHAN';
+  let profileId = null;
+  let userId = null;
+  let targetId = null;
+  let file = maybeFile;
+
+  if (typeof authInfo === 'object' && authInfo !== null && (authInfo.role || authInfo.userId || authInfo.profileId)) {
+    role = authInfo.role || 'BENH_NHAN';
+    profileId = authInfo.profileId || null;
+    userId = authInfo.userId || null;
+    targetId = authInfo.targetId || null;
+  } else {
+    profileId = authInfo;
+    userId = arguments[1];
+    file = arguments[2];
+  }
+
+  if (!file || !file.buffer) {
+    throw new ApiError(400, 'Vui lòng chọn file ảnh để tải lên (trường form-data: avatar)');
+  }
+
+  // Xác thực bảo mật: UUID của access token phải khớp với UUID của record muốn cập nhật
+  if (targetId && targetId !== profileId && targetId !== userId) {
+    throw new ApiError(403, 'UUID của access token không khớp với UUID của record muốn cập nhật');
+  }
+
+  const normalizedRole = String(role || 'BENH_NHAN').toUpperCase();
+  if (normalizedRole === 'ADMIN') {
+    throw new ApiError(403, 'Tài khoản quản trị viên không sử dụng endpoint này');
+  }
+
+  let entityRecord = null;
+  let publicIdPrefix = 'user';
+
+  if (normalizedRole === 'BENH_NHAN') {
+    const whereCondition = {};
+    if (profileId) {
+      whereCondition.id = profileId;
+    } else if (userId) {
+      whereCondition.taiKhoanId = userId;
+    } else {
+      throw new ApiError(400, 'Không xác định được danh tính bệnh nhân từ token');
+    }
+
+    entityRecord = await prisma.benhNhan.findFirst({
+      where: whereCondition,
+      select: { id: true, hoTen: true, sdt: true },
+    });
+
+    if (!entityRecord) {
+      throw new ApiError(404, 'Không tìm thấy hồ sơ bệnh nhân');
+    }
+    publicIdPrefix = `patient_${entityRecord.id}`;
+  } else if (normalizedRole === 'BAC_SI') {
+    const whereCondition = {};
+    if (profileId) {
+      whereCondition.id = profileId;
+    } else if (userId) {
+      whereCondition.taiKhoanId = userId;
+    } else {
+      throw new ApiError(400, 'Không xác định được danh tính bác sĩ từ token');
+    }
+
+    entityRecord = await prisma.nhaSi.findFirst({
+      where: whereCondition,
+      select: { id: true, hoTen: true, sdt: true },
+    });
+
+    if (!entityRecord) {
+      throw new ApiError(404, 'Không tìm thấy hồ sơ bác sĩ');
+    }
+    publicIdPrefix = `doctor_${entityRecord.id}`;
+  } else if (normalizedRole === 'LE_TAN') {
+    const whereCondition = {};
+    if (profileId) {
+      whereCondition.id = profileId;
+    } else if (userId) {
+      whereCondition.taiKhoanId = userId;
+    } else {
+      throw new ApiError(400, 'Không xác định được danh tính nhân viên từ token');
+    }
+
+    entityRecord = await prisma.nhanVien.findFirst({
+      where: whereCondition,
+      select: { id: true, hoTen: true, sdt: true },
+    });
+
+    if (!entityRecord) {
+      throw new ApiError(404, 'Không tìm thấy hồ sơ nhân viên lễ tân');
+    }
+    publicIdPrefix = `staff_${entityRecord.id}`;
+  } else {
+    throw new ApiError(403, 'Vai trò không được phép cập nhật ảnh qua endpoint này');
+  }
+
+  // Upload buffer lên Cloudinary
+  const uploadResult = await uploadBufferToCloudinary(file.buffer, {
+    public_id: `${publicIdPrefix}_avatar`,
+    overwrite: true,
+  });
+
+  const avatarUrl = uploadResult.secure_url;
+
+  // Cập nhật URL ảnh vào bảng dữ liệu tương ứng
+  if (normalizedRole === 'BENH_NHAN') {
+    const updatedPatient = await prisma.benhNhan.update({
+      where: { id: entityRecord.id },
+      data: {
+        hinhAnhUrl: avatarUrl,
+      },
+      include: {
+        taiKhoan: {
+          select: {
+            username: true,
+            trangThai: true,
+          },
+        },
+      },
+    });
+
+    return {
+      avatarUrl,
+      patient: clientProfileDetailResponseSchema(updatedPatient),
+    };
+  } else if (normalizedRole === 'BAC_SI') {
+    await prisma.nhaSi.update({
+      where: { id: entityRecord.id },
+      data: {
+        hinhAnhUrl: avatarUrl,
+      },
+    });
+
+    return {
+      avatarUrl,
+      doctor: {
+        id: entityRecord.id,
+        fullName: entityRecord.hoTen,
+        avatarUrl,
+      },
+    };
+  } else {
+    await prisma.nhanVien.update({
+      where: { id: entityRecord.id },
+      data: {
+        hinhAnhUrl: avatarUrl,
+      },
+    });
+
+    return {
+      avatarUrl,
+      staff: {
+        id: entityRecord.id,
+        fullName: entityRecord.hoTen,
+        avatarUrl,
+      },
+    };
+  }
+};
+
 export default {
   getProfileService,
   updateProfileService,
+  uploadAvatarService,
 };
 

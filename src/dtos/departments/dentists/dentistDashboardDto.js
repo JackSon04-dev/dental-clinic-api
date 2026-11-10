@@ -11,8 +11,12 @@ import {
  */
 export const mapLichHenStatusToSlipStatus = (dbStatus) => {
   switch (dbStatus) {
+    case 'cho_xac_nhan':
+      return 'CHO_XAC_NHAN';
     case 'da_xac_nhan':
+      return 'DA_XAC_NHAN';
     case 'da_tiep_nhan':
+      return 'DA_TIEP_NHAN';
     case 'cho_kham':
       return 'CHO_KHAM';
     case 'dang_kham':
@@ -25,6 +29,7 @@ export const mapLichHenStatusToSlipStatus = (dbStatus) => {
     case 'hoan_thanh':
       return 'HOAN_THANH';
     case 'huy':
+    case 'da_huy':
       return 'HUY';
     default:
       return 'CHO_KHAM';
@@ -101,11 +106,15 @@ export const dentistDashboardStatsResponseSchema = ({
 
 /**
  * Format lịch tuần của Bác sĩ (7 ngày từ Thứ Hai đến Chủ Nhật)
+ * Hỗ trợ phân tách rõ từng ca sáng / chiều độc lập, hiển thị phòng khám,
+ * và tự động nhận diện vắng mặt khi quá 15 phút sau giờ bắt đầu ca.
  */
 export const dentistWeeklyShiftsResponseSchema = (weekRange, shifts = []) => {
   const todayStr = getVietnamTodayDateString();
+  const nowMs = Date.now();
+  const result = [];
 
-  return weekRange.days.map((dayItem) => {
+  weekRange.days.forEach((dayItem) => {
     const [y, m, d] = dayItem.date.split('-');
     const formattedDate = `${d}/${m}/${y}`;
 
@@ -115,81 +124,87 @@ export const dentistWeeklyShiftsResponseSchema = (weekRange, shifts = []) => {
     );
 
     if (dayShifts.length === 0) {
-      return {
+      result.push({
         dayOfWeek: dayItem.dayName,
         date: formattedDate,
         dateIso: dayItem.date,
         shiftId: null,
         shiftName: 'Nghỉ ca trực',
         timeSlot: '',
+        roomId: null,
         roomName: '—',
         patientCount: 0,
         status: 'off',
+        statusText: 'Nghỉ ca',
+        isAbsentDueToLate: false,
+        canDoctorCheckIn: false,
         isToday: dayItem.date === todayStr,
-      };
+      });
+      return;
     }
 
-    // Nếu có 1 hoặc nhiều ca, tổng hợp thông tin
-    const firstShift = dayShifts[0];
-    const isMultiple = dayShifts.length > 1;
-
-    let shiftName = '';
-    let timeSlot = '';
-
-    if (isMultiple) {
-      shiftName = 'Cả ngày';
-      const start = formatTimeHHmm(dayShifts[0].gioBatDau);
-      const end = formatTimeHHmm(dayShifts[dayShifts.length - 1].gioKetThuc);
-      timeSlot = `${start} - ${end}`;
-    } else {
-      const start = formatTimeHHmm(firstShift.gioBatDau);
-      const end = formatTimeHHmm(firstShift.gioKetThuc);
+    // Với mỗi ca làm việc độc lập (Ca sáng, Ca chiều)
+    dayShifts.forEach((s) => {
+      const start = formatTimeHHmm(s.gioBatDau);
+      const end = formatTimeHHmm(s.gioKetThuc);
       const startHour = parseInt(start.split(':')[0], 10);
-      shiftName = startHour < 12 ? 'Ca sáng' : 'Ca chiều';
-      timeSlot = `${start} - ${end}`;
-    }
+      const shiftName = startHour < 12 ? 'Ca sáng' : 'Ca chiều';
+      const timeSlot = `${start} - ${end}`;
 
-    if (dayItem.date === todayStr) {
-      shiftName += ' (Hôm nay)';
-    }
+      // Tính toán mốc 15 phút sau khi ca bắt đầu (theo múi giờ VN +07:00)
+      const shiftStartMs = new Date(`${dayItem.date}T${start}:00+07:00`).getTime();
+      const isPast15Mins = nowMs > shiftStartMs + 15 * 60 * 1000;
 
-    // Đếm tổng số bệnh nhân đặt hẹn trong ngày
-    const totalPatients = dayShifts.reduce(
-      (sum, s) => sum + (s.lichHen ? s.lichHen.length : 0),
-      0
-    );
+      let status = 'not_present';
+      let statusText = 'Chưa điểm danh';
+      let isAbsentDueToLate = false;
+      let canDoctorCheckIn = false;
 
-    // Điểm danh
-    const hasPresent = dayShifts.some(
-      (s) => s.trangThai === 'co_mat' || s.trangThai === 'dang_dien_ra' || s.trangThai === 'da_ket_thuc'
-    );
-    const hasAbsent = dayShifts.some((s) => s.trangThai === 'vang_mat');
+      if (s.trangThai === 'co_mat' || s.trangThai === 'dang_dien_ra' || s.trangThai === 'da_ket_thuc') {
+        status = 'present';
+        statusText = 'Có mặt';
+        canDoctorCheckIn = false;
+      } else if (s.trangThai === 'vang_mat') {
+        status = 'absent';
+        statusText = 'Vắng mặt';
+        canDoctorCheckIn = false;
+      } else if (s.trangThai === 'chua_dien_ra') {
+        if (isPast15Mins) {
+          status = 'absent';
+          statusText = 'Vắng mặt';
+          isAbsentDueToLate = true;
+          canDoctorCheckIn = false; // Bác sĩ không thể tự điểm danh nữa
+        } else {
+          status = 'not_present';
+          statusText = 'Chưa điểm danh';
+          canDoctorCheckIn = true;
+        }
+      }
 
-    let status = 'not_present';
-    if (hasPresent) status = 'present';
-    else if (hasAbsent) status = 'absent';
+      const totalPatients = s.lichHen ? s.lichHen.length : 0;
 
-    return {
-      dayOfWeek: dayItem.dayName,
-      date: formattedDate,
-      dateIso: dayItem.date,
-      shiftId: firstShift.id,
-      shiftName,
-      timeSlot,
-      roomName: firstShift.phongDieuTri?.tenPhong || '',
-      patientCount: totalPatients,
-      status,
-      isToday: dayItem.date === todayStr,
-      shifts: dayShifts.map((s) => ({
-        id: s.id,
-        startTime: formatTimeHHmm(s.gioBatDau),
-        endTime: formatTimeHHmm(s.gioKetThuc),
-        status: s.trangThai,
-        room: s.phongDieuTri?.tenPhong,
-        patientCount: s.lichHen ? s.lichHen.length : 0,
-      })),
-    };
+      result.push({
+        dayOfWeek: dayItem.dayName,
+        date: formattedDate,
+        dateIso: dayItem.date,
+        shiftId: s.id,
+        shiftName: `${shiftName}${dayItem.date === todayStr ? ' (Hôm nay)' : ''}`,
+        rawShiftName: shiftName,
+        timeSlot,
+        roomId: s.phongDieuTriId,
+        roomName: s.phongDieuTri?.tenPhong || 'Phòng khám',
+        patientCount: totalPatients,
+        status,
+        statusText,
+        rawStatus: s.trangThai,
+        isAbsentDueToLate,
+        canDoctorCheckIn,
+        isToday: dayItem.date === todayStr,
+      });
+    });
   });
+
+  return result;
 };
 
 export default {

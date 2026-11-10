@@ -258,24 +258,13 @@ export const updateInvoicePaymentService = async (
       });
     }
 
-    // 2. Cập nhật trạng thái ca hẹn sang 'hoan_thanh' để kết thúc quy trình khám
+    // 2. Cập nhật trạng thái ca hẹn sang 'hoan_thanh' hoặc 'dang_dieu_tri' để kết thúc quy trình khám
     if (invoice.lichHenId) {
       await tx.lichHen.update({
         where: { id: invoice.lichHenId },
         data: {
           trangThai: 'dang_dieu_tri',
           updatedAt: new Date(),
-        },
-      });
-    }
-
-    // 3. Nếu hóa đơn gắn với buổi hẹn của giai đoạn phác đồ, đồng bộ trạng thái thanh toán
-    const giaiDoanId = invoice.lichHen?.giaiDoanPhacDo?.id;
-    if (giaiDoanId) {
-      await tx.giaiDoanPhacDo.update({
-        where: { id: giaiDoanId },
-        data: {
-          trangThaiThanhToan: 'da_thanh_toan',
         },
       });
     }
@@ -338,17 +327,6 @@ export const cancelInvoiceService = async (id, { cancelReason }) => {
           soLanDaSuDung: {
             decrement: 1,
           },
-        },
-      });
-    }
-
-    // 2. Nếu gắn với giai đoạn phác đồ thì hoàn nguyên trạng thái giai đoạn về chua_thanh_toan
-    const giaiDoanId = invoice.lichHen?.giaiDoanPhacDo?.id;
-    if (giaiDoanId) {
-      await tx.giaiDoanPhacDo.update({
-        where: { id: giaiDoanId },
-        data: {
-          trangThaiThanhToan: 'chua_thanh_toan',
         },
       });
     }

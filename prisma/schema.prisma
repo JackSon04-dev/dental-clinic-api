@@ -362,7 +362,6 @@ model PhacDoDieuTri {
   phacDoMauId           String?           @map("phac_do_mau_id") @db.Uuid
   tenPhacDo             String            @map("ten_phac_do") @db.VarChar(200)
   chanDoanBanDau        String?           @map("chan_doan_ban_dau") @db.Text
-  hinhThucThanhToan     String            @default("tung_giai_doan") @map("hinh_thuc_thanh_toan") @db.VarChar(20)
   trangThai             String            @default("dang_dieu_tri") @map("trang_thai") @db.VarChar(20)
   ngayBatDau            DateTime?         @map("ngay_bat_dau") @db.Date
   ngayDuKienHoanThanh   DateTime?         @map("ngay_du_kien_hoan_thanh") @db.Date
@@ -496,8 +495,6 @@ model GiaiDoanPhacDo {
   tenGiaiDoan           String           @map("ten_giai_doan") @db.VarChar(200)
   moTa                  String?          @map("mo_ta") @db.Text
   moTaVatTuDichVu       String?          @map("mo_ta_vat_tu_dich_vu") @db.Text
-  chiPhi                Decimal          @default(0) @map("chi_phi") @db.Decimal(18, 2)
-  trangThaiThanhToan    String           @default("chua_thanh_toan") @map("trang_thai_thanh_toan") @db.VarChar(20)
   lichHenId             String?          @unique @map("lich_hen_id") @db.Uuid
   trangThai             String           @default("chua_thuc_hien") @map("trang_thai") @db.VarChar(20)
   ngayDuKien            DateTime?        @map("ngay_du_kien") @db.Date

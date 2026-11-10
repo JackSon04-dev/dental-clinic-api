@@ -6,6 +6,16 @@ import {
   formatTreatmentPlanDetail,
 } from '../../dtos/clients/clientDashboardDto.js';
 
+const ACTIVE_APPOINTMENT_STATUSES = [
+  'cho_xac_nhan',
+  'da_xac_nhan',
+  'da_tiep_nhan',
+  'cho_kham',
+  'dang_kham',
+  'cho_thanh_toan',
+  'dang_dieu_tri',
+];
+
 class ClientDashboardService {
   /**
    * Lấy dữ liệu cho 4 Card thống kê chính trên trang Dashboard của bệnh nhân
@@ -34,18 +44,20 @@ class ClientDashboardService {
         },
       }),
 
-      // 2. Lấy lịch hẹn sắp tới (ngayHen >= ngày hiện tại, trạng thái hợp lệ chưa khám)
+      // 2. Lấy lịch hẹn sắp tới hoặc đang diễn ra trong ngày
       prisma.lichHen.findFirst({
         where: {
           benhNhanId,
           ngayHen: { gte: startOfToday },
-          trangThai: { in: ['cho_xac_nhan', 'da_xac_nhan'] },
+          trangThai: { in: ACTIVE_APPOINTMENT_STATUSES },
         },
         orderBy: [{ ngayHen: 'asc' }, { gioHen: 'asc' }],
         select: {
           id: true,
+          maLichHen: true,
           ngayHen: true,
           gioHen: true,
+          gioKetThucDuKien: true,
           trangThai: true,
           dichVu: {
             select: {
@@ -155,12 +167,12 @@ class ClientDashboardService {
       },
     };
 
-    // 1. Thử tìm cuộc hẹn sắp tới gần nhất (ngayHen >= hôm nay, trạng thái hợp lệ chưa khám)
+    // 1. Thử tìm cuộc hẹn sắp tới hoặc đang diễn ra (ngayHen >= hôm nay, trạng thái hợp lệ)
     const upcomingAppointment = await prisma.lichHen.findFirst({
       where: {
         benhNhanId,
         ngayHen: { gte: startOfToday },
-        trangThai: { in: ['cho_xac_nhan', 'da_xac_nhan'] },
+        trangThai: { in: ACTIVE_APPOINTMENT_STATUSES },
       },
       orderBy: [{ ngayHen: 'asc' }, { gioHen: 'asc' }],
       select: selectFields,
@@ -170,11 +182,11 @@ class ClientDashboardService {
       return formatFeaturedAppointment(upcomingAppointment, true);
     }
 
-    // 2. Nếu không có lịch tương lai, lấy cuộc hẹn gần nhất trong quá khứ đã hoàn thành
+    // 2. Nếu không có lịch tương lai/đang diễn ra, lấy cuộc hẹn gần nhất trong quá khứ đã hoàn thành
     const pastAppointment = await prisma.lichHen.findFirst({
       where: {
         benhNhanId,
-        trangThai: 'da_kham',
+        trangThai: { in: ['da_kham', 'hoan_thanh'] },
       },
       orderBy: [{ ngayHen: 'desc' }, { gioHen: 'desc' }],
       select: selectFields,

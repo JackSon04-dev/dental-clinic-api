@@ -92,18 +92,12 @@ export const clientTreatmentPlanListItemResponseSchema = (plan) => {
       dateText = `Dự kiến ngày ${formatDayMonthYear(stage.ngayDuKien).formattedDate}`;
     }
 
-    const paymentStatusTitle =
-      stage.trangThaiThanhToan === 'da_thanh_toan' ? 'Đã thanh toán' : 'Chưa thanh toán';
-
     return {
       id: stage.id,
       stepNumber: stage.buocSo,
       title: `Giai đoạn ${stage.buocSo}: ${stage.tenGiaiDoan}`,
       rawStageName: stage.tenGiaiDoan,
       description: stage.moTa || null,
-      cost: Number(stage.chiPhi || 0),
-      paymentStatus: stage.trangThaiThanhToan || 'chua_thanh_toan',
-      paymentStatusTitle,
       dateText,
       status: {
         code: isCompleted ? 'completed' : 'pending',
@@ -141,8 +135,8 @@ export const clientTreatmentPlanListItemResponseSchema = (plan) => {
       specialty: plan.nhaSi?.chuyenKhoa || 'Bác sĩ chuyên khoa',
       avatarUrl: plan.nhaSi?.hinhAnhUrl || null,
     },
-    paymentType: plan.hinhThucThanhToan || 'tung_giai_doan',
-    paymentTypeTitle: formatPaymentTypeTitle(plan.hinhThucThanhToan),
+    paymentType: 'dieu_tri',
+    paymentTypeTitle: 'Theo dõi tiến độ lâm sàng',
     status: formatPlanStatus(plan.trangThai),
     progress: {
       totalStages,

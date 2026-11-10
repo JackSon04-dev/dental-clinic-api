@@ -379,8 +379,32 @@ export const formatAvailableSlotsResponse = ({
  * Format thông tin dịch vụ trả về cho Client lựa chọn đặt lịch
  */
 export const formatClientServiceItem = (service) => {
-  const price = service.gia !== undefined && service.gia !== null ? Number(service.gia) : null;
+  const rawPrice = service.gia !== undefined && service.gia !== null ? Number(service.gia) : null;
   const unit = service.donViTinh || (service.chiTietDichVu?.[0]?.donViTinh) || 'lượt';
+  const code = (service.maDichVu || '').toUpperCase();
+  const name = (service.tenDichVu || '').toLowerCase();
+
+  // Dịch vụ chuyên sâu bán theo sản phẩm/vật tư (Implant, Niềng răng, Bọc sứ) -> Giá 0, cần đến khám trước để tư vấn
+  const isConsultationRequired =
+    code === 'DV_IMPLANT' ||
+    code === 'DV_NIENGRANG' ||
+    code === 'DV_BOCSU' ||
+    name.includes('implant') ||
+    name.includes('niềng') ||
+    name.includes('bọc sứ');
+
+  const resolvedPrice = isConsultationRequired
+    ? 0
+    : (rawPrice !== null ? rawPrice : (service.chiTietDichVu?.[0] ? Number(service.chiTietDichVu[0].gia) : null));
+
+  let priceText = 'Liên hệ tư vấn';
+  if (isConsultationRequired) {
+    priceText = 'Cần đến khám trước để tư vấn';
+  } else if (resolvedPrice === 0) {
+    priceText = 'Miễn phí khám';
+  } else if (resolvedPrice !== null) {
+    priceText = `${new Intl.NumberFormat('vi-VN').format(resolvedPrice)} đ`;
+  }
 
   return {
     id: service.id,
@@ -389,7 +413,9 @@ export const formatClientServiceItem = (service) => {
     description: service.moTa || '',
     procedureInfo: service.thongTinQuyTrinh || '',
     durationMinutes: service.thoiGianDuKienPhut || 30,
-    price: price !== null ? price : (service.chiTietDichVu?.[0] ? Number(service.chiTietDichVu[0].gia) : null),
+    price: resolvedPrice,
+    priceText,
+    isConsultationRequired,
     unit,
   };
 };

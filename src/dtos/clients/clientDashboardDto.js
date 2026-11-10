@@ -1,6 +1,100 @@
 import { formatDayMonthYear, formatTimeHHmm } from '../../utils/dateFormatter.js';
 
 /**
+ * Chuẩn hóa bộ trạng thái lịch hẹn trả về cho Client UI (Stepper 7 bước)
+ * @param {string} trangThai - Trạng thái trong DB
+ * @returns {object} { code, label, step, totalSteps, variant, actionHint }
+ */
+export const mapAppointmentStatusToClient = (trangThai) => {
+  switch (trangThai) {
+    case 'cho_xac_nhan':
+      return {
+        code: 'cho_xac_nhan',
+        label: 'Chờ xác nhận',
+        step: 1,
+        totalSteps: 7,
+        variant: 'warning',
+        actionHint: 'Lịch hẹn đang chờ phòng khám gọi điện xác nhận.',
+      };
+    case 'da_xac_nhan':
+      return {
+        code: 'da_xac_nhan',
+        label: 'Đã xác nhận',
+        step: 2,
+        totalSteps: 7,
+        variant: 'info',
+        actionHint: 'Vui lòng đến trước giờ hẹn 10-15 phút để làm thủ tục check-in tại quầy.',
+      };
+    case 'da_tiep_nhan':
+    case 'cho_kham':
+      return {
+        code: 'da_tiep_nhan',
+        label: 'Đã tiếp nhận (Chờ khám)',
+        step: 3,
+        totalSteps: 7,
+        variant: 'primary',
+        actionHint: 'Đã check-in thành công. Mời bạn ngồi chờ tại sảnh, bác sĩ sẽ gọi vào khám.',
+      };
+    case 'dang_kham':
+      return {
+        code: 'dang_kham',
+        label: 'Đang khám',
+        step: 4,
+        totalSteps: 7,
+        variant: 'primary',
+        actionHint: 'Bác sĩ đang thực hiện khám và chẩn đoán trong phòng điều trị.',
+      };
+    case 'cho_thanh_toan':
+      return {
+        code: 'cho_thanh_toan',
+        label: 'Chờ thanh toán',
+        step: 5,
+        totalSteps: 7,
+        variant: 'warning',
+        actionHint: 'Khám hoàn tất! Vui lòng di chuyển ra quầy thu ngân để thanh toán hóa đơn.',
+      };
+    case 'dang_dieu_tri':
+      return {
+        code: 'dang_dieu_tri',
+        label: 'Đang điều trị / Theo dõi',
+        step: 6,
+        totalSteps: 7,
+        variant: 'info',
+        actionHint: 'Đã thanh toán. Đang trong quy trình điều trị hoặc theo dõi sau khám.',
+      };
+    case 'hoan_thanh':
+    case 'da_kham':
+      return {
+        code: 'hoan_thanh',
+        label: 'Hoàn thành',
+        step: 7,
+        totalSteps: 7,
+        variant: 'success',
+        actionHint: 'Ca khám đã hoàn tất. Cảm ơn bạn đã tin tưởng dịch vụ của phòng khám!',
+      };
+    case 'huy':
+    case 'da_huy':
+      return {
+        code: 'da_huy',
+        label: 'Đã hủy',
+        step: 0,
+        totalSteps: 7,
+        variant: 'danger',
+        actionHint: 'Lịch hẹn này đã bị hủy.',
+      };
+    default:
+      return {
+        code: trangThai || 'unknown',
+        label: trangThai || 'Không xác định',
+        step: 0,
+        totalSteps: 7,
+        variant: 'neutral',
+        actionHint: '',
+      };
+  }
+};
+
+/**
  * Format dữ liệu cho Card 1: Lịch hẹn kế tiếp
  * @param {any|null} appointment - Bản ghi lich_hen từ Prisma
  * @returns {object}
@@ -17,12 +111,16 @@ export const formatNextAppointmentCard = (appointment) => {
   const time = formatTimeHHmm(appointment.gioHen);
 
   return {
+    id: appointment.id,
+    appointmentCode: appointment.maLichHen || null,
+    maLichHen: appointment.maLichHen || null,
     hasUpcoming: true,
     date: formattedDate,
     time: time,
     dayOfWeek: dayOfWeek,
     formattedSubtext: `Khám lúc ${time} (${dayOfWeek})`,
     serviceName: appointment.dichVu?.tenDichVu || 'Khám điều trị nha khoa',
+    status: mapAppointmentStatusToClient(appointment.trangThai),
   };
 };
 
@@ -133,45 +231,44 @@ export const formatFeaturedAppointment = (appointment, isUpcoming = false) => {
   const stageTitle = appointment.giaiDoanPhacDo?.tenGiaiDoan;
   const serviceTitle = stageTitle ? `${baseServiceName} (${stageTitle})` : baseServiceName;
 
-  // Xử lý trạng thái và nhãn hiển thị
-  let statusObj;
-  if (isUpcoming) {
-    const isConfirmed = appointment.trangThai === 'da_xac_nhan';
-    statusObj = {
-      code: isConfirmed ? 'confirmed' : 'pending',
-      label: isConfirmed ? 'Đã xác nhận' : 'Chờ xác nhận',
-      variant: isConfirmed ? 'success' : 'warning',
-    };
-  } else {
-    statusObj = {
-      code: 'completed',
-      label: 'Đã hoàn thành',
-      variant: 'info',
-    };
-  }
+  // Xử lý trạng thái và nhãn hiển thị theo chuẩn 7 bước
+  const statusObj = mapAppointmentStatusToClient(
+    isUpcoming ? appointment.trangThai : (appointment.trangThai || 'hoan_thanh')
+  );
 
-  // Tính toán chuỗi countdownText
+  // Tính toán chuỗi countdownText hoặc tiến trình trong ngày
   let countdownText = '';
   if (isUpcoming) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const apptDate = new Date(appointment.ngayHen);
-    const apptDayOnly = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
-    const diffTime = apptDayOnly.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 0) {
-      countdownText = 'Lịch hẹn diễn ra hôm nay';
-    } else if (diffDays === 1) {
-      countdownText = 'Còn 1 ngày nữa đến giờ hẹn';
+    if (
+      ['da_tiep_nhan', 'cho_kham', 'dang_kham', 'cho_thanh_toan', 'dang_dieu_tri'].includes(
+        appointment.trangThai
+      )
+    ) {
+      countdownText = 'Lịch hẹn đang diễn ra hôm nay';
     } else {
-      countdownText = `Còn ${diffDays} ngày nữa đến giờ hẹn`;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const apptDate = new Date(appointment.ngayHen);
+      const apptDayOnly = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
+      const diffTime = apptDayOnly.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 0) {
+        countdownText = 'Lịch hẹn diễn ra hôm nay';
+      } else if (diffDays === 1) {
+        countdownText = 'Còn 1 ngày nữa đến giờ hẹn';
+      } else {
+        countdownText = `Còn ${diffDays} ngày nữa đến giờ hẹn`;
+      }
     }
   } else {
     countdownText = `Đã hoàn thành vào ngày ${formattedDate}`;
   }
 
   const result = {
+    id: appointment.id,
+    appointmentCode: appointment.maLichHen || null,
+    maLichHen: appointment.maLichHen || null,
     hasAppointment: true,
     isUpcoming,
     serviceTitle,

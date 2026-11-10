@@ -22,9 +22,11 @@ export const receptionistRoomChairStatusResponseSchema = (roomChairs) => {
     roomCode: r.roomCode || r.maPhong || 'P-01',
     roomName: r.roomName || r.tenPhong || 'Phòng khám',
     dentistName: r.dentistName || 'Chưa phân ca',
+    dentistAvatarUrl: r.dentistAvatarUrl || null,
     specialty: r.specialty || 'Phòng khám đa khoa',
     equipment: r.equipment || ['Ghế nha khoa Kavo', 'Đèn trám Halogen', 'Hút trung tâm'],
-    status: r.status, // 'DANG_KHAM' | 'SAN_SANG' | 'TRONG_SLOT' | 'BAO_TRI'
+    status: r.status, // 'SAN_SANG' | 'DANG_KHAM' | 'CHUA_SAN_SANG' | 'BAC_SI_CHUA_TOI' | 'KHONG_CO_CA' | 'TRONG_SLOT' | 'BAO_TRI'
+    statusTitle: r.statusTitle || r.status,
     active: r.active !== false,
     currentPatient: r.currentPatient || undefined,
     nextAppointment: r.nextAppointment

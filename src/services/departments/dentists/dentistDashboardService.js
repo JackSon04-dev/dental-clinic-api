@@ -1,8 +1,10 @@
 import prisma from '../../../config/prisma.js';
 import { ApiError } from '../../../common/errorMiddleware.js';
+import { formatTimeHHmm } from '../../../utils/dateFormatter.js';
 import {
   getWeekRangeFromDateString,
   getVietnamTodayDateString,
+  formatDateYYYYMMDD,
 } from '../../../dtos/departments/admins/adminWorkShiftDto.js';
 import {
   dentistDashboardStatsResponseSchema,
@@ -200,8 +202,11 @@ export const getDentistWeeklyShiftsService = async (dentistId, dateStr = null) =
 
 /**
  * Điểm danh ca trực của Bác sĩ
+ * - Nếu Bác sĩ tự điểm danh: kiểm tra giới hạn 15 phút sau khi ca bắt đầu.
+ *   Nếu quá 15 phút -> chuyển sang 'vang_mat' và ném lỗi 403 yêu cầu liên hệ Admin.
+ * - Nếu Admin điểm danh: cho phép điểm danh hộ bất kỳ lúc nào.
  */
-export const updateShiftAttendanceService = async (shiftId, dentistId, status = 'co_mat') => {
+export const updateShiftAttendanceService = async (shiftId, user, status = 'co_mat') => {
   const shift = await prisma.caLamViec.findUnique({
     where: { id: shiftId },
   });
@@ -210,8 +215,35 @@ export const updateShiftAttendanceService = async (shiftId, dentistId, status = 
     throw new ApiError(404, 'Không tìm thấy ca làm việc');
   }
 
-  if (dentistId && shift.nhaSiId !== dentistId) {
-    throw new ApiError(403, 'Bạn không thể điểm danh ca trực của bác sĩ khác');
+  const callerRole = user?.role || (typeof user === 'string' ? 'BAC_SI' : 'BAC_SI');
+  const callerDoctorId = user?.profileId || (typeof user === 'string' ? user : null);
+
+  if (callerRole === 'BAC_SI') {
+    if (callerDoctorId && shift.nhaSiId !== callerDoctorId) {
+      throw new ApiError(403, 'Bạn không thể điểm danh ca trực của bác sĩ khác');
+    }
+
+    // Kiểm tra mốc 15 phút sau giờ bắt đầu ca trực
+    const dateStr = formatDateYYYYMMDD(shift.ngay);
+    const timeStr = formatTimeHHmm(shift.gioBatDau);
+    const shiftStartMs = new Date(`${dateStr}T${timeStr}:00+07:00`).getTime();
+    const nowMs = Date.now();
+
+    if (nowMs > shiftStartMs + 15 * 60 * 1000) {
+      if (shift.trangThai === 'chua_dien_ra') {
+        await prisma.caLamViec.update({
+          where: { id: shiftId },
+          data: {
+            trangThai: 'vang_mat',
+            updatedAt: new Date(),
+          },
+        });
+      }
+      throw new ApiError(
+        403,
+        'Đã quá thời gian tự điểm danh (15 phút sau khi ca bắt đầu). Ca trực đã chuyển sang Vắng mặt. Vui lòng liên hệ Admin để được hỗ trợ điểm danh.'
+      );
+    }
   }
 
   const updated = await prisma.caLamViec.update({
@@ -232,11 +264,15 @@ export const updateShiftAttendanceService = async (shiftId, dentistId, status = 
 /**
  * Lấy danh sách lịch hẹn của Bác sĩ (có thể lọc theo ngày, trạng thái, tìm kiếm)
  */
-export const getDentistAppointmentsService = async (dentistId, { date, status, search } = {}) => {
+export const getDentistAppointmentsService = async (dentistId, { date, status, search, shiftId } = {}) => {
   const where = {};
 
   if (dentistId) {
     where.caLamViec = { nhaSiId: dentistId };
+  }
+
+  if (shiftId) {
+    where.caLamViecId = shiftId;
   }
 
   if (date) {
@@ -251,7 +287,8 @@ export const getDentistAppointmentsService = async (dentistId, { date, status, s
       'DA_TIEP_NHAN': 'da_tiep_nhan',
       'CHO_KHAM': 'cho_kham',
       'DANG_KHAM': 'dang_kham',
-      'HOAN_THANH': 'da_kham',
+      'DANG_DIEU_TRI': 'dang_dieu_tri',
+      'HOAN_THANH': { in: ['hoan_thanh', 'da_kham'] },
       'CHO_THANH_TOAN': 'cho_thanh_toan',
       'DA_HUY': 'da_huy',
     };
@@ -290,9 +327,12 @@ export const getDentistAppointmentsService = async (dentistId, { date, status, s
     'da_tiep_nhan': 'DA_TIEP_NHAN',
     'cho_kham': 'CHO_KHAM',
     'dang_kham': 'DANG_KHAM',
+    'dang_dieu_tri': 'DANG_DIEU_TRI',
     'da_kham': 'HOAN_THANH',
+    'hoan_thanh': 'HOAN_THANH',
     'cho_thanh_toan': 'CHO_THANH_TOAN',
     'da_huy': 'DA_HUY',
+    'huy': 'DA_HUY',
   };
 
   return appointments.map((item) => ({
@@ -309,11 +349,14 @@ export const getDentistAppointmentsService = async (dentistId, { date, status, s
     serviceName: item.dichVu?.tenDichVu || 'Khám răng hàm mặt',
     roomId: item.caLamViec?.phongDieuTriId || '',
     roomName: item.caLamViec?.phongDieuTri?.tenPhong || 'Phòng khám',
+    shiftId: item.caLamViecId,
+    caLamViecId: item.caLamViecId,
     date: item.ngayHen.toISOString().slice(0, 10),
     time: item.gioHen.toISOString().slice(11, 16),
     timeSlot: item.gioHen.toISOString().slice(11, 16),
     doctorRoom: item.caLamViec?.phongDieuTri?.tenPhong || 'Phòng khám',
-    status: statusReverseMap[item.trangThai] || 'CHO_KHAM',
+    status: statusReverseMap[item.trangThai] || (item.trangThai ? item.trangThai.toUpperCase() : 'CHO_KHAM'),
+    rawStatus: item.trangThai,
     notes: item.ghiChu || '',
     createdAt: item.createdAt.toISOString(),
   }));

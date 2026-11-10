@@ -128,6 +128,12 @@ export const getTreatmentHistoryDetailService = async (patientId, recordId) => {
             include: {
               nhanVien: true,
               khuyenMai: true,
+              chiTietHoaDon: {
+                include: {
+                  dichVu: true,
+                  sanPham: true,
+                },
+              },
             },
           },
         },

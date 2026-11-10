@@ -72,7 +72,7 @@ VALUES
      'Mở buồng tủy -> làm sạch và tạo hình ống tủy -> trám bít ống tủy. Thường kết hợp bọc sứ sau khi điều trị xong.',
      60, 'hoat_dong'),
 
-    ('DV_NIENGRANG', 'Niềng răng', 25000000, 'Liệu trình',
+    ('DV_NIENGRANG', 'Niềng răng', 0, 'Liệu trình',
      'Chỉnh răng lệch lạc, hô, móm, thưa, khớp cắn sai để cải thiện thẩm mỹ và chức năng nhai.',
      'Gắn mắc cài hoặc mang khay Invisalign -> tái khám định kỳ 4-6 tuần trong thời gian 12-24 tháng.',
      60, 'hoat_dong'),
@@ -82,12 +82,12 @@ VALUES
      'Bôi gel tẩy trắng + chiếu đèn Laser/Plasma (tại phòng khám) hoặc mang máng tại nhà. Kết quả thường duy trì từ 6-18 tháng.',
      45, 'hoat_dong'),
 
-    ('DV_IMPLANT', 'Trồng răng', 15000000, 'Trụ',
+    ('DV_IMPLANT', 'Trồng răng', 0, 'Trụ',
      'Thay thế răng đã mất bằng trụ titanium cắm vào xương hàm kết hợp mão sứ trên trụ. Phục hồi chức năng nhai gần như răng thật và ngăn tiêu xương hàm.',
      'Cấy trụ Implant -> chờ tích hợp xương 3-6 tháng -> gắn abutment + mão sứ. Có thể gắn răng tạm ngay sau khi cấy trụ.',
      60, 'hoat_dong'),
 
-    ('DV_BOCSU', 'Bọc sứ', 4000000, 'Răng',
+    ('DV_BOCSU', 'Bọc sứ', 0, 'Răng',
      'Phục hình răng sâu lớn, gãy, đổi màu, thưa hoặc cải thiện thẩm mỹ nụ cười.',
      'Mài răng (đối với bọc sứ) hoặc mài rất ít (đối với Veneer) -> lấy dấu -> gắn mão sứ hoặc dán Veneer. Thường hoàn thành trong 2-3 buổi hẹn.',
      45, 'hoat_dong')
@@ -965,11 +965,11 @@ VALUES
 
 INSERT INTO phac_do_dieu_tri (
     ma_phac_do, benh_nhan_id, nha_si_id, phac_do_mau_id, ten_phac_do,
-    chan_doan_ban_dau, hinh_thuc_thanh_toan, trang_thai,
+    chan_doan_ban_dau, trang_thai,
     ngay_bat_dau, ngay_du_kien_hoan_thanh, ngay_hoan_thanh_thuc_te, ghi_chu
 )
 VALUES
-    -- 1. Phác đồ Cấy ghép Implant (BN003 - Trả trọn gói)
+    -- 1. Phác đồ Cấy ghép Implant (BN003)
     (
         'PDT_IMPLANT_001',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN003'),
@@ -977,15 +977,14 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_IMPLANT'),
         'Phác đồ Cấy ghép Implant đơn lẻ răng 36',
         'Mất răng 36 do sâu răng vỡ lớn đã nhổ 6 tháng trước, tiêu xương ổ răng nhẹ. Chỉ định cấy ghép 01 trụ Implant Straumann Thụy Sĩ kết hợp phục hình mão toàn sứ Cercon.',
-        'tron_goi',
         'dang_dieu_tri',
         '2026-10-06',
         '2026-11-15',
         NULL,
-        'Bệnh nhân thanh toán 100% trọn gói ngay giai đoạn 1 để hưởng gói bảo hành trọn đời và ưu đãi giảm giá.'
+        'Bệnh nhân cấy ghép trụ Implant Straumann, theo dõi tích hợp xương định kỳ.'
     ),
 
-    -- 2. Phác đồ Niềng răng mắc cài (BN004 - Trả từng giai đoạn)
+    -- 2. Phác đồ Niềng răng mắc cài (BN004)
     (
         'PDT_NIENGRANG_001',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN004'),
@@ -993,15 +992,14 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_NIENGRANG'),
         'Phác đồ Chỉnh nha mắc cài kim loại tự buộc 2 hàm',
         'Sai khớp cắn hạng II, răng chen chúc cung hàm trên và lệch lạc nhẹ cung hàm dưới. Chỉ định niềng răng mắc cài kim loại tự buộc 2 hàm, theo dõi định kỳ 3 - 4 tuần/lần.',
-        'tung_giai_doan',
         'dang_dieu_tri',
         '2026-10-07',
         '2027-10-07',
         NULL,
-        'Bệnh nhân lựa chọn thanh toán trả theo 4 giai đoạn tiến độ điều trị.'
+        'Tiến trình điều trị chỉnh nha gồm 4 giai đoạn can thiệp.'
     ),
 
-    -- 3. Phác đồ Bọc răng sứ thẩm mỹ (BN002 - Phác đồ hoàn thành ngắn nhất, bắt đầu 02/10 và kết thúc 06/10)
+    -- 3. Phác đồ Bọc răng sứ thẩm mỹ (BN002)
     (
         'PDT_BOCSU_001',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN002'),
@@ -1009,17 +1007,15 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_BOCSU'),
         'Phác đồ Phục hình Bọc 4 răng sứ Cercon HT hàm trên',
         'Răng 11, 12, 21, 22 nhiễm màu tetracycline độ 3, mòn cổ răng, hình thể răng ngắn. Chỉ định mài cùi phục hình bọc 4 răng toàn sứ cao cấp Cercon HT.',
-        'tung_giai_doan',
         'hoan_thanh',
         '2026-10-02',
         '2026-10-06',
         '2026-10-06',
-        'Bệnh nhân đã hoàn thành cả 2 giai đoạn: Giai đoạn 1 mài cùi ngày 02/10 (tạm ứng 50%), Giai đoạn 2 lắp mão ngày 06/10 (thanh toán 50% còn lại).'
+        'Bệnh nhân đã hoàn thành cả 2 giai đoạn: Giai đoạn 1 mài cùi ngày 02/10, Giai đoạn 2 lắp mão ngày 06/10.'
     )
 ON CONFLICT (ma_phac_do) DO UPDATE SET
     ten_phac_do = EXCLUDED.ten_phac_do,
     chan_doan_ban_dau = EXCLUDED.chan_doan_ban_dau,
-    hinh_thuc_thanh_toan = EXCLUDED.hinh_thuc_thanh_toan,
     trang_thai = EXCLUDED.trang_thai,
     ngay_bat_dau = EXCLUDED.ngay_bat_dau,
     ngay_du_kien_hoan_thanh = EXCLUDED.ngay_du_kien_hoan_thanh,
@@ -1305,148 +1301,130 @@ ON CONFLICT (ma_hoa_don) DO UPDATE SET
 
 INSERT INTO giai_doan_phac_do (
     phac_do_id, buoc_so, ten_giai_doan, mo_ta, mo_ta_vat_tu_dich_vu,
-    chi_phi, trang_thai_thanh_toan, lich_hen_id, trang_thai,
+    lich_hen_id, trang_thai,
     ngay_du_kien, ngay_thuc_hien, co_phat_sinh, ghi_chu
 )
 VALUES
     -- ========================================================================
     -- 1. PHÁC ĐỒ BỌC RĂNG SỨ (PDT_BOCSU_001 - BN002) - 2 Giai đoạn
     -- ========================================================================
-    -- Giai đoạn 1: Mài cùi răng sinh học & Lấy dấu (Chi phí 0 VNĐ)
+    -- Giai đoạn 1: Mài cùi răng sinh học & Lấy dấu
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_BOCSU_001'),
         1,
         'Mài cùi răng sinh học, lấy dấu & Gắn răng tạm',
         'Gây tê, mài cùi răng sinh học theo tỷ lệ an toàn, lấy dấu cao su chính xác và gắn răng tạm bảo vệ',
         'Mài cùi răng sinh học lấy dấu, Răng tạm bảo vệ',
-        0,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_01'),
         'da_hoan_thanh',
         '2026-10-02', '2026-10-02', FALSE,
-        'Giai đoạn chuẩn bị, chi phí kỹ thuật đi kèm trọn gói bọc răng sứ.'
+        'Giai đoạn chuẩn bị lâm sàng bọc răng sứ.'
     ),
 
-    -- Giai đoạn 2: Lắp 4 mão sứ Cercon HT (Chi phí 24.000.000 VNĐ)
+    -- Giai đoạn 2: Lắp 4 mão sứ Cercon HT
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_BOCSU_001'),
         2,
         'Thử sườn, gắn cố định mão răng sứ & Chỉnh khớp cắn',
         'Thử độ khít sát viền nướu, màu sắc thẩm mỹ, gắn cố định bằng cement nha khoa chuyên dụng và tinh chỉnh khớp cắn',
         'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
-        24000000,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_02'),
         'da_hoan_thanh',
         '2026-10-06', '2026-10-06', FALSE,
-        'Lắp 4 mão toàn sứ Cercon HT (4 x 6.000.000đ = 24.000.000đ), thanh toán hoàn tất toàn bộ phác đồ.'
+        'Lắp 4 mão toàn sứ Cercon HT, hoàn tất toàn bộ phác đồ.'
     ),
 
     -- ========================================================================
     -- 2. PHÁC ĐỒ CẤY GHÉP IMPLANT (PDT_IMPLANT_001 - BN003) - 3 Giai đoạn
     -- ========================================================================
-    -- Giai đoạn 1: Cấy trụ Straumann SLA Thụy Sĩ (Chi phí trọn gói 38.000.000 VNĐ)
+    -- Giai đoạn 1: Cấy trụ Straumann SLA Thụy Sĩ
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_001'),
         1,
         'Khảo sát CT 3D & Phẫu thuật cấy trụ Implant',
         'Chụp phim CT ConeBeam 3D, lập kế hoạch định vị máng hướng dẫn và cấy ghép trụ titanium vào xương hàm',
         'Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH',
-        38000000,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_01'),
         'da_hoan_thanh',
         '2026-10-06', '2026-10-06', FALSE,
-        'Bệnh nhân thanh toán 100% trọn gói trụ Straumann SLA ngay đợt 1.'
+        'Cấy trụ Straumann SLA đợt 1 thành công.'
     ),
 
-    -- Giai đoạn 2: Tái khám cắt chỉ (Chi phí 0 VNĐ - Đã bao gồm trong trọn gói)
+    -- Giai đoạn 2: Tái khám cắt chỉ
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_001'),
         2,
         'Tái khám cắt chỉ & Chờ tích hợp xương hàm',
         'Kiểm tra vết thương, cắt chỉ phẫu thuật và theo dõi quá trình lành thương, tích hợp xương',
         'Tái khám cắt chỉ và theo dõi tích hợp xương',
-        0,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_02'),
         'chua_thuc_hien',
         '2026-10-12', NULL, FALSE,
         'Tái khám cắt chỉ phẫu thuật theo lịch hẹn ngày 12/10/2026.'
     ),
 
-    -- Giai đoạn 3: Phục hình mão toàn sứ Cercon HT lên Implant (6.000.000 VNĐ - Đã thanh toán trọn gói)
+    -- Giai đoạn 3: Phục hình mão toàn sứ Cercon HT lên Implant
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_001'),
         3,
         'Lấy dấu, gắn Abutment & Lắp mão sứ hoàn thiện',
         'Mở nắp lành thương, gắn khớp nối Abutment, lấy dấu phục hình và gắn cố định mão răng sứ lên trụ',
         'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
-        6000000,
-        'da_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2026-11-15', NULL, FALSE,
-        'Chuẩn hóa 3NF: Mão toàn sứ lắp trên trụ Implant đã được tính tổng và thanh toán trọn gói 1 lần từ buổi đầu.'
+        'Mão toàn sứ lắp trên trụ Implant sau khi tích hợp xương.'
     ),
 
     -- ========================================================================
     -- 3. PHÁC ĐỒ NIỀNG RĂNG MẮC CÀI (PDT_NIENGRANG_001 - BN004) - 4 Giai đoạn
     -- ========================================================================
-    -- Giai đoạn 1: Gắn mắc cài 2 hàm (4.800.000 VNĐ)
+    -- Giai đoạn 1: Gắn mắc cài 2 hàm
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_001'),
         1,
         'Khám khớp cắn, lấy dấu & Gắn mắc cài 2 hàm',
         'Khám lâm sàng, chụp phim Cephalo/Panorama, lấy dấu mẫu hàm kỹ thuật số và gắn bộ mắc cài 2 hàm',
         'Bộ mắc cài kim loại tiêu chuẩn MBT 0.022-SP_MC_KL, Cặp dây cung NiTi kích hoạt nhiệt-SP_DAY_NITI',
-        4800000,
-        'chua_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_01'),
         'chua_thuc_hien',
         '2026-10-10', NULL, FALSE,
         'Đợt 1 gắn mắc cài kim loại và dây cung NiTi kích hoạt nhiệt.'
     ),
 
-    -- Giai đoạn 2: Thay thun & Tinh chỉnh đợt 1 (400.000 VNĐ)
+    -- Giai đoạn 2: Thay thun & Tinh chỉnh đợt 1
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_001'),
         2,
         'Tinh chỉnh khớp cắn & Thay thun / Dây cung đợt 1',
         'Kiểm tra độ di chuyển răng, thay dây cung NiTi kích hoạt nhiệt và thay thun chuỗi đóng khoảng',
         'Bộ thun chuỗi / thun buộc tại chỗ-SP_THUN_CH, Cặp dây cung NiTi kích hoạt nhiệt-SP_DAY_NITI',
-        400000,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2026-11-10', NULL, FALSE,
         'Tái khám sau 4 tuần thay thun và dây cung kéo lực.'
     ),
 
-    -- Giai đoạn 3: Siết lực đóng khoảng đợt 2 (350.000 VNĐ)
+    -- Giai đoạn 3: Siết lực đóng khoảng đợt 2
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_001'),
         3,
         'Siết lực đóng khoảng & Tinh chỉnh trục răng đợt 2',
         'Thay dây cung thép Stainless Steel, kích hoạt lò xo kéo đóng khoảng nhổ răng và chỉnh trục thân răng',
         'Cặp dây cung thép không gỉ Stainless Steel-SP_DAY_SS, Bộ thun chuỗi / thun buộc tại chỗ-SP_THUN_CH',
-        350000,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2026-12-10', NULL, FALSE,
         'Thay dây cung thép đóng khoảng nhổ răng.'
     ),
 
-    -- Giai đoạn 4: Tháo mắc cài & Bàn giao hàm duy trì (0 VNĐ)
+    -- Giai đoạn 4: Tháo mắc cài & Bàn giao hàm duy trì
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_001'),
         4,
         'Tháo mắc cài, vệ sinh & Bàn giao hàm duy trì',
         'Tháo gỡ toàn bộ hệ thống mắc cài, đánh bóng bề mặt men răng và bàn giao máng duy trì chống tái phát',
         'Tháo mắc cài đánh bóng men răng, Bàn giao máng duy trì',
-        0,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2027-04-10', NULL, FALSE,
@@ -1456,8 +1434,6 @@ ON CONFLICT (phac_do_id, buoc_so) DO UPDATE SET
     ten_giai_doan = EXCLUDED.ten_giai_doan,
     mo_ta = EXCLUDED.mo_ta,
     mo_ta_vat_tu_dich_vu = EXCLUDED.mo_ta_vat_tu_dich_vu,
-    chi_phi = EXCLUDED.chi_phi,
-    trang_thai_thanh_toan = EXCLUDED.trang_thai_thanh_toan,
     lich_hen_id = EXCLUDED.lich_hen_id,
     trang_thai = EXCLUDED.trang_thai,
     ngay_du_kien = EXCLUDED.ngay_du_kien,
@@ -1767,7 +1743,7 @@ VALUES
 
 -- ============================================================================
 -- DATABASE EMBEDDED FUNCTION: fn_calculate_revenue
--- Tính doanh thu thực thu theo kỳ lọc bám sát logic 3 trường hợp phác đồ & khám lẻ
+-- Tính doanh thu thực thu theo kỳ lọc dựa trên hóa đơn ca khám đã thanh toán
 -- ============================================================================
 CREATE OR REPLACE FUNCTION fn_calculate_revenue(p_start_date TIMESTAMPTZ, p_end_date TIMESTAMPTZ)
 RETURNS NUMERIC(18, 2)
@@ -1782,37 +1758,19 @@ BEGIN
             hd.khuyen_mai_id,
             km.loai_giam,
             km.gia_tri_giam,
-            CASE
-                -- Trường hợp 1: Phác đồ thanh toán trọn gói 1 lần
-                WHEN hd.phac_do_dieu_tri_id IS NOT NULL THEN (
-                    SELECT COALESCE(SUM(gdpd.chi_phi), 0)
-                    FROM giai_doan_phac_do gdpd
-                    WHERE gdpd.phac_do_id = hd.phac_do_dieu_tri_id
-                )
-                -- Trường hợp 2: Phác đồ thanh toán theo từng giai đoạn
-                WHEN EXISTS (
-                    SELECT 1 FROM giai_doan_phac_do gdpd 
-                    WHERE gdpd.lich_hen_id = hd.lich_hen_id
-                ) THEN (
-                    SELECT COALESCE(gdpd.chi_phi, 0)
-                    FROM giai_doan_phac_do gdpd
-                    WHERE gdpd.lich_hen_id = hd.lich_hen_id
-                )
-                -- Trường hợp 3: Khám dịch vụ lẻ không theo phác đồ
-                ELSE (
-                    SELECT 
-                        COALESCE(SUM(dvdt.don_gia * dvdt.so_luong), 0) +
-                        COALESCE((
-                            SELECT COALESCE(SUM(vtsd.don_gia * vtsd.so_luong), 0)
-                            FROM vat_tu_su_dung vtsd
-                            WHERE vtsd.ho_so_id = hsba.id
-                        ), 0)
-                    FROM ho_so_benh_an hsba
-                    LEFT JOIN dich_vu_dieu_tri dvdt ON dvdt.ho_so_id = hsba.id
-                    WHERE hsba.lich_hen_id = hd.lich_hen_id
-                    GROUP BY hsba.id
-                )
-            END AS tien_goc
+            COALESCE(hd.tong_tien, (
+                SELECT 
+                    COALESCE(SUM(dvdt.don_gia * dvdt.so_luong), 0) +
+                    COALESCE((
+                        SELECT COALESCE(SUM(vtsd.don_gia * vtsd.so_luong), 0)
+                        FROM vat_tu_su_dung vtsd
+                        WHERE vtsd.ho_so_id = hsba.id
+                    ), 0)
+                FROM ho_so_benh_an hsba
+                LEFT JOIN dich_vu_dieu_tri dvdt ON dvdt.ho_so_id = hsba.id
+                WHERE hsba.lich_hen_id = hd.lich_hen_id
+                GROUP BY hsba.id
+            ), 0) AS tien_goc
         FROM hoa_don hd
         LEFT JOIN khuyen_mai km ON hd.khuyen_mai_id = km.id
         WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
@@ -1922,11 +1880,11 @@ VALUES
 -- 4. BẢNG PHÁC ĐỒ ĐIỀU TRỊ (Level 3)
 INSERT INTO phac_do_dieu_tri (
     ma_phac_do, benh_nhan_id, nha_si_id, phac_do_mau_id, ten_phac_do,
-    chan_doan_ban_dau, hinh_thuc_thanh_toan, trang_thai,
+    chan_doan_ban_dau, trang_thai,
     ngay_bat_dau, ngay_du_kien_hoan_thanh, ngay_hoan_thanh_thuc_te, ghi_chu
 )
 VALUES
-    -- 1. Phác đồ Cấy ghép Implant (BN006 - Tháng 8/2026 - Trả trọn gói)
+    -- 1. Phác đồ Cấy ghép Implant (BN006 - Tháng 8/2026)
     (
         'PDT_IMPLANT_002',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN006'),
@@ -1934,15 +1892,14 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_IMPLANT'),
         'Phác đồ Cấy ghép Implant đơn lẻ răng 46',
         'Mất răng 46 do viêm quanh chóp mãn tính đã nhổ 5 tháng, tiêu xương ổ răng nhẹ. Chỉ định cấy ghép 01 trụ Implant Straumann Thụy Sĩ.',
-        'tron_goi',
         'dang_dieu_tri',
         '2026-08-18',
         '2026-11-20',
         NULL,
-        'Bệnh nhân thanh toán 100% trọn gói ngay giai đoạn 1 qua thẻ thanh toán POS.'
+        'Cấy ghép trụ Implant Straumann Thụy Sĩ răng 46.'
     ),
 
-    -- 2. Phác đồ Bọc răng sứ thẩm mỹ (BN008 - Tháng 9/2026 - Trả từng giai đoạn)
+    -- 2. Phác đồ Bọc răng sứ thẩm mỹ (BN008 - Tháng 9/2026)
     (
         'PDT_BOCSU_002',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN008'),
@@ -1950,15 +1907,14 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_BOCSU'),
         'Phác đồ Bọc 6 răng sứ toàn phần Cercon HT thẩm mỹ',
         'Nhiễm màu tetracycline nặng 6 răng trước hàm trên (13, 12, 11, 21, 22, 23). Chỉ định bọc 6 mão toàn sứ Cercon HT bảo tồn tủy.',
-        'tung_giai_doan',
         'hoan_thanh',
         '2026-09-08',
         '2026-09-12',
         '2026-09-12',
-        'Hoàn tất phục hình 6 răng sứ Cercon HT, thanh toán theo 2 giai đoạn.'
+        'Hoàn tất phục hình 6 răng sứ Cercon HT.'
     ),
 
-    -- 3. Phác đồ Niềng răng mắc cài (BN009 - Tháng 9/2026 - Trả từng giai đoạn)
+    -- 3. Phác đồ Niềng răng mắc cài (BN009 - Tháng 9/2026)
     (
         'PDT_NIENGRANG_002',
         (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN009'),
@@ -1966,12 +1922,11 @@ VALUES
         (SELECT id FROM phac_do_mau WHERE ma_phac_do_mau = 'PDM_NIENGRANG'),
         'Phác đồ Chỉnh nha Mắc cài sứ tự buộc Damon Clear 2',
         'Sai khớp cắn hạng II, răng khấp khểnh hàm trên, chen chúc nhẹ hàm dưới. Chỉ định gắn mắc cài sứ tự buộc Damon Clear 2 hai hàm.',
-        'tung_giai_doan',
         'dang_dieu_tri',
         '2026-09-18',
         '2028-03-18',
         NULL,
-        'Bệnh nhân lựa chọn thanh toán theo 4 giai đoạn, đợt 1 gắn mắc cài sứ 2 hàm.'
+        'Tiến trình chỉnh nha 4 giai đoạn gắn mắc cài sứ 2 hàm.'
     )
 ON CONFLICT (ma_phac_do) DO NOTHING;
 
@@ -2153,7 +2108,7 @@ ON CONFLICT (ma_ho_so) DO NOTHING;
 -- 7. BẢNG GIAI ĐOẠN PHÁC ĐỒ (Level 4)
 INSERT INTO giai_doan_phac_do (
     phac_do_id, buoc_so, ten_giai_doan, mo_ta, mo_ta_vat_tu_dich_vu,
-    chi_phi, trang_thai_thanh_toan, lich_hen_id, trang_thai,
+    lich_hen_id, trang_thai,
     ngay_du_kien, ngay_thuc_hien, co_phat_sinh, ghi_chu
 )
 VALUES
@@ -2164,12 +2119,10 @@ VALUES
         'Khảo sát CT 3D & Phẫu thuật cấy trụ Implant',
         'Chụp phim CT ConeBeam 3D, lập kế hoạch định vị máng hướng dẫn và cấy ghép trụ titanium vào xương hàm',
         'Cặp Trụ Implant + Abutment Thụy Sĩ (Straumann SLA)-SP_IMP_CH',
-        38000000,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_0818'),
         'da_hoan_thanh',
         '2026-08-18', '2026-08-18', FALSE,
-        'Bệnh nhân thanh toán 100% trọn gói trụ Straumann SLA ngay đợt 1 qua thẻ POS.'
+        'Cấy ghép trụ Straumann SLA thành công ngày 18/08/2026.'
     ),
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
@@ -2177,8 +2130,6 @@ VALUES
         'Tái khám cắt chỉ & Chờ tích hợp xương hàm',
         'Kiểm tra vết thương, cắt chỉ phẫu thuật và theo dõi quá trình lành thương, tích hợp xương',
         'Tái khám cắt chỉ và theo dõi tích hợp xương',
-        0,
-        'da_thanh_toan',
         NULL,
         'da_hoan_thanh',
         '2026-08-25', '2026-08-25', FALSE,
@@ -2190,12 +2141,10 @@ VALUES
         'Lấy dấu, gắn Abutment & Lắp mão sứ hoàn thiện',
         'Mở nắp lành thương, gắn khớp nối Abutment, lấy dấu phục hình và gắn cố định mão răng sứ lên trụ',
         'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
-        6000000,
-        'da_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2026-11-20', NULL, FALSE,
-        'Đã thanh toán trọn gói 1 lần từ buổi đầu.'
+        'Lắp mão toàn sứ Cercon HT sau tích hợp xương.'
     ),
 
     -- Phác đồ Bọc sứ PDT_BOCSU_002 (BN008 - Tháng 9/2026)
@@ -2205,12 +2154,10 @@ VALUES
         'Mài cùi răng sinh học, lấy dấu & Gắn răng tạm',
         'Mài cùi 6 răng trước hàm trên theo tỷ lệ bảo tồn, lấy dấu cao su chính xác chuyển Labo và gắn răng tạm bảo vệ',
         'Dịch vụ mài cùi và gắn răng tạm',
-        0,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0908'),
         'da_hoan_thanh',
         '2026-09-08', '2026-09-08', FALSE,
-        'Giai đoạn chuẩn bị, chi phí kỹ thuật đi kèm trọn gói bọc răng sứ.'
+        'Giai đoạn chuẩn bị mài cùi bọc răng sứ.'
     ),
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_BOCSU_002'),
@@ -2218,12 +2165,10 @@ VALUES
         'Thử sườn, gắn cố định mão răng sứ & Chỉnh khớp cắn',
         'Thử độ khít sát viền nướu, màu sắc thẩm mỹ, gắn cố định bằng cement nha khoa chuyên dụng và tinh chỉnh khớp cắn',
         'Mão toàn sứ Cercon HT-SP_MAO_CERCON',
-        36000000,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0912'),
         'da_hoan_thanh',
         '2026-09-12', '2026-09-12', FALSE,
-        'Lắp 6 mão toàn sứ Cercon HT (6 x 6.000.000đ = 36.000.000đ), thanh toán qua chuyển khoản.'
+        'Lắp 6 mão toàn sứ Cercon HT hoàn tất.'
     ),
 
     -- Phác đồ Niềng răng PDT_NIENGRANG_002 (BN009 - Tháng 9/2026)
@@ -2233,12 +2178,10 @@ VALUES
         'Khám khớp cắn, lấy dấu & Gắn mắc cài 2 hàm',
         'Khám toàn diện, chụp phim sọ nghiêng, lấy dấu quét mẫu hàm 3D và gắn hệ thống mắc cài sứ tự buộc Damon Clear 2 hai hàm',
         'Bộ mắc cài sứ tự buộc Damon Clear 2-SP_MC_SU',
-        18000000,
-        'da_thanh_toan',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_0918'),
         'da_hoan_thanh',
         '2026-09-18', '2026-09-18', FALSE,
-        'Gắn 2 bộ mắc cài sứ tự buộc (2 hàm x 9.000.000đ = 18.000.000đ), thanh toán qua thẻ POS.'
+        'Gắn 2 bộ mắc cài sứ tự buộc 2 hàm.'
     ),
     (
         (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_NIENGRANG_002'),
@@ -2246,8 +2189,6 @@ VALUES
         'Tinh chỉnh khớp cắn & Thay thun / Dây cung đợt 1',
         'Kiểm tra dịch chuyển răng, thay dây cung tăng tiết diện và thay thun chuỗi đóng khoảng',
         'Tái khám định kỳ siết lực',
-        0,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2026-10-18', NULL, FALSE,
@@ -2259,8 +2200,6 @@ VALUES
         'Siết lực đóng khoảng & Tinh chỉnh trục răng đợt 2',
         'Kéo đóng khoảng nhổ răng và tinh chỉnh trục thân răng',
         'Tái khám siết lực đợt 2',
-        0,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2027-03-18', NULL, FALSE,
@@ -2272,8 +2211,6 @@ VALUES
         'Tháo mắc cài, vệ sinh & Bàn giao hàm duy trì',
         'Tháo toàn bộ mắc cài, đánh bóng men răng và bàn giao máng duy trì',
         'Máng duy trì trong suốt',
-        1500000,
-        'chua_thanh_toan',
         NULL,
         'chua_thuc_hien',
         '2028-03-18', NULL, FALSE,

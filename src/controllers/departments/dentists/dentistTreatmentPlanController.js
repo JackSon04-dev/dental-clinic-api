@@ -74,14 +74,16 @@ export const createTreatmentPlan = asyncHandler(async (req, res) => {
  */
 export const updatePhaseStatus = asyncHandler(async (req, res) => {
   const { id: planId, phaseId } = req.params;
-  const { status, completedDate } = req.body;
+  const { status, completedDate, appointmentCode, appointmentId } = req.body;
 
-  const data = await dentistTreatmentPlanService.updatePhaseStatusService(
+  const data = await dentistTreatmentPlanService.updatePhaseStatusService({
     planId,
     phaseId,
     status,
-    completedDate
-  );
+    completedDate,
+    appointmentCode,
+    appointmentId,
+  });
 
   return res.status(200).json({
     success: true,

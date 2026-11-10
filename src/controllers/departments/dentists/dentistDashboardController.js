@@ -71,13 +71,12 @@ export const getWeeklyShifts = asyncHandler(async (req, res) => {
  * [PATCH] /api/v1/dentist/shifts/:id/attendance
  */
 export const updateShiftAttendance = asyncHandler(async (req, res) => {
-  const dentistId = req.user.profileId;
   const { id: shiftId } = req.params;
   const { status = 'co_mat' } = req.body;
 
   const data = await dentistDashboardService.updateShiftAttendanceService(
     shiftId,
-    dentistId,
+    req.user,
     status
   );
 
@@ -99,12 +98,13 @@ export const getDentistAppointments = asyncHandler(async (req, res) => {
       ? req.user.profileId
       : req.query.dentistId || req.user.profileId;
 
-  const { date, status, search } = req.query;
+  const { date, status, search, shiftId } = req.query;
 
   const data = await dentistDashboardService.getDentistAppointmentsService(dentistId, {
     date,
     status,
     search,
+    shiftId,
   });
 
   return res.status(200).json({

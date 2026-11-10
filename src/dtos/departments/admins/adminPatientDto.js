@@ -17,6 +17,8 @@ export const adminGetPatientDetailParamsSchema = Joi.object({
 export const adminUpdatePatientRequestSchema = Joi.object({
   fullName: Joi.string().trim().min(2).max(150),
   hoTen: Joi.string().trim().min(2).max(150),
+  avatarUrl: Joi.string().allow('', null),
+  hinhAnhUrl: Joi.string().allow('', null),
   birthDate: Joi.string().isoDate().allow('', null),
   ngaySinh: Joi.string().isoDate().allow('', null),
   gender: Joi.string().valid('nam', 'nu', 'khac', 'MALE', 'FEMALE', 'OTHER'),
@@ -83,6 +85,8 @@ export const adminPatientListItemResponseSchema = (patient) => {
     id: patient.id,
     code: patient.maBenhNhan || null,
     fullName: patient.hoTen,
+    avatarUrl: patient.hinhAnhUrl || null,
+    hinhAnhUrl: patient.hinhAnhUrl || null,
     gender: mapGender(patient.gioiTinh),
     birthDate: patient.ngaySinh ? patient.ngaySinh.toISOString().slice(0, 10) : '',
     phone: patient.sdt || '',
@@ -225,13 +229,12 @@ export const adminPatientDetailResponseSchema = (patient) => {
         title: gd.tenGiaiDoan,
         status: stageStatus,
         rawStatus: gd.trangThai,
-        estimatedCost: Number(gd.chiPhi || 0),
         completedDate: gd.ngayThucHien ? gd.ngayThucHien.toISOString().slice(0, 10) : null,
         notes: gd.ghiChu || null,
       };
     });
 
-    const totalEstimatedCost = stages.reduce((acc, s) => acc + s.estimatedCost, 0);
+    const totalEstimatedCost = 0;
 
     const completedStages = stages.filter((s) => s.status === 'HOAN_THANH').length;
     const totalStages = stages.length;

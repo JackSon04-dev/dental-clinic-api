@@ -321,15 +321,19 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
   }
   const durationMinutes = service.thoiGianDuKienPhut || 30;
 
-  // 3. Kiểm tra thông tin Bác sĩ (nếu client chọn)
+  // 3. Kiểm tra thông tin Bác sĩ (nếu client chọn) - Hỗ trợ cả nhaSi.id và taiKhoan.id
   let filterDoctor = null;
+  let targetDentistId = dentistId;
   if (dentistId) {
-    filterDoctor = await prisma.nhaSi.findUnique({
-      where: { id: dentistId },
+    filterDoctor = await prisma.nhaSi.findFirst({
+      where: {
+        OR: [{ id: dentistId }, { taiKhoanId: dentistId }],
+      },
     });
     if (!filterDoctor || filterDoctor.trangThai === 'nghi_viec') {
       throw new ApiError(404, 'Không tìm thấy thông tin bác sĩ hoặc bác sĩ đã nghỉ việc');
     }
+    targetDentistId = filterDoctor.id;
   }
 
   // 4. Lấy ngày có ca trực xa nhất trong tương lai từ DB (maxAvailableDate)
@@ -337,7 +341,7 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
     where: {
       ngay: { gte: new Date(`${todayStr}T00:00:00.000Z`) },
       trangThai: { notIn: ['vang_mat', 'da_huy', 'huy'] },
-      ...(dentistId ? { nhaSiId: dentistId } : {}),
+      ...(targetDentistId ? { nhaSiId: targetDentistId } : {}),
     },
     orderBy: { ngay: 'desc' },
     select: { ngay: true },
@@ -375,7 +379,7 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
         lte: new Date(`${weekEndDate}T23:59:59.999Z`),
       },
       trangThai: { notIn: ['vang_mat', 'da_huy', 'huy'] },
-      ...(dentistId ? { nhaSiId: dentistId } : {}),
+      ...(targetDentistId ? { nhaSiId: targetDentistId } : {}),
     },
     select: { ngay: true },
   });
@@ -397,7 +401,7 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
     where: {
       ngay: targetDate,
       trangThai: { notIn: ['vang_mat', 'da_huy', 'huy'] },
-      ...(dentistId ? { nhaSiId: dentistId } : {}),
+      ...(targetDentistId ? { nhaSiId: targetDentistId } : {}),
     },
     include: {
       nhaSi: {

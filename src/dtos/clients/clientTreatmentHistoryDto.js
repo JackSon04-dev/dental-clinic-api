@@ -92,13 +92,7 @@ export const calculateRecordFinancials = (record) => {
   });
 
   // 3. Tạm tính (Subtotal)
-  let subtotalAmount = 0;
-  const stageFee = giaiDoan?.chiPhi ? Number(giaiDoan.chiPhi) : 0;
-  if (stageFee > 0) {
-    subtotalAmount = stageFee;
-  } else {
-    subtotalAmount = totalServicesAmount + totalMaterialsAmount;
-  }
+  const subtotalAmount = totalServicesAmount + totalMaterialsAmount;
 
   // 4. Giảm giá từ Voucher / Khuyến mãi
   let discountAmount = 0;
@@ -212,6 +206,211 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
     ? `${formatDayMonthYear(invoice.ngayThanhToan).formattedDate} ${formatTimeHHmm(invoice.ngayThanhToan)}`.trim()
     : null;
 
+  // 1. Danh sách dịch vụ điều trị đã thực hiện
+  const servicesList = (record.dichVuDieuTri || []).map((dv) => {
+    const qty = Number(dv.soLuong) || 1;
+    const unitPrice = Number(dv.donGia) || 0;
+    return {
+      id: dv.id,
+      type: 'service',
+      typeName: 'Dịch vụ điều trị',
+      serviceName:
+        dv.dichVu?.tenDichVu ||
+        dv.chiTietDichVu?.tenChiTiet ||
+        dv.chiTietDichVu?.dichVu?.tenDichVu ||
+        'Dịch vụ điều trị',
+      toothPosition: dv.viTriRang || null,
+      quantity: qty,
+      unit: dv.dichVu?.donViTinh || dv.chiTietDichVu?.donViTinh || 'Lần',
+      unitPrice: unitPrice,
+      totalPrice: qty * unitPrice,
+      notes: dv.ghiChu || null,
+    };
+  });
+
+  // 2. Danh sách vật tư y tế sử dụng
+  const suppliesList = (record.vatTuSuDung || []).map((vt) => {
+    const qty = Number(vt.soLuong) || 1;
+    const unitPrice = Number(vt.donGia) || 0;
+    return {
+      id: vt.id,
+      type: 'supply',
+      typeName: 'Vật tư / Thuốc',
+      supplyName: vt.sanPham?.tenSanPham || 'Vật tư nha khoa',
+      category: vt.sanPham?.loai || null,
+      unit: vt.sanPham?.donViTinh || 'Cái',
+      quantity: qty,
+      unitPrice: unitPrice,
+      totalPrice: qty * unitPrice,
+      notes: vt.ghiChu || null,
+    };
+  });
+
+  // 3. Tạo danh sách tất cả các dòng chi tiết hợp nhất cho Hóa đơn tổng (Unified Line Items)
+  const unifiedLineItems = [
+    ...servicesList.map((s) => ({
+      id: s.id,
+      type: 'service',
+      typeName: 'Dịch vụ điều trị',
+      name: s.serviceName,
+      toothPosition: s.toothPosition,
+      unit: s.unit,
+      quantity: s.quantity,
+      unitPrice: s.unitPrice,
+      totalPrice: s.totalPrice,
+      notes: s.notes,
+    })),
+    ...suppliesList.map((sp) => ({
+      id: sp.id,
+      type: 'supply',
+      typeName: 'Vật tư / Thuốc',
+      name: sp.supplyName,
+      toothPosition: null,
+      unit: sp.unit,
+      quantity: sp.quantity,
+      unitPrice: sp.unitPrice,
+      totalPrice: sp.totalPrice,
+      notes: sp.notes,
+    })),
+  ];
+
+  // 4. Định dạng tất cả các hóa đơn của buổi khám (ngang cấp nhau, đầy đủ chi tiết cho từng hóa đơn)
+  const rawInvoices = lichHen?.hoaDon || [];
+  const allInvoices = rawInvoices.map((hd) => {
+    const hdPaidAt = hd.ngayThanhToan
+      ? `${formatDayMonthYear(hd.ngayThanhToan).formattedDate} ${formatTimeHHmm(hd.ngayThanhToan)}`.trim()
+      : null;
+    const hdBilledAt = hd.ngayLap
+      ? `${formatDayMonthYear(hd.ngayLap).formattedDate} ${formatTimeHHmm(hd.ngayLap)}`.trim()
+      : null;
+
+    // Chi tiết dòng của hóa đơn này (ưu tiên từ chiTietHoaDon nếu có, hoặc dùng unifiedLineItems nếu không tách riêng)
+    let invoiceItems = [];
+    if (hd.chiTietHoaDon && hd.chiTietHoaDon.length > 0) {
+      invoiceItems = hd.chiTietHoaDon.map((item) => {
+        const qty = Number(item.soLuong) || 1;
+        const price = Number(item.donGia) || 0;
+        const lineTotal = Number(item.thanhTien) || qty * price;
+        const isSupply = item.loaiMuc === 'vat_tu' || item.loaiMuc === 'san_pham' || Boolean(item.sanPhamId);
+        return {
+          id: item.id,
+          type: isSupply ? 'supply' : 'service',
+          typeName: isSupply ? 'Vật tư / Thuốc' : 'Dịch vụ điều trị',
+          name: item.tenMuc || (isSupply ? item.sanPham?.tenSanPham : item.dichVu?.tenDichVu) || 'Hạng mục chi phí',
+          toothPosition: item.viTriRang || null,
+          unit: item.donViTinh || (isSupply ? item.sanPham?.donViTinh : item.dichVu?.donViTinh) || (isSupply ? 'Cái' : 'Lần'),
+          quantity: qty,
+          unitPrice: price,
+          totalPrice: lineTotal,
+          notes: item.ghiChu || null,
+        };
+      });
+    } else {
+      invoiceItems = unifiedLineItems;
+    }
+
+    // Tính toán phân bổ tài chính cho từng hóa đơn
+    const servicesSubtotal = invoiceItems
+      .filter((i) => i.type === 'service')
+      .reduce((sum, i) => sum + i.totalPrice, 0);
+    const suppliesSubtotal = invoiceItems
+      .filter((i) => i.type === 'supply')
+      .reduce((sum, i) => sum + i.totalPrice, 0);
+
+    const subtotal = Number(hd.tongTien) > 0 ? Number(hd.tongTien) : (servicesSubtotal + suppliesSubtotal);
+    const discountAmount = Number(hd.giamGia) || 0;
+    const finalAmount = Number(hd.soTienThanhToan) > 0 ? Number(hd.soTienThanhToan) : Math.max(0, subtotal - discountAmount);
+
+    const voucherData = hd.khuyenMai
+      ? {
+          voucherCode: hd.khuyenMai.maKhuyenMai,
+          campaignName: hd.khuyenMai.tenChuongTrinh,
+          discountType: hd.khuyenMai.loaiGiam,
+          discountValue: Number(hd.khuyenMai.giaTriGiam),
+          discountAmount: discountAmount,
+        }
+      : null;
+
+    return {
+      id: hd.id,
+      invoiceCode: hd.maHoaDon || null,
+      paymentRound: hd.dotThanhToan || 1,
+      invoiceType: hd.loaiHoaDon || 'thanh_toan_truoc',
+      paymentStatus: hd.trangThaiThanhToan || 'chua_thanh_toan',
+      paymentStatusTitle: formatPaymentStatusTitle(hd.trangThaiThanhToan),
+      paymentMethod: hd.phuongThucThanhToan || null,
+      paymentMethodTitle: formatPaymentMethodTitle(hd.phuongThucThanhToan),
+      subtotal,
+      discountAmount,
+      finalAmount,
+      billedAt: hdBilledAt,
+      paidAt: hdPaidAt,
+      cashierName: hd.nhanVien?.hoTen || null,
+      items: invoiceItems,
+      voucher: voucherData,
+      summary: {
+        servicesSubtotal,
+        suppliesSubtotal,
+        subtotal,
+        discountAmount,
+        finalAmount,
+      },
+    };
+  });
+
+  // Nếu trong CSDL chưa có hóa đơn nào, tạo 1 hóa đơn tổng dự kiến
+  if (allInvoices.length === 0) {
+    allInvoices.push({
+      id: 'inv-unified-default',
+      invoiceCode: invoice?.maHoaDon || null,
+      paymentRound: 1,
+      invoiceType: 'quyet_toan',
+      paymentStatus: 'chua_thanh_toan',
+      paymentStatusTitle: 'Chưa thanh toán',
+      paymentMethod: null,
+      paymentMethodTitle: 'Chưa chọn',
+      subtotal: financials.subtotalAmount,
+      discountAmount: financials.discountAmount,
+      finalAmount: financials.finalAmount,
+      billedAt: null,
+      paidAt: null,
+      cashierName: null,
+      items: unifiedLineItems,
+      voucher: voucher
+        ? {
+            voucherCode: voucher.maKhuyenMai,
+            campaignName: voucher.tenChuongTrinh,
+            discountType: voucher.loaiGiam,
+            discountValue: Number(voucher.giaTriGiam),
+            discountAmount: financials.discountAmount,
+          }
+        : null,
+      summary: {
+        servicesSubtotal: financials.totalServicesAmount,
+        suppliesSubtotal: financials.totalMaterialsAmount,
+        subtotal: financials.subtotalAmount,
+        discountAmount: financials.discountAmount,
+        finalAmount: financials.finalAmount,
+      },
+    });
+  }
+
+  // 5. Cấu trúc Hóa đơn tổng thể thống nhất (Unified Invoice) tương thích ngược
+  const primaryInvoice = allInvoices[0];
+  const unifiedInvoice = {
+    invoiceCode: primaryInvoice.invoiceCode,
+    paymentStatus: primaryInvoice.paymentStatus,
+    paymentStatusTitle: primaryInvoice.paymentStatusTitle,
+    paymentMethod: primaryInvoice.paymentMethod,
+    paymentMethodTitle: primaryInvoice.paymentMethodTitle,
+    billedAt: primaryInvoice.billedAt,
+    paidAt: primaryInvoice.paidAt,
+    cashierName: primaryInvoice.cashierName,
+    items: primaryInvoice.items,
+    voucher: primaryInvoice.voucher,
+    summary: primaryInvoice.summary,
+  };
+
   return {
     id: record.id,
     recordCode: record.maHoSo || null,
@@ -243,7 +442,6 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
             id: giaiDoan?.id || null,
             stepNumber: giaiDoan?.buocSo || 1,
             stageName: giaiDoan?.tenGiaiDoan || 'Giai đoạn điều trị',
-            stageCost: Number(giaiDoan?.chiPhi || 0),
             stageStatus: giaiDoan?.trangThai || 'chua_thuc_hien',
           },
         }
@@ -259,43 +457,15 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       notes: record.ghiChu || null,
     },
 
-    // Danh sách dịch vụ điều trị đã thực hiện
-    servicesPerformed: (record.dichVuDieuTri || []).map((dv) => {
-      const qty = Number(dv.soLuong) || 1;
-      const unitPrice = Number(dv.donGia) || 0;
-      return {
-        id: dv.id,
-        serviceName:
-          dv.dichVu?.tenDichVu ||
-          dv.chiTietDichVu?.tenChiTiet ||
-          dv.chiTietDichVu?.dichVu?.tenDichVu ||
-          'Dịch vụ điều trị',
-        toothPosition: dv.viTriRang || null,
-        quantity: qty,
-        unit: dv.dichVu?.donViTinh || dv.chiTietDichVu?.donViTinh || 'Lần',
-        unitPrice: unitPrice,
-        totalPrice: qty * unitPrice,
-        notes: dv.ghiChu || null,
-      };
-    }),
+    // HÓA ĐƠN TỔNG THỂ THỐNG NHẤT (Mới)
+    unifiedInvoice,
 
-    // Danh sách vật tư y tế sử dụng
-    suppliesUsed: (record.vatTuSuDung || []).map((vt) => {
-      const qty = Number(vt.soLuong) || 1;
-      const unitPrice = Number(vt.donGia) || 0;
-      return {
-        id: vt.id,
-        supplyName: vt.sanPham?.tenSanPham || 'Vật tư nha khoa',
-        category: vt.sanPham?.loai || null,
-        unit: vt.sanPham?.donViTinh || 'Cái',
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: qty * unitPrice,
-        notes: vt.ghiChu || null,
-      };
-    }),
+    // Danh sách toàn bộ các hóa đơn của buổi khám (nếu có đợt 1, đợt 2...)
+    allInvoices,
 
-    // Chi tiết viện phí & hóa đơn buổi khám
+    // Các trường tương thích ngược (Backward Compatibility)
+    servicesPerformed: servicesList,
+    suppliesUsed: suppliesList,
     billing: {
       invoiceCode: invoice?.maHoaDon || null,
       servicesSubtotal: financials.totalServicesAmount,

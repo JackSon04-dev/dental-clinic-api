@@ -42,10 +42,13 @@ export const clientUpdateProfileRequestSchema = Joi.object({
   address: Joi.string().trim().max(500).allow(null, '').optional().messages({
     'string.max': 'Địa chỉ tối đa 500 ký tự',
   }),
+  avatarUrl: Joi.string().uri().allow(null, '').optional().messages({
+    'string.uri': 'Đường dẫn ảnh đại diện không hợp lệ',
+  }),
 })
   .min(1)
   .messages({
-    'object.min': 'Vui lòng cung cấp ít nhất một trường thông tin cần cập nhật (fullName, phone, gender, dateOfBirth, address)',
+    'object.min': 'Vui lòng cung cấp ít nhất một trường thông tin cần cập nhật (fullName, phone, gender, dateOfBirth, address, avatarUrl)',
   })
   .options({ stripUnknown: true });
 

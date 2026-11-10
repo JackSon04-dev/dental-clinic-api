@@ -1,7 +1,8 @@
 import express from 'express';
-import { getMe, login, logout, refreshToken } from '../../controllers/auth/authDepartment.js';
-import { verifyToken } from '../../middlewares/auth/authGuard.js';
+import { getMe, login, logout, refreshToken, uploadAvatar } from '../../controllers/auth/authDepartment.js';
+import { verifyToken, restrictToRoles } from '../../middlewares/auth/authGuard.js';
 import { validate } from '../../common/validateMiddleware.js';
+import { uploadAvatarMiddleware } from '../../middlewares/uploadMiddleware.js';
 import {
   departmentLoginRequestSchema,
   departmentRefreshTokenRequestSchema,
@@ -16,6 +17,15 @@ router.post('/refresh', validate(departmentRefreshTokenRequestSchema), refreshTo
 
 // 2. Nhom endpoint bat buoc vuot qua Access Token (verifyToken)
 router.get('/me', verifyToken, getMe);
+
+// 3. Endpoint upload avatar cho nhân sự (Nha sĩ, Lễ tân, Quản trị viên)
+router.post(
+  '/avatar',
+  verifyToken,
+  restrictToRoles('BAC_SI', 'LE_TAN', 'ADMIN'),
+  uploadAvatarMiddleware.single('avatar'),
+  uploadAvatar
+);
 
 export default router;
 

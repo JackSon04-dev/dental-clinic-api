@@ -46,6 +46,7 @@ export const receptionistCheckInSlipResponseSchema = (item) => {
     patientName: bn.hoTen || 'Bệnh nhân',
     patientPhone: bn.sdt || '',
     patientGender: bn.gioiTinh === 'nam' ? 'MALE' : 'FEMALE',
+    patientAvatarUrl: bn.hinhAnhUrl || bn.avatarUrl || null,
     patientBirthDate: bn.ngaySinh ? bn.ngaySinh.toISOString().slice(0, 10) : undefined,
     roomName: phong.tenPhong || 'Phòng Nha Khoa 01 (Tầng 1)',
     serviceName: dv.tenDichVu || 'Khám tổng quát nha khoa',

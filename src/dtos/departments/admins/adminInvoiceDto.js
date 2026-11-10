@@ -210,19 +210,7 @@ export const calculateInvoiceFinancials = (invoice) => {
   });
 
   // 3. Tính tạm tính (Subtotal)
-  let subtotalAmount = 0;
-  const stageFee = giaiDoan?.chiPhi ? Number(giaiDoan.chiPhi) : 0;
-
-  if (stageFee > 0) {
-    // Nếu có giai đoạn phác đồ với chi phí ấn định sẵn
-    subtotalAmount = stageFee;
-  } else if (totalServicesAmount + totalMaterialsAmount > 0) {
-    // Nếu khám lẻ hoặc giai đoạn không ấn định chi phí cố định
-    subtotalAmount = totalServicesAmount + totalMaterialsAmount;
-  } else if (invoice.phacDoDieuTri?.tongChiPhiDuKien) {
-    // Nếu hóa đơn thanh toán toàn bộ gói phác đồ
-    subtotalAmount = Number(invoice.phacDoDieuTri.tongChiPhiDuKien);
-  }
+  const subtotalAmount = totalServicesAmount + totalMaterialsAmount;
 
   // 4. Tính tiền giảm giá (Discount) từ voucher khuyến mãi
   let discountAmount = 0;
@@ -438,8 +426,6 @@ export const adminInvoiceDetailResponseSchema = (invoice) => {
           title: giaiDoan.tenGiaiDoan,
           description: giaiDoan.moTa,
           materialServiceDescription: giaiDoan.moTaVatTuDichVu,
-          fee: Number(giaiDoan.chiPhi),
-          paymentStatus: giaiDoan.trangThaiThanhToan,
           isIncidental: giaiDoan.coPhatSinh,
         }
       : null,

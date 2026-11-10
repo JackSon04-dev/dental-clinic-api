@@ -39,8 +39,33 @@ export const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * uploadAvatar
+ * [POST] & [PATCH] /api/v1/client/profile/avatar
+ * Tải lên ảnh đại diện cá nhân lưu trữ trên Cloudinary (hỗ trợ BENH_NHAN, BAC_SI, LE_TAN)
+ */
+export const uploadAvatar = asyncHandler(async (req, res) => {
+  const profileId = req.user.profileId;
+  const userId = req.user.userId;
+  const role = req.user.role;
+  const targetId = req.body?.targetId || req.query?.targetId;
+
+  const data = await clientProfileService.uploadAvatarService(
+    { role, profileId, userId, targetId },
+    req.file
+  );
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Tải lên ảnh đại diện thành công',
+    data,
+  });
+});
+
 export default {
   getProfile,
   updateProfile,
+  uploadAvatar,
 };
 

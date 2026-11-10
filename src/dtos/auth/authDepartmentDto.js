@@ -40,12 +40,18 @@ export const extractDepartmentProfile = (user) => {
       fullName: ns.hoTen,
       phone: ns.sdt,
       email: ns.email,
+      dateOfBirth: ns.ngaySinh,
+      gender: ns.gioiTinh,
+      address: ns.diaChi,
       specialty: ns.chuyenKhoa,
+      licenseNumber: ns.soGiayPhep,
+      bio: ns.gioiThieu,
       avatarUrl: ns.hinhAnhUrl,
       position: null,
       role: 'BAC_SI',
       roleTitle: 'Nha sĩ điều trị',
       workStatus: ns.trangThai,
+      createdAt: ns.createdAt,
     };
   }
 
@@ -57,12 +63,18 @@ export const extractDepartmentProfile = (user) => {
       fullName: nv.hoTen,
       phone: nv.sdt,
       email: nv.email,
+      dateOfBirth: nv.ngaySinh,
+      gender: nv.gioiTinh,
+      address: nv.diaChi,
       specialty: null,
+      licenseNumber: null,
+      bio: null,
       avatarUrl: nv.hinhAnhUrl,
       position: nv.chucVu,
       role: 'LE_TAN',
       roleTitle: 'Lễ tân & Thu ngân',
       workStatus: nv.trangThai,
+      createdAt: nv.createdAt,
     };
   }
 
@@ -73,12 +85,18 @@ export const extractDepartmentProfile = (user) => {
     fullName: 'Quản trị viên Hệ thống',
     phone: '0903555666',
     email: 'admin@dentalclinic.vn',
+    dateOfBirth: null,
+    gender: 'nam',
+    address: 'Trụ sở chính DentalCare',
     specialty: null,
+    licenseNumber: null,
+    bio: null,
     avatarUrl: null,
     position: 'admin',
     role: 'ADMIN',
     roleTitle: 'Quản trị cấp cao',
     workStatus: 'dang_lam_viec',
+    createdAt: user.createdAt || null,
   };
 };
 
@@ -98,8 +116,16 @@ export const departmentUserProfileResponseSchema = (user) => {
     roleTitle: profile.roleTitle,
     email: profile.email,
     phone: profile.phone,
+    dateOfBirth: profile.dateOfBirth,
+    gender: profile.gender,
+    address: profile.address,
     specialty: profile.specialty,
+    licenseNumber: profile.licenseNumber,
+    bio: profile.bio,
+    position: profile.position,
+    workStatus: profile.workStatus,
     avatarUrl: profile.avatarUrl,
+    createdAt: profile.createdAt,
   };
 };
 

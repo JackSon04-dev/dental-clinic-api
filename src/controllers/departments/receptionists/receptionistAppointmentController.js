@@ -76,8 +76,38 @@ export const rescheduleAppointment = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * [GET] /api/v1/receptionist/appointments/available-slots
+ * Tra cứu danh sách ca khám khả dụng kèm trạng thái mở/khóa theo dịch vụ và bác sĩ (tương tự luồng Bệnh nhân)
+ */
+export const getAvailableSlots = asyncHandler(async (req, res) => {
+  const data = await receptionistAppointmentService.getReceptionistAvailableSlotsService(req.query);
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy danh sách ca khám khả dụng thành công',
+    data,
+  });
+});
+
+/**
+ * [GET] /api/v1/receptionist/appointments/available-reassign-shifts
+ * Lấy danh sách ca làm việc thực tế đang trống và khả dụng để Lễ tân điều phối đổi Bác sĩ / Phòng
+ */
+export const getAvailableReassignShifts = asyncHandler(async (req, res) => {
+  const data = await receptionistAppointmentService.getAvailableReassignShiftsService(req.query);
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy danh sách ca làm việc khả dụng để điều phối thành công',
+    data,
+  });
+});
+
 export default {
   getAppointments,
+  getAvailableSlots,
+  getAvailableReassignShifts,
   createAppointment,
   updateAppointmentStatus,
   updateAppointment,

@@ -12,6 +12,21 @@ export const receptionistGetAppointmentsQuerySchema = Joi.object({
   search: Joi.string().allow('', null).optional(),
 });
 
+export const receptionistGetAvailableSlotsQuerySchema = Joi.object({
+  date: Joi.string().allow('', null).optional(),
+  serviceId: Joi.string().required().messages({
+    'any.required': 'Vui lòng chọn dịch vụ nha khoa cần tra cứu ca khám',
+  }),
+  dentistId: Joi.string().allow('', null).optional(),
+  roomId: Joi.string().allow('', null).optional(),
+});
+
+export const receptionistGetAvailableReassignQuerySchema = Joi.object({
+  appointmentId: Joi.string().allow('', null).optional(),
+  date: Joi.string().allow('', null).optional(),
+  timeSlot: Joi.string().allow('', null).optional(),
+});
+
 export const receptionistCreateAppointmentRequestSchema = Joi.object({
   patientId: Joi.string().allow('', null).optional(),
   patientName: Joi.string().required().messages({
@@ -20,9 +35,7 @@ export const receptionistCreateAppointmentRequestSchema = Joi.object({
   patientPhone: Joi.string().required().messages({
     'any.required': 'Số điện thoại bệnh nhân là bắt buộc',
   }),
-  dentistId: Joi.string().required().messages({
-    'any.required': 'Vui lòng chọn bác sĩ phụ trách',
-  }),
+  dentistId: Joi.string().allow('', null).optional(),
   dentistName: Joi.string().allow('', null).optional(),
   serviceId: Joi.string().allow('', null).optional(),
   serviceName: Joi.string().allow('', null).optional(),
@@ -81,6 +94,9 @@ export const receptionistRescheduleAppointmentRequestSchema = Joi.object({
   timeSlot: Joi.string().required().messages({
     'any.required': 'Khung giờ hẹn mới là bắt buộc',
   }),
+  dentistId: Joi.string().allow('', null).optional(),
+  roomId: Joi.string().allow('', null).optional(),
+  doctorRoom: Joi.string().allow('', null).optional(),
   notes: Joi.string().allow('', null).optional(),
 });
 
@@ -168,6 +184,7 @@ export const receptionistAppointmentItemResponseSchema = (item) => {
     patientPhone: bn.sdt || '',
     patientBirthYear: bn.ngaySinh ? new Date(bn.ngaySinh).getFullYear() : undefined,
     patientGender: bn.gioiTinh === 'nam' ? 'MALE' : 'FEMALE',
+    patientAvatarUrl: bn.hinhAnhUrl || bn.avatarUrl || null,
     dentistId: ca.nhaSiId || ns.id || '',
     dentistName: ns.hoTen || 'Bác sĩ trực',
     serviceId: item.dichVuId || '',
