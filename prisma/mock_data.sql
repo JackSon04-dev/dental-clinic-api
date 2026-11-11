@@ -2525,5 +2525,51 @@ JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
 WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
   AND sp.dich_vu_id IS NOT NULL;
 
+-- ============================================================================
+-- DỮ LIỆU KIỂM THỬ: 3 BỆNH NHÂN TEST FLOW CHO BSCKII. TRẦN MINH QUANG HÔM NAY
+-- ============================================================================
+INSERT INTO tai_khoan (username, password_hash, google_id, loai_tai_khoan, trang_thai)
+VALUES
+    ('bn_test1', '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_test2', '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong'),
+    ('bn_test3', '$2b$10$bTjY/2mZ87/7xcDN65230.RVwgonK8lTJAyGmxxXgy90fumttVGdu', NULL, 'benh_nhan', 'hoat_dong')
+ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO benh_nhan (
+    tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email,
+    dia_chi, hinh_anh_url, tien_su_benh, di_ung, ghi_chu, diem_suc_khoe_ban_dau, diem_suc_khoe_hien_tai
+)
+VALUES
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_test1'), 'BN_TEST01', 'Nguyễn Văn Test 1', '1995-05-15', 'nam', '0909000001', 'test1@dentalclinic.vn', '123 Phố Huế, Hai Bà Trưng, Hà Nội', NULL, 'Không có tiền sử bệnh lý', 'Không', 'Kiểm tra răng miệng định kỳ', 85, 95),
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_test2'), 'BN_TEST02', 'Trần Thị Test 2', '1998-08-20', 'nu', '0909000002', 'test2@dentalclinic.vn', '45 Hàng Bài, Hoàn Kiếm, Hà Nội', NULL, 'Không có tiền sử bệnh lý', 'Không', 'Răng hàm dưới ê buốt', 85, 95),
+    ((SELECT id FROM tai_khoan WHERE username = 'bn_test3'), 'BN_TEST03', 'Lê Văn Test 3', '1986-11-10', 'nam', '0909000003', 'test3@dentalclinic.vn', '88 Bà Triệu, Hai Bà Trưng, Hà Nội', NULL, 'Không có tiền sử bệnh lý', 'Không', 'Tư vấn cấy ghép Implant răng 36', 85, 95)
+ON CONFLICT (ma_benh_nhan) DO NOTHING;
+
+DO $$
+DECLARE
+    v_nha_si_id UUID;
+    v_phong_id UUID;
+    v_ca_id UUID;
+BEGIN
+    SELECT id INTO v_nha_si_id FROM nha_si WHERE ma_nha_si = 'NS001';
+    SELECT id INTO v_phong_id FROM phong_dieu_tri WHERE ma_phong = 'P101';
+    SELECT id INTO v_ca_id FROM ca_lam_viec WHERE nha_si_id = v_nha_si_id AND ngay = CURRENT_DATE AND gio_bat_dau = '13:30:00' LIMIT 1;
+    IF v_ca_id IS NULL THEN
+        INSERT INTO ca_lam_viec (nha_si_id, phong_dieu_tri_id, ngay, gio_bat_dau, gio_ket_thuc, trang_thai)
+        VALUES (v_nha_si_id, v_phong_id, CURRENT_DATE, '13:30:00', '17:30:00', 'co_mat')
+        RETURNING id INTO v_ca_id;
+    ELSE
+        UPDATE ca_lam_viec SET trang_thai = 'co_mat' WHERE id = v_ca_id;
+    END IF;
+
+    DELETE FROM lich_hen WHERE ma_lich_hen IN ('LH_TEST01', 'LH_TEST02', 'LH_TEST03');
+
+    INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, ca_lam_viec_id, dich_vu_id, ngay_hen, gio_hen, gio_ket_thuc_du_kien, trang_thai, ghi_chu)
+    VALUES
+        ('LH_TEST01', (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN_TEST01'), v_ca_id, (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_CAORANG'), CURRENT_DATE, '14:00:00', '14:45:00', 'cho_kham', 'Bệnh nhân kiểm tra định kỳ và lấy cao răng'),
+        ('LH_TEST02', (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN_TEST02'), v_ca_id, (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_TRAMRANG'), CURRENT_DATE, '14:45:00', '15:15:00', 'cho_kham', 'Răng hàm dưới ê buốt, nghi sâu men răng'),
+        ('LH_TEST03', (SELECT id FROM benh_nhan WHERE ma_benh_nhan = 'BN_TEST03'), v_ca_id, (SELECT id FROM dich_vu WHERE ma_dich_vu = 'DV_IMPLANT'), CURRENT_DATE, '15:30:00', '16:30:00', 'cho_kham', 'Mất răng 36, có nhu cầu cấy ghép Implant Straumann');
+END $$;
+
 COMMIT;
 

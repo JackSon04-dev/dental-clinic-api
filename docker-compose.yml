@@ -23,7 +23,7 @@ services:
     build: .
     container_name: dental_clinic_api
     restart: unless-stopped
-    command: sh -c "npx prisma db push && npm run dev"
+    command: sh -c "npx prisma db push --accept-data-loss && npm run dev"
     env_file:
       - .env
     ports:

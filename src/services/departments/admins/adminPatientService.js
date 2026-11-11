@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import prisma from '../../../config/prisma.js';
 import { ApiError } from '../../../common/errorMiddleware.js';
 import {
@@ -268,4 +269,69 @@ export const createPatientService = async (data) => {
   });
 
   return adminPatientDetailResponseSchema(patient);
+};
+
+/**
+ * resetPatientPasswordService
+ * Đặt lại mật khẩu tài khoản cổng thông tin cho bệnh nhân (tự khởi tạo nếu bệnh nhân chưa có tài khoản)
+ */
+export const resetPatientPasswordService = async (id, newPassword, currentAdminUserId) => {
+  const patient = await prisma.benhNhan.findUnique({
+    where: { id },
+    include: { taiKhoan: true },
+  });
+
+  if (!patient) {
+    throw new ApiError(404, 'Không tìm thấy hồ sơ bệnh nhân!');
+  }
+
+  const plainPassword = (newPassword && newPassword.trim()) ? newPassword.trim() : 'Password123@';
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+  if (patient.taiKhoanId && patient.taiKhoan) {
+    await prisma.taiKhoan.update({
+      where: { id: patient.taiKhoanId },
+      data: {
+        passwordHash: hashedPassword,
+        refreshTokenHash: null,
+      },
+    });
+
+    return {
+      message: `Đã đặt lại mật khẩu cho tài khoản '${patient.taiKhoan.username}' thành công!`,
+      username: patient.taiKhoan.username,
+      newPassword: plainPassword,
+    };
+  } else {
+    let username = patient.sdt || patient.maBenhNhan;
+    if (!username) {
+      username = `patient_${patient.id.slice(0, 8)}`;
+    }
+
+    let finalUsername = username;
+    let count = 1;
+    while (await prisma.taiKhoan.findUnique({ where: { username: finalUsername } })) {
+      finalUsername = `${username}_${count++}`;
+    }
+
+    const newAccount = await prisma.taiKhoan.create({
+      data: {
+        username: finalUsername,
+        passwordHash: hashedPassword,
+        loaiTaiKhoan: 'benh_nhan',
+        trangThai: 'hoat_dong',
+      },
+    });
+
+    await prisma.benhNhan.update({
+      where: { id: patient.id },
+      data: { taiKhoanId: newAccount.id },
+    });
+
+    return {
+      message: `Đã tạo tài khoản '${finalUsername}' và cấp mật khẩu mới thành công!`,
+      username: finalUsername,
+      newPassword: plainPassword,
+    };
+  }
 };

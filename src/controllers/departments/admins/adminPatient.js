@@ -69,3 +69,23 @@ export const createPatient = asyncHandler(async (req, res) => {
     },
   });
 });
+
+/**
+ * resetPatientPassword
+ * [POST] /api/v1/admin/patients/:id/reset-password
+ * Đặt lại mật khẩu tài khoản cổng thông tin cho bệnh nhân
+ */
+export const resetPatientPassword = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  const currentAdminUserId = req.user?.userId;
+
+  const data = await adminPatientService.resetPatientPasswordService(id, newPassword, currentAdminUserId);
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: data.message || 'Đặt lại mật khẩu bệnh nhân thành công',
+    data,
+  });
+});

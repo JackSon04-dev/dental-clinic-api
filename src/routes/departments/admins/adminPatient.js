@@ -4,6 +4,7 @@ import {
   getPatientDetail,
   updatePatient,
   createPatient,
+  resetPatientPassword,
 } from '../../../controllers/departments/admins/adminPatient.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -59,6 +60,17 @@ router.put(
   validate(adminGetPatientDetailParamsSchema, 'params'),
   validate(adminUpdatePatientRequestSchema, 'body'),
   updatePatient
+);
+
+/**
+ * [POST] /api/v1/admin/patients/:id/reset-password
+ * Đặt lại mật khẩu tài khoản bệnh nhân (chỉ dành cho ADMIN)
+ */
+router.post(
+  '/:id/reset-password',
+  restrictToRoles('ADMIN'),
+  validate(adminGetPatientDetailParamsSchema, 'params'),
+  resetPatientPassword
 );
 
 export default router;
