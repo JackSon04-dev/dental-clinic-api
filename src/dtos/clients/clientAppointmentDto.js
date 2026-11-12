@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { getDoctorDegreeSurcharge, formatDoctorFullName } from '../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. 16 KHUNG GIỜ CỐ ĐỊNH CHUẨN CỦA PHÒNG KHÁM
@@ -424,10 +425,15 @@ export const formatClientServiceItem = (service) => {
  * Format thông tin bác sĩ nha khoa trả về cho Client lựa chọn đặt lịch
  */
 export const formatClientDoctorItem = (doctor) => {
+  const degree = doctor.hocVi || 'BS';
   return {
     id: doctor.id,
     code: doctor.maNhaSi || '',
     fullName: doctor.hoTen,
+    hocVi: degree,
+    academicDegree: degree,
+    titleFullName: formatDoctorFullName(degree, doctor.hoTen),
+    surcharge: getDoctorDegreeSurcharge(degree),
     gender: doctor.gioiTinh || null,
     specialty: doctor.chuyenKhoa || 'Bác sĩ Nha khoa',
     bio: doctor.gioiThieu || '',

@@ -16,6 +16,7 @@ import adminInvoiceRoutes from './routes/departments/admins/adminInvoice.js';
 import adminWorkShiftTemplateRoutes from './routes/departments/admins/adminWorkShiftTemplate.js';
 import adminWorkShiftRoutes from './routes/departments/admins/adminWorkShift.js';
 import adminReportRoutes from './routes/departments/admins/adminReport.js';
+import adminPayrollRoutes from './routes/departments/admins/adminPayroll.js';
 import dentistDashboardRoutes from './routes/departments/dentists/dentistDashboard.js';
 import dentistClinicalRoutes from './routes/departments/dentists/dentistClinical.js';
 import dentistTreatmentPlanRoutes from './routes/departments/dentists/dentistTreatmentPlan.js';
@@ -66,6 +67,7 @@ app.use('/api/v1/admin/invoices', adminInvoiceRoutes);
 app.use('/api/v1/admin/work-shift-templates', adminWorkShiftTemplateRoutes);
 app.use('/api/v1/admin/work-shifts', adminWorkShiftRoutes);
 app.use('/api/v1/admin/reports', adminReportRoutes);
+app.use('/api/v1/admin/payrolls', adminPayrollRoutes);
 app.use('/api/v1/admin/dashboard', adminDashboardRoutes);
 app.use('/api/v1/admin', adminDashboardRoutes);
 

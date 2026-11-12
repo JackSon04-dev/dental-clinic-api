@@ -282,6 +282,8 @@ export const clinicalRecordResponseSchema = (record) => {
       invoiceType: inv.loaiHoaDon || 'thanh_toan_truoc',
       status: inv.trangThaiThanhToan,
       subtotal: Number(inv.tongTien) || 0,
+      surchargeAmount: Number(inv.phuThuChuyenGia) || 0,
+      phuThuChuyenGia: Number(inv.phuThuChuyenGia) || 0,
       discount: Number(inv.giamGia) || 0,
       finalAmount: Number(inv.soTienThanhToan) || 0,
       paidAt: inv.ngayThanhToan,

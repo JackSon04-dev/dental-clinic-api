@@ -6,6 +6,10 @@ import {
   adminInventoryCategoriesResponseSchema,
 } from '../../../dtos/departments/admins/adminReportDto.js';
 
+const pad = (n) => String(n).padStart(2, '0');
+const formatShortDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+const formatIsoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
 /**
  * calculateGrowthRate
  * Tính tỷ lệ % tăng trưởng giữa kỳ hiện tại và kỳ trước
@@ -22,10 +26,6 @@ const calculateGrowthRate = (current, previous) => {
  * Tính toán mốc thời gian bắt đầu, kết thúc cho kỳ hiện tại và kỳ đối ứng trước đó
  */
 const getReportDateRanges = (preset = '7_DAYS', customStart = null, customEnd = null) => {
-  const pad = (n) => String(n).padStart(2, '0');
-  const formatShortDate = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
-  const formatIsoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
   let currStart = new Date();
   let currEnd = new Date();
   let prevStart = new Date();
@@ -128,26 +128,13 @@ const queryInvoiceFinancials = async (startDate, endDate) => {
           hd.khuyen_mai_id,
           km.loai_giam,
           km.gia_tri_giam,
-          clv.nha_si_id,
-          ns.ho_ten AS nha_si_ten,
-          ns.chuyen_khoa AS nha_si_chuyen_khoa,
-          CASE
-              -- 1. Phác đồ thanh toán trọn gói 1 lần
-              WHEN hd.phac_do_dieu_tri_id IS NOT NULL THEN (
-                  SELECT COALESCE(SUM(gdpd.chi_phi), 0)
-                  FROM giai_doan_phac_do gdpd
-                  WHERE gdpd.phac_do_id = hd.phac_do_dieu_tri_id
-              )
-              -- 2. Phác đồ thanh toán theo từng giai đoạn
-              WHEN EXISTS (
-                  SELECT 1 FROM giai_doan_phac_do gdpd 
-                  WHERE gdpd.lich_hen_id = hd.lich_hen_id
-              ) THEN (
-                  SELECT COALESCE(gdpd.chi_phi, 0)
-                  FROM giai_doan_phac_do gdpd
-                  WHERE gdpd.lich_hen_id = hd.lich_hen_id
-              )
-              -- 3. Khám dịch vụ lẻ không theo phác đồ
+          COALESCE(clv.nha_si_id, pddt.nha_si_id) AS nha_si_id,
+          COALESCE(ns.ho_ten, ns_pddt.ho_ten) AS nha_si_ten,
+          COALESCE(ns.chuyen_khoa, ns_pddt.chuyen_khoa) AS nha_si_chuyen_khoa,
+          hd.so_tien_thanh_toan,
+          CASE 
+              WHEN hd.so_tien_thanh_toan > 0 THEN hd.so_tien_thanh_toan
+              WHEN hd.tong_tien > 0 THEN hd.tong_tien
               ELSE (
                   SELECT 
                       COALESCE(SUM(dvdt.don_gia * dvdt.so_luong), 0) +
@@ -167,6 +154,8 @@ const queryInvoiceFinancials = async (startDate, endDate) => {
       LEFT JOIN lich_hen lh ON hd.lich_hen_id = lh.id
       LEFT JOIN ca_lam_viec clv ON lh.ca_lam_viec_id = clv.id
       LEFT JOIN nha_si ns ON clv.nha_si_id = ns.id
+      LEFT JOIN phac_do_dieu_tri pddt ON hd.phac_do_dieu_tri_id = pddt.id
+      LEFT JOIN nha_si ns_pddt ON pddt.nha_si_id = ns_pddt.id
       WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
         AND hd.ngay_thanh_toan >= ${startDate}
         AND hd.ngay_thanh_toan <= ${endDate}
@@ -181,6 +170,7 @@ const queryInvoiceFinancials = async (startDate, endDate) => {
         nha_si_chuyen_khoa,
         COALESCE(
           CASE 
+              WHEN so_tien_thanh_toan > 0 THEN so_tien_thanh_toan
               WHEN loai_giam = 'phan_tram' THEN tien_goc * (1 - COALESCE(gia_tri_giam, 0) / 100.0)
               WHEN loai_giam = 'so_tien' THEN GREATEST(0, tien_goc - COALESCE(gia_tri_giam, 0))
               ELSE COALESCE(tien_goc, 0)
@@ -208,47 +198,150 @@ export const getRevenueTrendReportService = async ({ preset = '7_DAYS', startDat
   const averageOrderValue = totalPaidInvoices > 0 ? Math.round(netRevenue / totalPaidInvoices) : 0;
   const growthRate = calculateGrowthRate(netRevenue, previousNetRevenue);
 
-  // Tạo timeline từng ngày
   const DAYS_VN = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  const pad = (n) => String(n).padStart(2, '0');
   const timeline = [];
 
-  const daysCount = Math.max(1, Math.round((ranges.currEnd - ranges.currStart) / (1000 * 60 * 60 * 24)));
+  if (preset === 'THIS_QUARTER') {
+    // 3 tháng trong quý
+    const q = Math.floor(ranges.currStart.getMonth() / 3);
+    const year = ranges.currStart.getFullYear();
+    const prevYear = ranges.prevStart.getFullYear();
+    const prevQ = Math.floor(ranges.prevStart.getMonth() / 3);
 
-  for (let i = 0; i < daysCount; i++) {
-    const cur = new Date(ranges.currStart);
-    cur.setDate(cur.getDate() + i);
+    for (let m = 0; m < 3; m++) {
+      const monthIdx = q * 3 + m;
+      const prevMonthIdx = prevQ * 3 + m;
 
-    const prevCur = new Date(ranges.prevStart);
-    prevCur.setDate(prevCur.getDate() + i);
+      const mStart = new Date(year, monthIdx, 1, 0, 0, 0, 0);
+      const mEnd = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999);
+      const prevMStart = new Date(prevYear, prevMonthIdx, 1, 0, 0, 0, 0);
+      const prevMEnd = new Date(prevYear, prevMonthIdx + 1, 0, 23, 59, 59, 999);
 
-    const dateKey = `${cur.getFullYear()}-${pad(cur.getMonth() + 1)}-${pad(cur.getDate())}`;
-    const prevDateKey = `${prevCur.getFullYear()}-${pad(prevCur.getMonth() + 1)}-${pad(prevCur.getDate())}`;
+      const currInvs = currentInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= mStart && d <= mEnd;
+      });
+      const prevInvs = previousInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= prevMStart && d <= prevMEnd;
+      });
 
-    const label = `${DAYS_VN[cur.getDay()]} (${pad(cur.getDate())}/${pad(cur.getMonth() + 1)})`;
+      timeline.push({
+        label: `Tháng ${monthIdx + 1}`,
+        date: formatIsoDate(mEnd),
+        currentRevenue: currInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        previousRevenue: prevInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        invoiceCount: currInvs.length,
+      });
+    }
+  } else if (preset === 'THIS_MONTH') {
+    // 4 tuần trong tháng
+    const year = ranges.currStart.getFullYear();
+    const month = ranges.currStart.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
 
-    // Lọc hóa đơn ngày hiện tại
-    const currDayInvs = currentInvoices.filter((inv) => {
-      const d = new Date(inv.ngay_thanh_toan);
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` === dateKey;
-    });
+    const prevYear = ranges.prevStart.getFullYear();
+    const prevMonth = ranges.prevStart.getMonth();
+    const prevLastDay = new Date(prevYear, prevMonth + 1, 0).getDate();
 
-    // Lọc hóa đơn ngày kỳ trước
-    const prevDayInvs = previousInvoices.filter((inv) => {
-      const d = new Date(inv.ngay_thanh_toan);
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` === prevDateKey;
-    });
+    const weeks = [
+      { start: 1, end: 7, label: `Tuần 1 (01-07/${pad(month + 1)})` },
+      { start: 8, end: 14, label: `Tuần 2 (08-14/${pad(month + 1)})` },
+      { start: 15, end: 21, label: `Tuần 3 (15-21/${pad(month + 1)})` },
+      { start: 22, end: lastDay, label: `Tuần 4 (22-${lastDay}/${pad(month + 1)})` },
+    ];
 
-    const currentRevenue = currDayInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0);
-    const previousRevenue = prevDayInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0);
+    for (let w = 0; w < weeks.length; w++) {
+      const wk = weeks[w];
+      const wStart = new Date(year, month, wk.start, 0, 0, 0, 0);
+      const wEnd = new Date(year, month, wk.end, 23, 59, 59, 999);
 
-    timeline.push({
-      label,
-      date: dateKey,
-      currentRevenue,
-      previousRevenue,
-      invoiceCount: currDayInvs.length,
-    });
+      const prevWkEndDay = w === 3 ? prevLastDay : wk.end;
+      const prevWStart = new Date(prevYear, prevMonth, wk.start, 0, 0, 0, 0);
+      const prevWEnd = new Date(prevYear, prevMonth, prevWkEndDay, 23, 59, 59, 999);
+
+      const currInvs = currentInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= wStart && d <= wEnd;
+      });
+      const prevInvs = previousInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= prevWStart && d <= prevWEnd;
+      });
+
+      timeline.push({
+        label: wk.label,
+        date: formatIsoDate(wEnd),
+        currentRevenue: currInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        previousRevenue: prevInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        invoiceCount: currInvs.length,
+      });
+    }
+  } else if (preset === 'THIS_YEAR') {
+    // 4 quý trong năm
+    const year = ranges.currStart.getFullYear();
+    const prevYear = ranges.prevStart.getFullYear();
+
+    for (let q = 0; q < 4; q++) {
+      const qStart = new Date(year, q * 3, 1, 0, 0, 0, 0);
+      const qEnd = new Date(year, (q + 1) * 3, 0, 23, 59, 59, 999);
+      const prevQStart = new Date(prevYear, q * 3, 1, 0, 0, 0, 0);
+      const prevQEnd = new Date(prevYear, (q + 1) * 3, 0, 23, 59, 59, 999);
+
+      const currInvs = currentInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= qStart && d <= qEnd;
+      });
+      const prevInvs = previousInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return d >= prevQStart && d <= prevQEnd;
+      });
+
+      timeline.push({
+        label: `Q${q + 1} (T${q * 3 + 1}-T${(q + 1) * 3})`,
+        date: formatIsoDate(qEnd),
+        currentRevenue: currInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        previousRevenue: prevInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0),
+        invoiceCount: currInvs.length,
+      });
+    }
+  } else {
+    // 7_DAYS, TODAY hoặc CUSTOM: từng ngày
+    const daysCount = Math.max(1, Math.round((ranges.currEnd - ranges.currStart) / (1000 * 60 * 60 * 24)));
+
+    for (let i = 0; i < daysCount; i++) {
+      const cur = new Date(ranges.currStart);
+      cur.setDate(cur.getDate() + i);
+
+      const prevCur = new Date(ranges.prevStart);
+      prevCur.setDate(prevCur.getDate() + i);
+
+      const dateKey = `${cur.getFullYear()}-${pad(cur.getMonth() + 1)}-${pad(cur.getDate())}`;
+      const prevDateKey = `${prevCur.getFullYear()}-${pad(prevCur.getMonth() + 1)}-${pad(prevCur.getDate())}`;
+
+      const label = `${DAYS_VN[cur.getDay()]} (${pad(cur.getDate())}/${pad(cur.getMonth() + 1)})`;
+
+      const currDayInvs = currentInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` === dateKey;
+      });
+
+      const prevDayInvs = previousInvoices.filter((inv) => {
+        const d = new Date(inv.ngay_thanh_toan);
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` === prevDateKey;
+      });
+
+      const currentRevenue = currDayInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0);
+      const previousRevenue = prevDayInvs.reduce((sum, inv) => sum + Number(inv.thuc_thu || 0), 0);
+
+      timeline.push({
+        label,
+        date: dateKey,
+        currentRevenue,
+        previousRevenue,
+        invoiceCount: currDayInvs.length,
+      });
+    }
   }
 
   return adminRevenueTrendResponseSchema({

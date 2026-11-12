@@ -14,6 +14,7 @@ import {
 import {
   adminPatientDetailResponseSchema,
 } from '../../../dtos/departments/admins/adminPatientDto.js';
+import { getDoctorDegreeSurcharge } from '../../../constants/academicDegree.js';
 
 /**
  * Sinh mã hồ sơ bệnh án ngẫu nhiên không trùng lặp
@@ -402,7 +403,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
     if (slipId) {
       targetLichHen = await tx.lichHen.findUnique({
         where: { id: slipId },
-        include: { caLamViec: true },
+        include: { caLamViec: { include: { nhaSi: true } } },
       });
 
       if (targetLichHen && targetLichHen.trangThai === 'hoan_thanh') {
@@ -418,7 +419,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
           ngayHen: todayDate,
           trangThai: { in: ['da_tiep_nhan', 'cho_kham', 'dang_kham', 'dang_dieu_tri', 'cho_thanh_toan'] },
         },
-        include: { caLamViec: true },
+        include: { caLamViec: { include: { nhaSi: true } } },
         orderBy: { createdAt: 'desc' },
       });
     }
@@ -470,7 +471,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
           trangThai: 'dang_kham',
           ghiChu: 'Khám lâm sàng tại phòng',
         },
-        include: { caLamViec: true },
+        include: { caLamViec: { include: { nhaSi: true } } },
       });
     }
 
@@ -735,6 +736,19 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
     const dotThanhToan = currentInvoice ? currentInvoice.dotThanhToan : (existingInvoices.length + 1);
     const loaiHoaDon = dotThanhToan === 1 ? 'thanh_toan_truoc' : 'phat_sinh';
 
+    // Xác định học vị của bác sĩ ca trực để tính phụ thu học vị (chỉ cộng ở hóa đơn đợt 1 / thanh toán trước)
+    let doctorDegree = 'BS';
+    if (targetLichHen.caLamViec?.nhaSi?.hocVi) {
+      doctorDegree = targetLichHen.caLamViec.nhaSi.hocVi;
+    } else if (dentistId) {
+      const doc = await tx.nhaSi.findUnique({ where: { id: dentistId }, select: { hocVi: true } });
+      if (doc?.hocVi) doctorDegree = doc.hocVi;
+    } else if (targetLichHen.caLamViec?.nhaSiId) {
+      const doc = await tx.nhaSi.findUnique({ where: { id: targetLichHen.caLamViec.nhaSiId }, select: { hocVi: true } });
+      if (doc?.hocVi) doctorDegree = doc.hocVi;
+    }
+    const phuThuChuyenGia = loaiHoaDon === 'thanh_toan_truoc' ? getDoctorDegreeSurcharge(doctorDegree) : 0;
+
     const defaultStaff =
       (await tx.nhanVien.findFirst({
         where: { trangThai: 'dang_lam_viec' },
@@ -751,6 +765,7 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
             dotThanhToan,
             loaiHoaDon,
             trangThaiThanhToan: 'chua_thanh_toan',
+            phuThuChuyenGia,
             ghiChu: finalGhiChu || (dotThanhToan === 1 ? 'Hóa đơn chỉ định thủ thuật đợt 1' : `Hóa đơn phát sinh đợt ${dotThanhToan}`),
             ngayLap: new Date(),
           },
@@ -819,11 +834,12 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
         }
       }
 
-      const finalAmount = Math.max(0, invoiceSubtotal);
+      const finalAmount = Math.max(0, invoiceSubtotal + phuThuChuyenGia);
       await tx.hoaDon.update({
         where: { id: currentInvoice.id },
         data: {
           tongTien: invoiceSubtotal,
+          phuThuChuyenGia,
           giamGia: 0,
           soTienThanhToan: finalAmount,
         },

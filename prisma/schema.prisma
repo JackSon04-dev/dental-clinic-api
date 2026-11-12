@@ -32,6 +32,7 @@ model TaiKhoan {
   // Quan hệ 1-N
   auditLogs        AuditLog[]
   lichHenHuy       LichHen[]  @relation("NguoiHuyLichHen")
+  bangLuong        BangLuong[]
 
   @@map("tai_khoan")
 }
@@ -222,6 +223,7 @@ model NhaSi {
   chuyenKhoa   String?         @map("chuyen_khoa") @db.VarChar(100)
   gioiThieu    String?         @map("gioi_thieu") @db.Text
   soGiayPhep   String?         @map("so_giay_phep") @db.VarChar(100)
+  luongCoBan   Decimal         @default(15000000) @map("luong_co_ban") @db.Decimal(18, 2)
   trangThai    String          @default("dang_lam_viec") @map("trang_thai") @db.VarChar(20)
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -251,6 +253,7 @@ model NhanVien {
   diaChi       String?         @map("dia_chi") @db.VarChar(500)
   hinhAnhUrl   String?         @map("hinh_anh_url") @db.VarChar(500)
   chucVu       String          @map("chuc_vu") @db.VarChar(30)
+  luongCoBan   Decimal         @default(8000000) @map("luong_co_ban") @db.Decimal(18, 2)
   trangThai    String          @default("dang_lam_viec") @map("trang_thai") @db.VarChar(20)
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -639,4 +642,42 @@ model ChiTietHoaDon {
   sanPham          SanPham?        @relation(fields: [sanPhamId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@map("chi_tiet_hoa_don")
+}
+
+// 25. BẢNG LƯƠNG NHÂN SỰ (Payroll Snapshot)
+model BangLuong {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taiKhoanId         String     @map("tai_khoan_id") @db.Uuid
+  thang              Int        @db.SmallInt // 1 - 12
+  nam                Int        @db.SmallInt // 2026...
+  
+  // Thông số cấu thành
+  luongCoBan         Decimal    @default(0) @map("luong_co_ban") @db.Decimal(18, 2)
+  soCaTieuChuan      Int        @default(26) @map("so_ca_tieu_chuan")
+  soCaThucTe         Int        @default(0) @map("so_ca_thuc_te")
+  soCaVang           Int        @default(0) @map("so_ca_vang")
+  
+  // Dòng tiền chi tiết
+  donGiaCa           Decimal    @default(0) @map("don_gia_ca") @db.Decimal(18, 2)
+  tienLuongCa        Decimal    @default(0) @map("tien_luong_ca") @db.Decimal(18, 2)
+  tienBonusHocVi     Decimal    @default(0) @map("tien_bonus_hoc_vi") @db.Decimal(18, 2)
+  tienPhatVang       Decimal    @default(0) @map("tien_phat_vang") @db.Decimal(18, 2)
+  phuCapKhac         Decimal    @default(0) @map("phu_cap_khac") @db.Decimal(18, 2)
+  
+  // Kết quả cuối cùng
+  tongLuongThucNhan  Decimal    @default(0) @map("tong_luong_thuc_nhan") @db.Decimal(18, 2)
+  
+  // Vòng đời bảng lương
+  trangThai          String     @default("chua_chot") @map("trang_thai") @db.VarChar(20) // 'chua_chot', 'da_chot', 'da_chi_tra'
+  ghiChu             String?    @map("ghi_chu") @db.Text
+  ngayChot           DateTime?  @map("ngay_chot") @db.Timestamptz(6)
+  ngayChiTra         DateTime?  @map("ngay_chi_tra") @db.Timestamptz(6)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Khóa ngoại
+  taiKhoan           TaiKhoan   @relation(fields: [taiKhoanId], references: [id], onDelete: Cascade)
+
+  @@unique([taiKhoanId, thang, nam], name: "uq_bang_luong_nhan_su_thang_nam")
+  @@map("bang_luong")
 }

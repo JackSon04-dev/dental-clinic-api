@@ -51,6 +51,8 @@ export const getDoctorSalaryBonusesService = async ({ month, year, doctorId } = 
           id: true,
           maHoaDon: true,
           phuThuChuyenGia: true,
+          loaiHoaDon: true,
+          dotThanhToan: true,
           soTienThanhToan: true,
           ngayThanhToan: true,
           ngayLap: true,
@@ -58,8 +60,11 @@ export const getDoctorSalaryBonusesService = async ({ month, year, doctorId } = 
       });
 
       const totalPaidCases = paidInvoices.length;
-      // Tổng bonus tính theo trường phuThuChuyenGia (hoặc surchargePerCase * count nếu hóa đơn cũ)
+      // Tổng bonus tính theo trường phuThuChuyenGia (hóa đơn phát sinh đợt 2+ không cộng)
       const totalDegreeBonus = paidInvoices.reduce((sum, inv) => {
+        if (inv.loaiHoaDon === 'phat_sinh' || (inv.dotThanhToan && inv.dotThanhToan > 1)) {
+          return sum;
+        }
         const recorded = Number(inv.phuThuChuyenGia) || 0;
         return sum + (recorded > 0 ? recorded : surchargePerCase);
       }, 0);

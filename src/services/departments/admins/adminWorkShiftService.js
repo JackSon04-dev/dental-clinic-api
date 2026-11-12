@@ -2,6 +2,7 @@ import prisma from '../../../config/prisma.js';
 import { ApiError } from '../../../common/errorMiddleware.js';
 import {
   getWeekRangeFromDateString,
+  getMonthRangeFromDateString,
   adminWorkShiftDetailResponseSchema,
   adminWorkShiftsMatrixResponseSchema,
   adminGenerateWorkShiftsResponseSchema,
@@ -254,34 +255,53 @@ export const generateWorkShiftsFromTemplateService = async ({ startDate }) => {
  * - shifts: danh sách ca trực trong tuần
  */
 export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) => {
-  // 1. Tính toán khoảng tuần Thứ Hai -> Chủ Nhật
+  // 1. Tự động cập nhật các ca quá hạn chưa điểm danh thành vắng mặt
+  await autoUpdateExpiredPendingShifts();
+
+  // 2. Tính toán khoảng tuần Thứ Hai -> Chủ Nhật và khoảng tháng dương lịch
   const week = getWeekRangeFromDateString(date);
+  const monthRange = getMonthRangeFromDateString(date);
   const targetDateStr = date || week.currentDate;
 
-  // 2. Lấy danh sách tất cả bác sĩ đang làm việc
+  // 3. Lấy danh sách tất cả bác sĩ đang làm việc
   const doctors = await prisma.nhaSi.findMany({
     where: { trangThai: 'dang_lam_viec' },
     orderBy: { maNhaSi: 'asc' },
   });
 
-  // 3. Lấy tất cả ca làm việc trong tuần của các bác sĩ
-  const shifts = await prisma.caLamViec.findMany({
-    where: {
-      ngay: {
-        gte: new Date(week.startDate),
-        lte: new Date(week.endDate),
+  // 4. Lấy tất cả ca làm việc trong tuần và trong tháng của các bác sĩ
+  const [shifts, monthShifts] = await Promise.all([
+    prisma.caLamViec.findMany({
+      where: {
+        ngay: {
+          gte: new Date(week.startDate),
+          lte: new Date(week.endDate),
+        },
       },
-    },
-    include: {
-      phongDieuTri: true,
-    },
-    orderBy: [
-      { ngay: 'asc' },
-      { gioBatDau: 'asc' },
-    ],
-  });
+      include: {
+        phongDieuTri: true,
+      },
+      orderBy: [
+        { ngay: 'asc' },
+        { gioBatDau: 'asc' },
+      ],
+    }),
+    prisma.caLamViec.findMany({
+      where: {
+        ngay: {
+          gte: new Date(monthRange.startDate),
+          lte: new Date(monthRange.endDate),
+        },
+      },
+      select: {
+        id: true,
+        nhaSiId: true,
+        trangThai: true,
+      },
+    }),
+  ]);
 
-  // 4. Gom nhóm ca theo nhaSiId
+  // 5. Gom nhóm ca theo nhaSiId cho cả tuần và tháng
   const shiftsByDoctor = new Map();
   for (const s of shifts) {
     if (!shiftsByDoctor.has(s.nhaSiId)) {
@@ -290,9 +310,19 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
     shiftsByDoctor.get(s.nhaSiId).push(s);
   }
 
-  // 5. Tính toán KPI và tổng hợp kết quả cho từng bác sĩ
+  const COMPLETED_STATUSES = new Set(['da_dien_ra', 'co_mat', 'hoan_thanh', 'COMPLETED']);
+  const monthShiftsByDoctor = new Map();
+  for (const s of monthShifts) {
+    if (!monthShiftsByDoctor.has(s.nhaSiId)) {
+      monthShiftsByDoctor.set(s.nhaSiId, []);
+    }
+    monthShiftsByDoctor.get(s.nhaSiId).push(s);
+  }
+
+  // 6. Tính toán KPI và tổng hợp kết quả cho từng bác sĩ
   const result = doctors.map((doc) => {
     const docShifts = shiftsByDoctor.get(doc.id) || [];
+    const docMonthShifts = monthShiftsByDoctor.get(doc.id) || [];
 
     // Đếm số ca trong ngày được chọn
     const dailyShifts = docShifts.filter((s) => formatDateYYYYMMDD(s.ngay) === targetDateStr);
@@ -300,6 +330,11 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
 
     // Tổng số ca trong tuần
     const weeklyShiftsCount = docShifts.length;
+
+    // Thống kê ca trong tháng dương lịch
+    const monthlyShiftsCount = docMonthShifts.length;
+    const monthlyCompletedShiftsCount = docMonthShifts.filter((s) => COMPLETED_STATUSES.has(s.trangThai)).length;
+    const monthlyPendingShiftsCount = monthlyShiftsCount - monthlyCompletedShiftsCount;
 
     // Format danh sách ca trực trong tuần
     const formattedShifts = docShifts.map((s) => ({
@@ -324,6 +359,11 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
       specialty: doc.chuyenKhoa,
       dailyShiftsCount,
       weeklyShiftsCount,
+      monthlyShiftsCount,
+      monthlyCompletedShiftsCount,
+      monthlyPendingShiftsCount,
+      month: monthRange.month,
+      year: monthRange.year,
       shifts: formattedShifts,
     };
   });

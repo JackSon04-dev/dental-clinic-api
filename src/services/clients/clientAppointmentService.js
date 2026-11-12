@@ -860,6 +860,7 @@ export const getClientDoctorsService = async () => {
       id: true,
       maNhaSi: true,
       hoTen: true,
+      hocVi: true,
       gioiTinh: true,
       chuyenKhoa: true,
       gioiThieu: true,

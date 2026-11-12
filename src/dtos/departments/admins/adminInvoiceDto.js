@@ -279,6 +279,10 @@ export const adminInvoiceListItemResponseSchema = (invoice) => {
     status: invoice.trangThaiThanhToan,
     notes: invoice.ghiChu,
     cancelReason: invoice.lyDoHuy,
+    installment: invoice.dotThanhToan || 1,
+    invoiceType: invoice.loaiHoaDon || 'thanh_toan_truoc',
+    surchargeAmount: Number(invoice.phuThuChuyenGia) || 0,
+    phuThuChuyenGia: Number(invoice.phuThuChuyenGia) || 0,
     primaryService,
     services,
     materials,
@@ -365,6 +369,10 @@ export const adminInvoiceDetailResponseSchema = (invoice) => {
       status: invoice.trangThaiThanhToan,
       notes: invoice.ghiChu,
       cancelReason: invoice.lyDoHuy,
+      installment: invoice.dotThanhToan || 1,
+      invoiceType: invoice.loaiHoaDon || 'thanh_toan_truoc',
+      surchargeAmount: Number(invoice.phuThuChuyenGia) || 0,
+      phuThuChuyenGia: Number(invoice.phuThuChuyenGia) || 0,
     },
     patient: benhNhan
       ? {

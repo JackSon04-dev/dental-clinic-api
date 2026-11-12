@@ -85,6 +85,23 @@ export const getWeekRangeFromDateString = (dateStr) => {
 };
 
 /**
+ * Tính toán khoảng tháng (Ngày đầu tháng -> Ngày cuối tháng) từ 1 ngày bất kỳ (YYYY-MM-DD)
+ */
+export const getMonthRangeFromDateString = (dateStr) => {
+  const safeDateStr = dateStr || getVietnamTodayDateString();
+  const [year, month] = safeDateStr.split('-').map(Number);
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  return {
+    year,
+    month,
+    startDate,
+    endDate,
+  };
+};
+
+/**
  * Định dạng thời gian sang HH:mm (Ví dụ: "08:00", "13:30")
  */
 export const formatTimeHHMM = (timeInput) => {
