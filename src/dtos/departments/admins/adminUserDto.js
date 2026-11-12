@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { formatDoctorFullName, VALID_DEGREE_CODES } from '../../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. REQUEST SCHEMAS (Joi Validation)
@@ -94,6 +95,7 @@ export const adminCreateUserRequestSchema = Joi.object({
   address: Joi.string().trim().max(500).optional().allow('', null),
   avatarUrl: Joi.string().trim().max(1000).optional().allow('', null),
   // Field chuyên biệt cho Nha sĩ
+  academicDegree: Joi.string().valid(...VALID_DEGREE_CODES).default('BS').optional().allow('', null),
   specialty: Joi.string().trim().max(100).optional().allow('', null),
   licenseNumber: Joi.string().trim().max(100).optional().allow('', null),
   bio: Joi.string().trim().optional().allow('', null),
@@ -133,6 +135,7 @@ export const adminUpdateUserRequestSchema = Joi.object({
       'any.only': 'Trạng thái làm việc phải là: dang_lam_viec, nghi_phep hoặc nghi_viec',
     }),
   // Field cho Nha sĩ
+  academicDegree: Joi.string().valid(...VALID_DEGREE_CODES).optional().allow('', null),
   specialty: Joi.string().trim().max(100).optional().allow('', null),
   licenseNumber: Joi.string().trim().max(100).optional().allow('', null),
   bio: Joi.string().trim().optional().allow('', null),
@@ -174,10 +177,13 @@ export const adminResetPasswordRequestSchema = Joi.object({
 const extractStaffProfile = (user) => {
   if (user.loaiTaiKhoan === 'nha_si' && user.nhaSi) {
     const ns = user.nhaSi;
+    const academicDegree = ns.hocVi || 'BS';
     return {
       profileId: ns.id,
       code: ns.maNhaSi,
       fullName: ns.hoTen,
+      academicDegree,
+      titleFullName: formatDoctorFullName(academicDegree, ns.hoTen),
       phone: ns.sdt,
       email: ns.email,
       role: 'BAC_SI',
@@ -224,6 +230,8 @@ export const adminUserItemResponseSchema = (user) => {
     code: profile.code, // maNhaSi hoặc maNhanVien
     username: user.username,
     fullName: profile.fullName,
+    academicDegree: profile.academicDegree || null,
+    titleFullName: profile.titleFullName || profile.fullName,
     role: profile.role, // 'BAC_SI' | 'LE_TAN'
     roleTitle: profile.roleTitle, // 'Nha sĩ điều trị' | 'Lễ tân & Thu ngân'
     phone: profile.phone,
@@ -261,9 +269,12 @@ export const adminUserDetailResponseSchema = (user) => {
 
   if (user.loaiTaiKhoan === 'nha_si' && user.nhaSi) {
     const ns = user.nhaSi;
+    const academicDegree = ns.hocVi || 'BS';
     return {
       ...common,
       profileId: ns.id,
+      academicDegree,
+      titleFullName: formatDoctorFullName(academicDegree, ns.hoTen),
       dateOfBirth: ns.ngaySinh,
       gender: ns.gioiTinh,
       address: ns.diaChi,

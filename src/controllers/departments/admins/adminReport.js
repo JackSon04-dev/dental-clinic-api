@@ -1,5 +1,6 @@
 import { asyncHandler } from '../../../common/errorMiddleware.js';
 import * as adminReportService from '../../../services/departments/admins/adminReportService.js';
+import { getDoctorSalaryBonusesService } from '../../../services/departments/admins/doctorSalaryService.js';
 
 /**
  * getRevenueTrend
@@ -107,10 +108,33 @@ export const getInventoryMovement = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * getDoctorSalaryBonuses
+ * [GET] /api/v1/admin/reports/doctor-salary-bonuses
+ * Lấy báo cáo tổng hợp phụ thu học vị (Bonus lương) của bác sĩ theo kỳ kế toán
+ */
+export const getDoctorSalaryBonuses = asyncHandler(async (req, res) => {
+  const { month, year, doctorId } = req.query;
+
+  const data = await getDoctorSalaryBonusesService({
+    month,
+    year,
+    doctorId,
+  });
+
+  return res.status(200).json({
+    success: true,
+    status: 200,
+    message: 'Lấy báo cáo phụ thu bonus học vị bác sĩ thành công',
+    data,
+  });
+});
+
 export default {
   getRevenueTrend,
   getPaymentMethods,
   getTopPerformance,
   getInventoryCategories,
   getInventoryMovement,
+  getDoctorSalaryBonuses,
 };

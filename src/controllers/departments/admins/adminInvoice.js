@@ -52,21 +52,3 @@ export const updateInvoicePayment = asyncHandler(async (req, res) => {
     data,
   });
 });
-
-/**
- * cancelInvoice
- * [PATCH] /api/v1/admin/invoices/:id/cancel
- * Hủy hóa đơn viện phí kèm lý do hủy
- */
-export const cancelInvoice = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const data = await adminInvoiceService.cancelInvoiceService(id, req.body);
-
-  return res.status(200).json({
-    success: true,
-    status: 200,
-    message: 'Hủy hóa đơn viện phí thành công',
-    data,
-  });
-});

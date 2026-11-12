@@ -3,7 +3,6 @@ import {
   getInvoices,
   getInvoiceDetail,
   updateInvoicePayment,
-  cancelInvoice,
 } from '../../../controllers/departments/admins/adminInvoice.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -11,7 +10,6 @@ import {
   adminGetInvoicesQuerySchema,
   adminInvoiceIdParamSchema,
   adminUpdateInvoicePaymentRequestSchema,
-  adminCancelInvoiceRequestSchema,
 } from '../../../dtos/departments/admins/adminInvoiceDto.js';
 
 const router = express.Router();
@@ -48,17 +46,6 @@ router.patch(
   validate(adminInvoiceIdParamSchema, 'params'),
   validate(adminUpdateInvoicePaymentRequestSchema, 'body'),
   updateInvoicePayment
-);
-
-/**
- * [PATCH] /api/v1/admin/invoices/:id/cancel
- * Hủy hóa đơn viện phí kèm lý do hủy
- */
-router.patch(
-  '/:id/cancel',
-  validate(adminInvoiceIdParamSchema, 'params'),
-  validate(adminCancelInvoiceRequestSchema, 'body'),
-  cancelInvoice
 );
 
 export default router;

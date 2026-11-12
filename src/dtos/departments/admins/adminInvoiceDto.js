@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { formatDoctorFullName } from '../../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. REQUEST SCHEMAS (Joi Validation)
@@ -19,10 +20,10 @@ export const adminGetInvoicesQuerySchema = Joi.object({
     'number.max': 'Tham số limit tối đa là 100',
   }),
   status: Joi.string()
-    .valid('ALL', 'chua_thanh_toan', 'da_thanh_toan', 'da_huy')
+    .valid('ALL', 'chua_thanh_toan', 'da_thanh_toan')
     .default('ALL')
     .messages({
-      'any.only': 'Tham số status phải là một trong: ALL, chua_thanh_toan, da_thanh_toan, da_huy',
+      'any.only': 'Tham số status phải là một trong: ALL, chua_thanh_toan, da_thanh_toan',
     }),
   paymentMethod: Joi.string()
     .valid('ALL', 'tien_mat', 'chuyen_khoan', 'the')
@@ -142,9 +143,10 @@ export const calculateInvoiceFinancials = (invoice) => {
 
     const totalServicesAmount = services.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalMaterialsAmount = materials.reduce((sum, m) => sum + m.totalAmount, 0);
+    const surchargeAmount = Number(invoice.phuThuChuyenGia) || 0;
     const subtotalAmount = Number(invoice.tongTien) > 0 ? Number(invoice.tongTien) : (totalServicesAmount + totalMaterialsAmount);
     const discountAmount = Number(invoice.giamGia) || 0;
-    const finalAmount = Number(invoice.soTienThanhToan) > 0 ? Number(invoice.soTienThanhToan) : Math.max(0, subtotalAmount - discountAmount);
+    const finalAmount = Number(invoice.soTienThanhToan) > 0 ? Number(invoice.soTienThanhToan) : Math.max(0, subtotalAmount - discountAmount + surchargeAmount);
 
     return {
       services,
@@ -152,6 +154,7 @@ export const calculateInvoiceFinancials = (invoice) => {
       financialSummary: {
         totalServicesAmount,
         totalMaterialsAmount,
+        surchargeAmount,
         subtotalAmount,
         discountAmount,
         finalAmount,
@@ -223,8 +226,9 @@ export const calculateInvoiceFinancials = (invoice) => {
     }
   }
 
-  // 5. Tính thành tiền thực thu (Final)
-  const finalAmount = Math.max(0, subtotalAmount - discountAmount);
+  // 5. Tính thành tiền thực thu (Final) có cộng phụ thu chuyên gia (nếu có)
+  const surchargeAmount = Number(invoice.phuThuChuyenGia) || 0;
+  const finalAmount = Math.max(0, subtotalAmount - discountAmount + surchargeAmount);
 
   return {
     services,
@@ -232,6 +236,7 @@ export const calculateInvoiceFinancials = (invoice) => {
     financialSummary: {
       totalServicesAmount,
       totalMaterialsAmount,
+      surchargeAmount,
       subtotalAmount,
       discountAmount,
       finalAmount,
@@ -298,6 +303,8 @@ export const adminInvoiceListItemResponseSchema = (invoice) => {
       ? {
           id: nhaSi.id,
           fullName: nhaSi.hoTen,
+          academicDegree: nhaSi.hocVi || 'BS',
+          titleFullName: formatDoctorFullName(nhaSi.hocVi || 'BS', nhaSi.hoTen),
         }
       : null,
     cashier: thuNgan
@@ -378,6 +385,8 @@ export const adminInvoiceDetailResponseSchema = (invoice) => {
           id: nhaSi.id,
           code: nhaSi.maNhaSi,
           fullName: nhaSi.hoTen,
+          academicDegree: nhaSi.hocVi || 'BS',
+          titleFullName: formatDoctorFullName(nhaSi.hocVi || 'BS', nhaSi.hoTen),
           specialty: nhaSi.chuyenKhoa,
         }
       : null,

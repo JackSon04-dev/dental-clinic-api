@@ -5,6 +5,7 @@ import {
   adminUsersListResponseSchema,
   adminUserDetailResponseSchema,
 } from '../../../dtos/departments/admins/adminUserDto.js';
+import { extractDegreeAndName } from '../../../constants/academicDegree.js';
 
 /**
  * Sinh mã Bác sĩ duy nhất dạng NS-XXXX (4 số)
@@ -165,6 +166,7 @@ export const createUserService = async (createData) => {
     username,
     password,
     fullName,
+    academicDegree,
     phone,
     email,
     dateOfBirth,
@@ -239,11 +241,20 @@ export const createUserService = async (createData) => {
 
     if (role === 'BAC_SI') {
       const code = await generateUniqueDoctorCode(tx);
+      let cleanName = fullName.trim();
+      let doctorDegree = academicDegree || 'BS';
+      const extracted = extractDegreeAndName(cleanName);
+      if (extracted.degree !== 'BS' && (!academicDegree || academicDegree === 'BS')) {
+        doctorDegree = extracted.degree;
+      }
+      cleanName = extracted.name || cleanName;
+
       await tx.nhaSi.create({
         data: {
           taiKhoanId: account.id,
           maNhaSi: code,
-          hoTen: fullName.trim(),
+          hoTen: cleanName,
+          hocVi: doctorDegree,
           sdt: normalizedPhone,
           email: normalizedEmail,
           ngaySinh: dateOfBirth ? new Date(dateOfBirth) : null,
@@ -303,6 +314,7 @@ export const updateUserService = async (id, updateData) => {
 
   const {
     fullName,
+    academicDegree,
     phone,
     email,
     dateOfBirth,
@@ -340,10 +352,21 @@ export const updateUserService = async (id, updateData) => {
       }
     }
 
+    let cleanName = fullName !== undefined ? fullName.trim() : undefined;
+    let doctorDegree = academicDegree !== undefined ? academicDegree : undefined;
+    if (cleanName) {
+      const extracted = extractDegreeAndName(cleanName);
+      if (extracted.degree !== 'BS' && (!doctorDegree || doctorDegree === 'BS')) {
+        doctorDegree = extracted.degree;
+      }
+      cleanName = extracted.name || cleanName;
+    }
+
     await prisma.nhaSi.update({
       where: { id: user.nhaSi.id },
       data: {
-        ...(fullName !== undefined && { hoTen: fullName.trim() }),
+        ...(cleanName !== undefined && { hoTen: cleanName }),
+        ...(doctorDegree !== undefined && { hocVi: doctorDegree }),
         ...(normalizedPhone !== undefined && { sdt: normalizedPhone }),
         ...(normalizedEmail !== undefined && { email: normalizedEmail }),
         ...(dateOfBirth !== undefined && { ngaySinh: dateOfBirth ? new Date(dateOfBirth) : null }),

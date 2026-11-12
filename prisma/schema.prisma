@@ -212,6 +212,7 @@ model NhaSi {
   taiKhoanId   String          @unique @map("tai_khoan_id") @db.Uuid
   maNhaSi      String?         @unique @map("ma_nha_si") @db.VarChar(30)
   hoTen        String          @map("ho_ten") @db.VarChar(150)
+  hocVi        String          @default("BS") @map("hoc_vi") @db.VarChar(50)
   ngaySinh     DateTime?       @map("ngay_sinh") @db.Date
   gioiTinh     String?         @map("gioi_tinh") @db.VarChar(10)
   sdt          String?         @unique @db.VarChar(20)
@@ -466,6 +467,7 @@ model HoaDon {
   loaiHoaDon           String          @default("thanh_toan_truoc") @map("loai_hoa_don") @db.VarChar(30)
   tongTien             Decimal         @default(0) @map("tong_tien") @db.Decimal(18, 2)
   giamGia              Decimal         @default(0) @map("giam_gia") @db.Decimal(18, 2)
+  phuThuChuyenGia      Decimal         @default(0) @map("phu_thu_chuyen_gia") @db.Decimal(18, 2)
   soTienThanhToan      Decimal         @default(0) @map("so_tien_thanh_toan") @db.Decimal(18, 2)
   lyDoHuy              String?         @map("ly_do_huy") @db.Text
   ghiChu               String?         @map("ghi_chu") @db.Text

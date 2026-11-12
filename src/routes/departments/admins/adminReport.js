@@ -5,6 +5,7 @@ import {
   getTopPerformance,
   getInventoryCategories,
   getInventoryMovement,
+  getDoctorSalaryBonuses,
 } from '../../../controllers/departments/admins/adminReport.js';
 import { verifyToken, restrictToRoles } from '../../../middlewares/auth/authGuard.js';
 import { validate } from '../../../common/validateMiddleware.js';
@@ -70,6 +71,15 @@ router.get(
   '/inventory-movement',
   validate(adminInventoryMovementQuerySchema, 'query'),
   getInventoryMovement
+);
+
+/**
+ * [GET] /doctor-salary-bonuses
+ * Endpoint lấy báo cáo tổng hợp phụ thu học vị (Bonus lương) của bác sĩ theo kỳ kế toán
+ */
+router.get(
+  '/doctor-salary-bonuses',
+  getDoctorSalaryBonuses
 );
 
 export default router;

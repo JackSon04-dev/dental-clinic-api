@@ -222,10 +222,6 @@ export const updateInvoicePaymentService = async (
     return adminInvoiceDetailResponseSchema(updatedInvoice);
   }
 
-  if (invoice.trangThaiThanhToan === 'da_huy') {
-    throw new ApiError(400, 'Không thể thanh toán hóa đơn đã bị hủy');
-  }
-
   const paidTimestamp = paymentDate ? new Date(paymentDate) : new Date();
 
   // Thực hiện transaction cập nhật hóa đơn và đồng bộ giai đoạn phác đồ nếu có
@@ -277,66 +273,4 @@ export const updateInvoicePaymentService = async (
   });
 
   return adminInvoiceDetailResponseSchema(updatedInvoice);
-};
-
-/**
- * cancelInvoiceService
- * Hủy hóa đơn viện phí kèm lý do hủy
- */
-export const cancelInvoiceService = async (id, { cancelReason }) => {
-  const invoice = await prisma.hoaDon.findUnique({
-    where: { id },
-    include: {
-      lichHen: {
-        include: {
-          giaiDoanPhacDo: true,
-        },
-      },
-    },
-  });
-
-  if (!invoice) {
-    throw new ApiError(404, 'Không tìm thấy hóa đơn viện phí');
-  }
-
-  // RÀNG BUỘC R1: Bất biến hóa đơn viện phí đã hoàn tất thanh toán
-  if (invoice.trangThaiThanhToan === 'da_thanh_toan') {
-    throw new ApiError(400, 'Không thể hủy hóa đơn đã hoàn tất thanh toán viện phí');
-  }
-
-  if (invoice.trangThaiThanhToan === 'da_huy') {
-    throw new ApiError(400, 'Hóa đơn này đã được hủy trước đó');
-  }
-
-  // Thực hiện transaction hủy hóa đơn và cập nhật giai đoạn phác đồ nếu cần
-  await prisma.$transaction(async (tx) => {
-    // 1. Cập nhật trạng thái hủy và lý do hủy
-    await tx.hoaDon.update({
-      where: { id },
-      data: {
-        trangThaiThanhToan: 'da_huy',
-        lyDoHuy: cancelReason,
-      },
-    });
-
-    // 1.1. Nếu hóa đơn có áp dụng voucher khuyến mãi, hoàn lại 1 lượt sử dụng cho chương trình
-    if (invoice.khuyenMaiId) {
-      await tx.khuyenMai.update({
-        where: { id: invoice.khuyenMaiId },
-        data: {
-          soLanDaSuDung: {
-            decrement: 1,
-          },
-        },
-      });
-    }
-  });
-
-  // Truy vấn lại chi tiết sau khi hủy
-  const cancelledInvoice = await prisma.hoaDon.findUnique({
-    where: { id },
-    include: invoiceRelationsInclude,
-  });
-
-  return adminInvoiceDetailResponseSchema(cancelledInvoice);
 };
