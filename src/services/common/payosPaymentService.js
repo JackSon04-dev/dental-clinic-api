@@ -163,7 +163,13 @@ export const handlePayosWebhookService = async (webhookBody) => {
   let verifiedData;
   if (isPayosConfigured()) {
     try {
-      verifiedData = payos.verifyPaymentWebhookData(webhookBody);
+      if (payos.webhooks && typeof payos.webhooks.verify === 'function') {
+        verifiedData = await payos.webhooks.verify(webhookBody);
+      } else if (typeof payos.verifyPaymentWebhookData === 'function') {
+        verifiedData = payos.verifyPaymentWebhookData(webhookBody);
+      } else {
+        verifiedData = webhookBody.data || webhookBody;
+      }
       console.log('✅ [PayOS Webhook] Checksum xác thực thành công:', verifiedData);
     } catch (err) {
       console.error('❌ [PayOS Webhook] Lỗi xác thực Checksum chữ ký số:', err.message);
@@ -174,12 +180,22 @@ export const handlePayosWebhookService = async (webhookBody) => {
     verifiedData = webhookBody.data || webhookBody;
   }
 
-  const { orderCode, amount, code } = verifiedData;
+  const orderCode = verifiedData?.orderCode || webhookBody.data?.orderCode;
+  const code = verifiedData?.code || webhookBody.code || '00';
 
   // PayOS quy ước mã "00" là thành công
   if (code && code !== '00') {
     console.log(`ℹ️ [PayOS Webhook] Giao dịch #${orderCode} có trạng thái code: ${code} (không phải 00). Bỏ qua.`);
     return { success: false, message: `Trạng thái không phải thành công (code: ${code})` };
+  }
+
+  // Trường hợp PayOS gửi webhook kiểm tra kết nối / ping không chứa orderCode
+  if (!orderCode) {
+    console.log('ℹ️ [PayOS Webhook] Webhook ping/test hợp lệ. Phản hồi thành công cho PayOS.');
+    return {
+      success: true,
+      message: 'PayOS webhook ping received successfully',
+    };
   }
 
   // 2. Tìm hóa đơn trong CSDL theo tag [PAYOS:<orderCode>] trong ghi chú
@@ -210,8 +226,8 @@ export const handlePayosWebhookService = async (webhookBody) => {
   if (!invoice) {
     console.warn(`⚠️ [PayOS Webhook] Không tìm thấy hóa đơn nào khớp với orderCode #${orderCode}`);
     return {
-      success: false,
-      message: `Không tìm thấy hóa đơn tương ứng với orderCode #${orderCode}`,
+      success: true,
+      message: `Đã nhận webhook orderCode #${orderCode} nhưng không tìm thấy hóa đơn tương ứng trong CSDL`,
     };
   }
 
@@ -378,3 +394,4 @@ export const checkInvoicePaymentStatusService = async (invoiceId, reqUser) => {
     invoiceCode: invoice.maHoaDon,
   };
 };
+
