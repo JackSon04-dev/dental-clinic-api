@@ -26,3 +26,4 @@ export const payosInvoiceIdParamSchema = Joi.object({
     'string.guid': 'invoiceId phải là UUID hợp lệ',
   }),
 });
+

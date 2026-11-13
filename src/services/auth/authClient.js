@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../../config/prisma.js';
 import emailService from '../../utils/emailService.js';
 import otpStore from '../../utils/otpStore.js';
+import firebaseAdmin from '../../config/firebase.js';
 import {
   clientProfileResponseSchema,
   clientAuthResponseSchema,
@@ -259,6 +260,109 @@ class AuthClientService {
     const refreshToken = this.generateRefreshToken(user, user.benhNhan);
 
     // Cập nhật Single Active Session refresh token hash
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await prisma.taiKhoan.update({
+      where: { id: user.id },
+      data: { refreshTokenHash: hashedRefreshToken },
+    });
+
+    return clientAuthResponseSchema(user, accessToken, refreshToken);
+  }
+
+  /**
+   * Đăng nhập / Đăng ký nhanh Bệnh nhân qua Google (Firebase Authentication)
+   * @param {string} idToken - Token JWT do Firebase Client SDK cấp sau khi người dùng chọn tài khoản Google
+   */
+  async loginWithGoogle(idToken) {
+    if (!idToken) {
+      throw new ApiError(400, 'idToken từ Firebase là bắt buộc');
+    }
+
+    // 1. Xác thực ID Token qua Firebase Admin SDK
+    let decodedToken;
+    try {
+      decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    } catch (err) {
+      console.error('❌ [Firebase Verify Error]:', err.message);
+      throw new ApiError(401, `Xác thực tài khoản Google không hợp lệ hoặc đã hết hạn: ${err.message}`);
+    }
+
+    const email = decodedToken.email?.toLowerCase().trim();
+    if (!email) {
+      throw new ApiError(400, 'Tài khoản Google này không cung cấp địa chỉ email hợp lệ.');
+    }
+
+    const fullName = decodedToken.name || decodedToken.displayName || email.split('@')[0];
+    const avatarUrl = decodedToken.picture || null;
+
+    // 2. Tra cứu tài khoản bệnh nhân trong CSDL theo email
+    let user = await prisma.taiKhoan.findFirst({
+      where: {
+        OR: [
+          { username: email },
+          { benhNhan: { email: email } },
+        ],
+        loaiTaiKhoan: 'benh_nhan',
+      },
+      include: {
+        benhNhan: true,
+      },
+    });
+
+    // 3. Nếu tài khoản đã tồn tại
+    if (user) {
+      if (user.trangThai === 'bi_khoa') {
+        throw new ApiError(403, 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ phòng khám để được hỗ trợ.');
+      }
+
+      // Cập nhật avatar nếu trước đó chưa có mà Google có cung cấp
+      if (user.benhNhan && !user.benhNhan.hinhAnhUrl && avatarUrl) {
+        try {
+          await prisma.benhNhan.update({
+            where: { id: user.benhNhan.id },
+            data: { hinhAnhUrl: avatarUrl },
+          });
+          user.benhNhan.hinhAnhUrl = avatarUrl;
+        } catch (imgErr) {
+          console.warn('⚠️ Không thể cập nhật avatar từ Google:', imgErr.message);
+        }
+      }
+    } else {
+      // 4. Nếu chưa có tài khoản -> Tự động đăng ký mới Bệnh nhân
+      const patientCode = await this.generateUniquePatientCode();
+
+      const result = await prisma.$transaction(async (tx) => {
+        const newAccount = await tx.taiKhoan.create({
+          data: {
+            username: email,
+            passwordHash: null, // Đăng nhập OAuth Google không cần mật khẩu
+            loaiTaiKhoan: 'benh_nhan',
+            trangThai: 'hoat_dong',
+          },
+        });
+
+        const newPatient = await tx.benhNhan.create({
+          data: {
+            taiKhoanId: newAccount.id,
+            maBenhNhan: patientCode,
+            hoTen: fullName,
+            email: email,
+            hinhAnhUrl: avatarUrl,
+          },
+        });
+
+        return { account: newAccount, patient: newPatient };
+      });
+
+      user = result.account;
+      user.benhNhan = result.patient;
+    }
+
+    // 5. Cấp phát Token Dual-Identity chuẩn RBAC cho Bệnh nhân
+    const accessToken = this.generateAccessToken(user, user.benhNhan);
+    const refreshToken = this.generateRefreshToken(user, user.benhNhan);
+
+    // 6. Cập nhật hash refresh token vào tài khoản
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await prisma.taiKhoan.update({
       where: { id: user.id },

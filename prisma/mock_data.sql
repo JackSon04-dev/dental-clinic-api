@@ -537,35 +537,35 @@ INSERT INTO nha_si (tai_khoan_id, ma_nha_si, ho_ten, ngay_sinh, gioi_tinh, sdt, 
 VALUES
     ((SELECT id FROM tai_khoan WHERE username = 'bs_quang'),
      'NS001', 'BSCKII. Trần Minh Quang', '1978-04-12', 'nam', '0912345601', 'bsquang@dentalclinic.vn',
-     'Số 15 Phố Huế, Quận Hai Bà Trưng, Hà Nội', NULL,
+     'Số 15 Phố Huế, Quận Hai Bà Trưng, Hà Nội', 'https://res.cloudinary.com/dp0gbdemq/image/upload/v1794551172/dental_clinic/patients/avatars/doctor_05d4666f-ce5b-48ae-b4f6-2a1459721693_avatar.jpg',
      'Phẫu thuật hàm mặt & Cấy ghép Implant chuyên sâu',
      'Hơn 20 năm kinh nghiệm phẫu thuật hàm mặt và phục hình cấy ghép Implant chuyên sâu, tu nghiệp tại CHLB Đức. Đảm nhiệm toàn diện các dịch vụ phẫu thuật và điều trị nha khoa.',
      'CCHN-00124/BYT', 'dang_lam_viec'),
 
     ((SELECT id FROM tai_khoan WHERE username = 'bs_nam'),
      'NS002', 'ThS.BS. Nguyễn Hoàng Nam', '1985-09-18', 'nam', '0912345602', 'bsnam@dentalclinic.vn',
-     'Số 88 Láng Hạ, Quận Đống Đa, Hà Nội', NULL,
+     'Số 88 Láng Hạ, Quận Đống Đa, Hà Nội', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80',
      'Chỉnh nha - Niềng răng & Khớp cắn chuyên sâu',
      'Thạc sĩ Chuyên khoa Chỉnh nha Đại học Y Hà Nội, chứng chỉ quốc tế Invisalign Diamond Provider. Khám và điều trị toàn diện 10 dịch vụ của phòng khám.',
      'CCHN-00289/BYT', 'dang_lam_viec'),
 
     ((SELECT id FROM tai_khoan WHERE username = 'bs_lan'),
      'NS003', 'BSCKI. Lê Thị Mai Lan', '1988-12-05', 'nu', '0912345603', 'bslan@dentalclinic.vn',
-     'Số 26 Kim Mã, Quận Ba Đình, Hà Nội', NULL,
+     'Số 26 Kim Mã, Quận Ba Đình, Hà Nội', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2',
      'Phục hình Thẩm mỹ & Thiết kế nụ cười Smile Design',
      'Chuyên gia phục hình răng sứ thẩm mỹ, dán sứ Veneer bảo tồn và nha khoa thẩm mỹ. Đảm nhiệm toàn diện các dịch vụ khám và điều trị tại phòng khám.',
      'CCHN-00351/BYT', 'dang_lam_viec'),
 
     ((SELECT id FROM tai_khoan WHERE username = 'bs_tuananh'),
      'NS004', 'BS. Phạm Tuấn Anh', '1990-06-22', 'nam', '0912345604', 'bstuananh@dentalclinic.vn',
-     'Số 102 Hoàng Cầu, Quận Đống Đa, Hà Nội', NULL,
+     'Số 102 Hoàng Cầu, Quận Đống Đa, Hà Nội', 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&auto=format&fit=crop&q=80',
      'Nội nha (Điều trị tủy vi phẫu) & Nha khoa Tổng quát',
      'Bác sĩ chuyên sâu điều trị nội nha vi phẫu bảo tồn răng thật, trám răng thẩm mỹ và điều trị nha chu. Thực hiện toàn diện các ca khám và điều trị trong hệ thống.',
      'CCHN-00412/BYT', 'dang_lam_viec'),
 
     ((SELECT id FROM tai_khoan WHERE username = 'bs_haidang'),
      'NS005', 'BS. Vũ Hải Đăng', '1992-10-30', 'nam', '0912345605', 'bshaidang@dentalclinic.vn',
-     'Số 55 Nguyễn Chí Thanh, Quận Đống Đa, Hà Nội', NULL,
+     'Số 55 Nguyễn Chí Thanh, Quận Đống Đa, Hà Nội', 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&auto=format&fit=crop&q=80',
      'Nha khoa Tổng quát, Tiểu phẫu & Nha khoa Trẻ em',
      'Bác sĩ năng động, tay nghề cao trong nhổ răng khôn không đau, điều trị nha khoa dự phòng và trẻ em. Đáp ứng toàn bộ các dịch vụ lâm sàng của phòng khám.',
      'CCHN-00508/BYT', 'dang_lam_viec')
@@ -581,12 +581,12 @@ INSERT INTO nhan_vien (tai_khoan_id, ma_nhan_vien, ho_ten, ngay_sinh, gioi_tinh,
 VALUES
     ((SELECT id FROM tai_khoan WHERE username = 'letan_lan'),
      'NV001', 'Đỗ Thị Ngọc Lan', '1996-03-15', 'nu', '0981234001', 'ngoclan.letan@dentalclinic.vn',
-     'Số 18 Thái Hà, Quận Đống Đa, Hà Nội', NULL,
+     'Số 18 Thái Hà, Quận Đống Đa, Hà Nội', 'https://res.cloudinary.com/dp0gbdemq/image/upload/v1794551288/dental_clinic/patients/avatars/staff_cf2c7ef8-f1b8-4616-bb2c-b6de35625c52_avatar.jpg',
      'le_tan', 'dang_lam_viec'),
 
     ((SELECT id FROM tai_khoan WHERE username = 'letan_hoa'),
      'NV002', 'Vũ Phương Hoa', '1998-07-22', 'nu', '0981234002', 'phuonghoa.letan@dentalclinic.vn',
-     'Số 35 Cầu Giấy, Quận Cầu Giấy, Hà Nội', NULL,
+     'Số 35 Cầu Giấy, Quận Cầu Giấy, Hà Nội', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
      'le_tan', 'dang_lam_viec')
 ON CONFLICT (ma_nhan_vien) DO NOTHING;
 

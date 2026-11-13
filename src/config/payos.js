@@ -19,3 +19,4 @@ export const payos = new PayOS({
   apiKey: process.env.PAYOS_API_KEY || 'dummy_api_key',
   checksumKey: process.env.PAYOS_CHECKSUM_KEY || 'dummy_checksum_key',
 });
+

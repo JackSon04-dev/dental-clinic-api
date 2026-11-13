@@ -37,6 +37,16 @@ export const login = asyncHandler(async (req, res) => {
   });
 });
 
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body;
+  const result = await authClientService.loginWithGoogle(idToken);
+  res.status(200).json({
+    success: true,
+    message: 'Đăng nhập Google thành công',
+    ...result,
+  });
+});
+
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const result = await authClientService.forgotPassword(email);
@@ -88,6 +98,7 @@ export default {
   verifyRegistration,
   resendOtp,
   login,
+  googleLogin,
   forgotPassword,
   resetPassword,
   refreshToken,

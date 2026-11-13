@@ -139,6 +139,7 @@ export const createPayosPaymentService = async ({
   return {
     orderCode,
     amount: finalAmount,
+    originalAmount: Number(invoice.soTienThanhToan || invoice.tongTien || 0),
     description,
     accountNumber: paymentData.accountNumber || '0384792888',
     accountName: paymentData.accountName || 'NHA KHOA DENTAL CARE',

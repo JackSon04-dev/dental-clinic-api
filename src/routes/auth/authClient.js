@@ -4,6 +4,7 @@ import {
   verifyRegistration,
   resendOtp,
   login,
+  googleLogin,
   forgotPassword,
   resetPassword,
   refreshToken,
@@ -17,6 +18,7 @@ import {
   clientVerifyRegistrationRequestSchema,
   clientResendOtpRequestSchema,
   clientLoginRequestSchema,
+  clientGoogleLoginRequestSchema,
   clientForgotPasswordRequestSchema,
   clientResetPasswordRequestSchema,
   clientRefreshTokenRequestSchema,
@@ -31,6 +33,7 @@ router.post('/resend-otp', validate(clientResendOtpRequestSchema), resendOtp);
 
 // 2. Luồng Đăng nhập & Quên mật khẩu
 router.post('/login', validate(clientLoginRequestSchema), login);
+router.post('/google', validate(clientGoogleLoginRequestSchema), googleLogin);
 router.post('/forgot-password', validate(clientForgotPasswordRequestSchema), forgotPassword);
 router.post('/reset-password', validate(clientResetPasswordRequestSchema), resetPassword);
 

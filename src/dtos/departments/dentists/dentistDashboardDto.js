@@ -64,6 +64,8 @@ export const dentistQueueItemResponseSchema = (lichHen) => {
     patientCode: bn.maBenhNhan,
     patientName: bn.hoTen,
     patientPhone: bn.sdt,
+    patientAvatarUrl: bn.hinhAnhUrl || null,
+    avatarUrl: bn.hinhAnhUrl || null,
     patientGender: bn.gioiTinh === 'nam' ? 'MALE' : bn.gioiTinh === 'nu' ? 'FEMALE' : 'OTHER',
     patientBirthDate: bn.ngaySinh ? formatDateYYYYMMDD(bn.ngaySinh) : '',
     roomName: phong.tenPhong || 'Phòng khám',

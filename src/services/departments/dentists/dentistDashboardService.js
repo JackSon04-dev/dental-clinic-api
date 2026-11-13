@@ -351,6 +351,8 @@ export const getDentistAppointmentsService = async (dentistId, { date, status, s
     patientId: item.benhNhanId,
     patientName: item.benhNhan?.hoTen || 'Bệnh nhân',
     patientPhone: item.benhNhan?.sdt || item.benhNhan?.soDienThoai || '',
+    patientAvatarUrl: item.benhNhan?.hinhAnhUrl || null,
+    avatarUrl: item.benhNhan?.hinhAnhUrl || null,
     patientBirthYear: item.benhNhan?.ngaySinh ? new Date(item.benhNhan.ngaySinh).getFullYear() : undefined,
     patientGender: item.benhNhan?.gioiTinh === 'nam' ? 'MALE' : 'FEMALE',
     dentistId: item.caLamViec?.nhaSiId || '',

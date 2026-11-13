@@ -318,7 +318,9 @@ export const formatAppointmentDetailResponse = (appointment) => {
       ? {
           id: ns.id,
           code: ns.maNhaSi,
-          fullName: ns.hoTen,
+          fullName: formatDoctorFullName(ns.hocVi || 'BS', ns.hoTen),
+          titleFullName: formatDoctorFullName(ns.hocVi || 'BS', ns.hoTen),
+          academicDegree: ns.hocVi || 'BS',
           specialty: ns.chuyenKhoa || 'Bác sĩ Nha khoa',
           avatarUrl: ns.hinhAnhUrl || null,
         }
@@ -367,7 +369,9 @@ export const formatAvailableSlotsResponse = ({
       ? {
           id: filterDoctor.id,
           code: filterDoctor.maNhaSi || '',
-          fullName: filterDoctor.hoTen,
+          fullName: formatDoctorFullName(filterDoctor.hocVi || 'BS', filterDoctor.hoTen),
+          titleFullName: formatDoctorFullName(filterDoctor.hocVi || 'BS', filterDoctor.hoTen),
+          academicDegree: filterDoctor.hocVi || 'BS',
           specialty: filterDoctor.chuyenKhoa || 'Bác sĩ Nha khoa',
           avatarUrl: filterDoctor.hinhAnhUrl || null,
         }
@@ -426,13 +430,15 @@ export const formatClientServiceItem = (service) => {
  */
 export const formatClientDoctorItem = (doctor) => {
   const degree = doctor.hocVi || 'BS';
+  const title = formatDoctorFullName(degree, doctor.hoTen);
   return {
     id: doctor.id,
     code: doctor.maNhaSi || '',
-    fullName: doctor.hoTen,
+    fullName: title,
+    titleFullName: title,
+    rawFullName: doctor.hoTen,
     hocVi: degree,
     academicDegree: degree,
-    titleFullName: formatDoctorFullName(degree, doctor.hoTen),
     surcharge: getDoctorDegreeSurcharge(degree),
     gender: doctor.gioiTinh || null,
     specialty: doctor.chuyenKhoa || 'Bác sĩ Nha khoa',
@@ -481,7 +487,9 @@ export const formatClientAppointmentListItem = (appointment) => {
       ? {
           id: ns.id,
           code: ns.maNhaSi,
-          fullName: ns.hoTen,
+          fullName: formatDoctorFullName(ns.hocVi || 'BS', ns.hoTen),
+          titleFullName: formatDoctorFullName(ns.hocVi || 'BS', ns.hoTen),
+          academicDegree: ns.hocVi || 'BS',
           specialty: ns.chuyenKhoa || 'Bác sĩ Nha khoa',
           avatarUrl: ns.hinhAnhUrl || null,
         }

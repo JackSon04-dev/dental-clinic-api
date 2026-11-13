@@ -109,6 +109,8 @@ export const dentistTreatmentPlanListItemResponseSchema = (plan) => {
     patientName: bn.hoTen,
     patientCode: bn.maBenhNhan,
     patientPhone: bn.sdt,
+    patientAvatarUrl: bn.hinhAnhUrl || null,
+    avatarUrl: bn.hinhAnhUrl || null,
     dentistId: ns.id,
     dentistName: ns.hoTen,
     samplePlanId: plan.phacDoMauId || null,
