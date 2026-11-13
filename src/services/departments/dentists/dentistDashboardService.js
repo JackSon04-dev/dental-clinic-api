@@ -223,12 +223,22 @@ export const updateShiftAttendanceService = async (shiftId, user, status = 'co_m
       throw new ApiError(403, 'Bạn không thể điểm danh ca trực của bác sĩ khác');
     }
 
-    // Kiểm tra mốc 15 phút sau giờ bắt đầu ca trực
+    // Kiểm tra thời gian điểm danh của Bác sĩ
     const dateStr = formatDateYYYYMMDD(shift.ngay);
     const timeStr = formatTimeHHmm(shift.gioBatDau);
     const shiftStartMs = new Date(`${dateStr}T${timeStr}:00+07:00`).getTime();
     const nowMs = Date.now();
 
+    // 1. Chưa tới giờ bắt đầu ca trực -> Không cho phép điểm danh trước
+    if (nowMs < shiftStartMs) {
+      const formattedDateVN = dateStr.split('-').reverse().join('/');
+      throw new ApiError(
+        400,
+        `Chưa tới giờ bắt đầu ca làm việc (${timeStr} ngày ${formattedDateVN}). Bác sĩ không thể điểm danh trước.`
+      );
+    }
+
+    // 2. Quá 15 phút sau giờ bắt đầu ca trực -> Tự động chuyển Vắng mặt và chỉ Admin mới điểm danh hộ được
     if (nowMs > shiftStartMs + 15 * 60 * 1000) {
       if (shift.trangThai === 'chua_dien_ra') {
         await prisma.caLamViec.update({

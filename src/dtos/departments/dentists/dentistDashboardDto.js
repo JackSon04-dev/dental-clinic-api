@@ -151,13 +151,15 @@ export const dentistWeeklyShiftsResponseSchema = (weekRange, shifts = []) => {
       const shiftName = startHour < 12 ? 'Ca sáng' : 'Ca chiều';
       const timeSlot = `${start} - ${end}`;
 
-      // Tính toán mốc 15 phút sau khi ca bắt đầu (theo múi giờ VN +07:00)
+      // Tính toán mốc bắt đầu ca và mốc 15 phút sau khi ca bắt đầu (theo múi giờ VN +07:00)
       const shiftStartMs = new Date(`${dayItem.date}T${start}:00+07:00`).getTime();
+      const isBeforeStart = nowMs < shiftStartMs;
       const isPast15Mins = nowMs > shiftStartMs + 15 * 60 * 1000;
 
       let status = 'not_present';
       let statusText = 'Chưa điểm danh';
       let isAbsentDueToLate = false;
+      let isUpcoming = false;
       let canDoctorCheckIn = false;
 
       if (s.trangThai === 'co_mat' || s.trangThai === 'dang_dien_ra' || s.trangThai === 'da_ket_thuc') {
@@ -169,15 +171,20 @@ export const dentistWeeklyShiftsResponseSchema = (weekRange, shifts = []) => {
         statusText = 'Vắng mặt';
         canDoctorCheckIn = false;
       } else if (s.trangThai === 'chua_dien_ra') {
-        if (isPast15Mins) {
+        if (isBeforeStart) {
+          status = 'upcoming';
+          statusText = 'Chưa tới giờ';
+          isUpcoming = true;
+          canDoctorCheckIn = false; // Bác sĩ không được điểm danh trước khi tới giờ bắt đầu ca
+        } else if (isPast15Mins) {
           status = 'absent';
           statusText = 'Vắng mặt';
           isAbsentDueToLate = true;
-          canDoctorCheckIn = false; // Bác sĩ không thể tự điểm danh nữa
+          canDoctorCheckIn = false; // Bác sĩ không thể tự điểm danh nữa (quá 15p)
         } else {
           status = 'not_present';
           statusText = 'Chưa điểm danh';
-          canDoctorCheckIn = true;
+          canDoctorCheckIn = true; // Đang trong khung giờ hợp lệ để điểm danh
         }
       }
 
@@ -198,6 +205,7 @@ export const dentistWeeklyShiftsResponseSchema = (weekRange, shifts = []) => {
         statusText,
         rawStatus: s.trangThai,
         isAbsentDueToLate,
+        isUpcoming,
         canDoctorCheckIn,
         isToday: dayItem.date === todayStr,
       });
