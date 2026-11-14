@@ -1,6 +1,7 @@
 import prisma from '../../config/prisma.js';
 import { payos, isPayosConfigured } from '../../config/payos.js';
 import { ApiError } from '../../common/errorMiddleware.js';
+import eventBus, { EVENTS } from '../../events/eventBus.js';
 
 /**
  * Tạo link thanh toán VietQR PayOS cho một hóa đơn viện phí
@@ -278,6 +279,9 @@ export const handlePayosWebhookService = async (webhookBody) => {
 
   console.log(`✅ [PayOS Webhook] Đã cập nhật hóa đơn ${invoice.id} sang da_thanh_toan thành công.`);
 
+  // Phát sự kiện INVOICE_PAID tới các Listener (Gửi email hóa đơn điện tử ngầm...)
+  eventBus.emit(EVENTS.INVOICE_PAID, invoice.id);
+
   return {
     success: true,
     invoiceId: invoice.id,
@@ -373,6 +377,9 @@ export const checkInvoicePaymentStatusService = async (invoiceId, reqUser) => {
             });
           }
         });
+
+        // Phát sự kiện INVOICE_PAID tới các Listener (Gửi email hóa đơn điện tử ngầm...)
+        eventBus.emit(EVENTS.INVOICE_PAID, invoice.id);
 
         return {
           isPaid: true,

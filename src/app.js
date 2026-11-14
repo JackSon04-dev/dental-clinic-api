@@ -34,8 +34,12 @@ import payosPaymentRoutes from './routes/common/payosPayment.js';
 // [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
 import devDatabaseRoutes from './routes/dev/devDatabase.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
+import { initEventListeners } from './events/index.js';
 
 dotenv.config();
+
+// Khởi tạo Event Listeners cho toàn hệ thống
+initEventListeners();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
