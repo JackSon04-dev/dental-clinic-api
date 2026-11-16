@@ -97,10 +97,10 @@ const calculateAge = (dateOfBirth) => {
 export const clientProfileDetailResponseSchema = (patient) => {
   if (!patient) return null;
 
-  const initialScore = patient.diemSucKhoeBanDau ?? 85;
-  const currentScore = patient.diemSucKhoeHienTai ?? 95;
+  const initialScore = Number(patient.diemSucKhoeBanDau || 0);
+  const currentScore = Number(patient.diemSucKhoeHienTai || 0);
   const scoreDiff = currentScore - initialScore;
-  const progressText = scoreDiff >= 0 ? `+${scoreDiff} điểm` : `${scoreDiff} điểm`;
+  const progressText = initialScore > 0 ? (scoreDiff >= 0 ? `+${scoreDiff} điểm` : `${scoreDiff} điểm`) : null;
 
   return {
     id: patient.id,

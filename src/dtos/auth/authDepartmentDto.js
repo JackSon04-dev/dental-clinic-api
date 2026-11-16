@@ -1,4 +1,9 @@
 import Joi from 'joi';
+import {
+  formatDoctorFullName,
+  extractDegreeAndName,
+  getDoctorDegreeSurcharge,
+} from '../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. REQUEST SCHEMAS (Joi Validation for Incoming Request Payload)
@@ -34,10 +39,21 @@ export const departmentRefreshTokenRequestSchema = Joi.object({
 export const extractDepartmentProfile = (user) => {
   if (user.loaiTaiKhoan === 'nha_si' && user.nhaSi) {
     const ns = user.nhaSi;
+    const extracted = extractDegreeAndName(ns.hoTen);
+    const academicDegree = ns.hocVi && ns.hocVi !== 'BS' ? ns.hocVi : (extracted.degree || ns.hocVi || 'BS');
+    const titleFullName = formatDoctorFullName(academicDegree, ns.hoTen);
+    const consultationFee = getDoctorDegreeSurcharge(academicDegree);
+
     return {
       profileId: ns.id,
       code: ns.maNhaSi,
       fullName: ns.hoTen,
+      titleFullName,
+      academicDegree,
+      doctorDegree: academicDegree,
+      dentistHocVi: academicDegree,
+      consultationFee,
+      phuThuChuyenGia: consultationFee,
       phone: ns.sdt,
       email: ns.email,
       dateOfBirth: ns.ngaySinh,
@@ -47,7 +63,9 @@ export const extractDepartmentProfile = (user) => {
       licenseNumber: ns.soGiayPhep,
       bio: ns.gioiThieu,
       avatarUrl: ns.hinhAnhUrl,
-      position: null,
+      position: academicDegree,
+      chucVu: academicDegree,
+      hocVi: academicDegree,
       role: 'BAC_SI',
       roleTitle: 'Nha sĩ điều trị',
       workStatus: ns.trangThai,
@@ -61,6 +79,12 @@ export const extractDepartmentProfile = (user) => {
       profileId: nv.id,
       code: nv.maNhanVien,
       fullName: nv.hoTen,
+      titleFullName: nv.hoTen,
+      academicDegree: null,
+      doctorDegree: null,
+      dentistHocVi: null,
+      consultationFee: 0,
+      phuThuChuyenGia: 0,
       phone: nv.sdt,
       email: nv.email,
       dateOfBirth: nv.ngaySinh,
@@ -71,6 +95,8 @@ export const extractDepartmentProfile = (user) => {
       bio: null,
       avatarUrl: nv.hinhAnhUrl,
       position: nv.chucVu,
+      chucVu: nv.chucVu,
+      hocVi: null,
       role: 'LE_TAN',
       roleTitle: 'Lễ tân & Thu ngân',
       workStatus: nv.trangThai,
@@ -83,6 +109,12 @@ export const extractDepartmentProfile = (user) => {
     profileId: null,
     code: 'ADMIN-01',
     fullName: 'Quản trị viên Hệ thống',
+    titleFullName: 'Quản trị viên Hệ thống',
+    academicDegree: null,
+    doctorDegree: null,
+    dentistHocVi: null,
+    consultationFee: 0,
+    phuThuChuyenGia: 0,
     phone: '0903555666',
     email: 'admin@dentalclinic.vn',
     dateOfBirth: null,
@@ -93,6 +125,8 @@ export const extractDepartmentProfile = (user) => {
     bio: null,
     avatarUrl: null,
     position: 'admin',
+    chucVu: 'admin',
+    hocVi: null,
     role: 'ADMIN',
     roleTitle: 'Quản trị cấp cao',
     workStatus: 'dang_lam_viec',
@@ -112,6 +146,14 @@ export const departmentUserProfileResponseSchema = (user) => {
     code: profile.code,
     username: user.username,
     fullName: profile.fullName,
+    titleFullName: profile.titleFullName || profile.fullName,
+    academicDegree: profile.academicDegree || null,
+    doctorDegree: profile.doctorDegree || null,
+    dentistHocVi: profile.dentistHocVi || null,
+    consultationFee: profile.consultationFee || 0,
+    phuThuChuyenGia: profile.phuThuChuyenGia || 0,
+    chucVu: profile.chucVu || profile.position || null,
+    hocVi: profile.hocVi || null,
     role: profile.role,
     roleTitle: profile.roleTitle,
     email: profile.email,

@@ -130,16 +130,16 @@ export const formatNextAppointmentCard = (appointment) => {
  * @returns {object}
  */
 export const formatSmileScoreCard = (benhNhan) => {
-  const banDau = benhNhan?.diemSucKhoeBanDau ?? 85;
-  const hienTai = benhNhan?.diemSucKhoeHienTai ?? 95;
+  const banDau = Number(benhNhan?.diemSucKhoeBanDau || 0);
+  const hienTai = Number(benhNhan?.diemSucKhoeHienTai || 0);
   const diff = hienTai - banDau;
   const trendSign = diff > 0 ? `+${diff}%` : `${diff}%`;
 
   return {
-    scoreText: `${hienTai}/100`,
-    trend: trendSign,
+    scoreText: hienTai > 0 ? `${hienTai}/100` : 'Chưa đánh giá',
+    trend: banDau > 0 ? trendSign : null,
     isPositive: diff >= 0,
-    statusNote: benhNhan?.ghiChu || 'Men răng tốt, không cao răng',
+    statusNote: benhNhan?.ghiChu || (hienTai > 0 ? 'Men răng tốt, ổn định' : 'Chưa ghi nhận đánh giá sức khỏe nụ cười'),
   };
 };
 

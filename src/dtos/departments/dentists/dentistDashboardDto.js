@@ -5,6 +5,11 @@ import {
   formatDateYYYYMMDD,
   DAY_NAMES,
 } from '../admins/adminWorkShiftDto.js';
+import {
+  formatDoctorFullName,
+  extractDegreeAndName,
+  getDoctorDegreeSurcharge,
+} from '../../../constants/academicDegree.js';
 
 /**
  * Ánh xạ trạng thái Lịch Hẹn sang trạng thái Phiếu khám Frontend
@@ -42,8 +47,14 @@ export const mapLichHenStatusToSlipStatus = (dbStatus) => {
 export const dentistQueueItemResponseSchema = (lichHen) => {
   const bn = lichHen.benhNhan || {};
   const ca = lichHen.caLamViec || {};
+  const nhaSi = ca.nhaSi || {};
   const phong = ca.phongDieuTri || {};
   const dv = lichHen.dichVu || {};
+
+  const nsDegreeExtracted = extractDegreeAndName(nhaSi.hoTen);
+  const academicDegree = nhaSi.hocVi && nhaSi.hocVi !== 'BS' ? nhaSi.hocVi : (nsDegreeExtracted.degree || nhaSi.hocVi || 'BS');
+  const titleFullName = formatDoctorFullName(academicDegree, nhaSi.hoTen);
+  const consultationFee = getDoctorDegreeSurcharge(academicDegree);
 
   // Trích xuất huyết áp nếu có lưu trong ghi chú dạng [HA: xxx] hoặc lưu thẳng
   let bloodPressure = null;
@@ -68,6 +79,14 @@ export const dentistQueueItemResponseSchema = (lichHen) => {
     avatarUrl: bn.hinhAnhUrl || null,
     patientGender: bn.gioiTinh === 'nam' ? 'MALE' : bn.gioiTinh === 'nu' ? 'FEMALE' : 'OTHER',
     patientBirthDate: bn.ngaySinh ? formatDateYYYYMMDD(bn.ngaySinh) : '',
+    dentistId: nhaSi.id || null,
+    dentistName: nhaSi.hoTen || null,
+    academicDegree,
+    doctorDegree: academicDegree,
+    dentistHocVi: academicDegree,
+    titleFullName,
+    consultationFee,
+    phuThuChuyenGia: consultationFee,
     roomName: phong.tenPhong || 'Phòng khám',
     serviceName: dv.tenDichVu,
     chiefComplaint,

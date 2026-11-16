@@ -1,6 +1,11 @@
 import Joi from 'joi';
 import { formatDateYYYYMMDD } from '../admins/adminWorkShiftDto.js';
 import { mapLichHenStatusToSlipStatus } from './dentistDashboardDto.js';
+import {
+  formatDoctorFullName,
+  extractDegreeAndName,
+  getDoctorDegreeSurcharge,
+} from '../../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. REQUEST SCHEMAS (Joi Validation)
@@ -123,6 +128,11 @@ export const clinicalRecordResponseSchema = (record) => {
   const ca = lichHen.caLamViec || {};
   const nhaSi = ca.nhaSi || {};
 
+  const nsDegreeExtracted = extractDegreeAndName(nhaSi.hoTen);
+  const academicDegree = nhaSi.hocVi && nhaSi.hocVi !== 'BS' ? nhaSi.hocVi : (nsDegreeExtracted.degree || nhaSi.hocVi || 'BS');
+  const titleFullName = formatDoctorFullName(academicDegree, nhaSi.hoTen);
+  const consultationFee = getDoctorDegreeSurcharge(academicDegree);
+
   // Thu thập danh sách dịch vụ và vật tư đã nằm trong các hóa đơn ĐÃ THANH TOÁN
   const paidInvoices = (lichHen.hoaDon || []).filter(
     (inv) => inv.trangThaiThanhToan === 'da_thanh_toan'
@@ -242,8 +252,14 @@ export const clinicalRecordResponseSchema = (record) => {
     patientPhone: benhNhan.sdt,
     patientAvatarUrl: benhNhan.hinhAnhUrl || null,
     avatarUrl: benhNhan.hinhAnhUrl || null,
-    dentistId: nhaSi.id,
-    dentistName: nhaSi.hoTen,
+    dentistId: nhaSi.id || null,
+    dentistName: nhaSi.hoTen || '',
+    academicDegree,
+    doctorDegree: academicDegree,
+    dentistHocVi: academicDegree,
+    titleFullName,
+    consultationFee,
+    phuThuChuyenGia: consultationFee,
     chiefComplaint: lichHen.ghiChu || '',
 
     // Khớp 100% schema HoSoBenhAn
@@ -265,11 +281,11 @@ export const clinicalRecordResponseSchema = (record) => {
     ngayTaiKham: record.ngayTaiKham ? formatDateYYYYMMDD(record.ngayTaiKham) : null,
 
     // Điểm sức khỏe nụ cười (Smile Score)
-    initialSmileScore: benhNhan.diemSucKhoeBanDau ?? 85,
-    diemSucKhoeBanDau: benhNhan.diemSucKhoeBanDau ?? 85,
-    currentSmileScore: benhNhan.diemSucKhoeHienTai ?? 95,
-    diemSucKhoeHienTai: benhNhan.diemSucKhoeHienTai ?? 95,
-    isInitialScoreLocked: benhNhan.diemSucKhoeBanDau !== null && benhNhan.diemSucKhoeBanDau !== undefined,
+    initialSmileScore: Number(benhNhan.diemSucKhoeBanDau || 0),
+    diemSucKhoeBanDau: Number(benhNhan.diemSucKhoeBanDau || 0),
+    currentSmileScore: Number(benhNhan.diemSucKhoeHienTai || 0),
+    diemSucKhoeHienTai: Number(benhNhan.diemSucKhoeHienTai || 0),
+    isInitialScoreLocked: Number(benhNhan.diemSucKhoeBanDau || 0) > 0,
 
     treatments,
     materials,

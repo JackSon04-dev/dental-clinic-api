@@ -14,7 +14,11 @@ import {
 import {
   adminPatientDetailResponseSchema,
 } from '../../../dtos/departments/admins/adminPatientDto.js';
-import { getDoctorDegreeSurcharge } from '../../../constants/academicDegree.js';
+import {
+  getDoctorDegreeSurcharge,
+  extractDegreeAndName,
+  formatDoctorFullName,
+} from '../../../constants/academicDegree.js';
 
 /**
  * Sinh mã hồ sơ bệnh án ngẫu nhiên không trùng lặp
@@ -99,6 +103,7 @@ export const getClinicalQueueService = async (dentistId) => {
       benhNhan: true,
       caLamViec: {
         include: {
+          nhaSi: true,
           phongDieuTri: true,
         },
       },
@@ -120,6 +125,7 @@ export const getClinicalQueueService = async (dentistId) => {
         benhNhan: true,
         caLamViec: {
           include: {
+            nhaSi: true,
             phongDieuTri: true,
           },
         },
@@ -214,6 +220,7 @@ export const updateSlipStatusService = async (slipId, status) => {
       benhNhan: true,
       caLamViec: {
         include: {
+          nhaSi: true,
           phongDieuTri: true,
         },
       },
@@ -292,6 +299,11 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
       const ns = targetLichHen.caLamViec?.nhaSi || {};
       const phong = targetLichHen.caLamViec?.phongDieuTri || {};
 
+      const nsDegreeExtracted = extractDegreeAndName(ns.hoTen);
+      const academicDegree = ns.hocVi && ns.hocVi !== 'BS' ? ns.hocVi : (nsDegreeExtracted.degree || ns.hocVi || 'BS');
+      const titleFullName = formatDoctorFullName(academicDegree, ns.hoTen);
+      const consultationFee = getDoctorDegreeSurcharge(academicDegree);
+
       return {
         id: null,
         code: null,
@@ -303,6 +315,12 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
         avatarUrl: bn.hinhAnhUrl || null,
         dentistId: ns.id || '',
         dentistName: ns.hoTen || '',
+        academicDegree,
+        doctorDegree: academicDegree,
+        dentistHocVi: academicDegree,
+        titleFullName,
+        consultationFee,
+        phuThuChuyenGia: consultationFee,
         roomName: phong.tenPhong || 'Phòng khám',
         serviceName: targetLichHen.dichVu?.tenDichVu || 'Khám răng miệng',
         chiefComplaint: targetLichHen.ghiChu || targetLichHen.dichVu?.tenDichVu || 'Khám theo lịch hẹn',
@@ -327,9 +345,11 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
         ghiChu: '',
         examDate: targetLichHen.ngayHen ? formatDateYYYYMMDD(targetLichHen.ngayHen) : formatDateYYYYMMDD(new Date()),
         reExamDate: null,
-        initialSmileScore: 85,
-        currentSmileScore: 95,
-        isInitialScoreLocked: false,
+        initialSmileScore: Number(bn.diemSucKhoeBanDau || 0),
+        diemSucKhoeBanDau: Number(bn.diemSucKhoeBanDau || 0),
+        currentSmileScore: Number(bn.diemSucKhoeHienTai || 0),
+        diemSucKhoeHienTai: Number(bn.diemSucKhoeHienTai || 0),
+        isInitialScoreLocked: Number(bn.diemSucKhoeBanDau || 0) > 0,
         treatments: [],
         prescription: [],
         materials: [],
@@ -501,16 +521,19 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
       }
 
       // Nghiệp vụ Điểm sức khỏe nụ cười:
-      // - Điểm ban đầu: Nếu chưa có trong DB thì set lần đầu. Nếu đã có thì KHÓA CỨNG, không được update nữa!
+      // - Điểm ban đầu: Nếu chưa có trong DB hoặc đang là 0 thì set lần đầu. Nếu đã khác 0 thì KHÓA CỨNG, không được update nữa!
       // - Điểm hiện tại: Cho phép cập nhật sau mỗi đợt khám/điều trị.
       const initialScoreVal = initialSmileScore !== undefined ? initialSmileScore : diemSucKhoeBanDau;
       const currentScoreVal = currentSmileScore !== undefined ? currentSmileScore : diemSucKhoeHienTai;
 
       if (existingPatient) {
-        if (existingPatient.diemSucKhoeBanDau === null || existingPatient.diemSucKhoeBanDau === undefined) {
-          if (initialScoreVal !== undefined && initialScoreVal !== null) {
+        const currentInitialInDb = Number(existingPatient.diemSucKhoeBanDau || 0);
+        const isInitialNotSet = currentInitialInDb === 0;
+
+        if (isInitialNotSet) {
+          if (initialScoreVal !== undefined && initialScoreVal !== null && Number(initialScoreVal) > 0) {
             patientUpdateData.diemSucKhoeBanDau = Number(initialScoreVal);
-          } else if (currentScoreVal !== undefined && currentScoreVal !== null) {
+          } else if (currentScoreVal !== undefined && currentScoreVal !== null && Number(currentScoreVal) > 0) {
             patientUpdateData.diemSucKhoeBanDau = Number(currentScoreVal);
           }
         }
@@ -740,14 +763,19 @@ export const saveClinicalRecordService = async (dentistId, payload) => {
 
     // Xác định học vị của bác sĩ ca trực để tính phụ thu học vị (chỉ cộng ở hóa đơn đợt 1 / thanh toán trước)
     let doctorDegree = 'BS';
-    if (targetLichHen.caLamViec?.nhaSi?.hocVi) {
-      doctorDegree = targetLichHen.caLamViec.nhaSi.hocVi;
-    } else if (dentistId) {
-      const doc = await tx.nhaSi.findUnique({ where: { id: dentistId }, select: { hocVi: true } });
-      if (doc?.hocVi) doctorDegree = doc.hocVi;
-    } else if (targetLichHen.caLamViec?.nhaSiId) {
-      const doc = await tx.nhaSi.findUnique({ where: { id: targetLichHen.caLamViec.nhaSiId }, select: { hocVi: true } });
-      if (doc?.hocVi) doctorDegree = doc.hocVi;
+    let docObj = targetLichHen.caLamViec?.nhaSi;
+    if (!docObj) {
+      const docId = dentistId || targetLichHen.caLamViec?.nhaSiId;
+      if (docId) {
+        docObj = await tx.nhaSi.findUnique({
+          where: { id: docId },
+          select: { hocVi: true, hoTen: true },
+        });
+      }
+    }
+    if (docObj) {
+      const extracted = extractDegreeAndName(docObj.hoTen);
+      doctorDegree = docObj.hocVi && docObj.hocVi !== 'BS' ? docObj.hocVi : (extracted.degree || docObj.hocVi || 'BS');
     }
     const phuThuChuyenGia = loaiHoaDon === 'thanh_toan_truoc' ? getDoctorDegreeSurcharge(doctorDegree) : 0;
 
