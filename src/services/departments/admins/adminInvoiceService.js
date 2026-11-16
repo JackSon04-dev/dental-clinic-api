@@ -1,5 +1,6 @@
 import prisma from '../../../config/prisma.js';
 import { ApiError } from '../../../common/errorMiddleware.js';
+import eventBus, { EVENTS } from '../../../events/eventBus.js';
 import {
   adminInvoiceListItemResponseSchema,
   adminInvoiceDetailResponseSchema,
@@ -271,6 +272,11 @@ export const updateInvoicePaymentService = async (
     where: { id },
     include: invoiceRelationsInclude,
   });
+
+  // Phát sự kiện INVOICE_PAID tới các Listener (Gửi email hóa đơn điện tử ngầm...)
+  if (updatedInvoice) {
+    eventBus.emit(EVENTS.INVOICE_PAID, updatedInvoice);
+  }
 
   return adminInvoiceDetailResponseSchema(updatedInvoice);
 };

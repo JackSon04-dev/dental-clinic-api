@@ -1,5 +1,6 @@
 import prisma from '../../config/prisma.js';
 import { ApiError } from '../../common/errorMiddleware.js';
+import { formatDoctorFullName } from '../../constants/academicDegree.js';
 import {
   STANDARD_SLOTS,
   calculateWeekSchedule,
@@ -510,9 +511,13 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
       });
 
       if (!hasConflict && !availableDoctorsForSlot.some((d) => d.id === docId)) {
+        const docDegree = shift.nhaSi.hocVi || 'BS';
+        const docTitle = formatDoctorFullName(docDegree, shift.nhaSi.hoTen);
         availableDoctorsForSlot.push({
           id: shift.nhaSi.id,
-          fullName: shift.nhaSi.hoTen,
+          fullName: docTitle,
+          titleFullName: docTitle,
+          academicDegree: docDegree,
           specialty: shift.nhaSi.chuyenKhoa || 'Bác sĩ Nha khoa',
           avatarUrl: shift.nhaSi.hinhAnhUrl || null,
           shiftId: shift.id,
@@ -554,6 +559,18 @@ export const getAvailableSlotsService = async ({ date, serviceId, dentistId }) =
 // ============================================================================
 export const createAppointmentService = async (benhNhanId, userId, payload) => {
   const { date, timeSlot, serviceId, dentistId, notes } = payload;
+
+  // 0. Bắt buộc kiểm tra số điện thoại liên hệ của bệnh nhân
+  const patient = await prisma.benhNhan.findUnique({
+    where: { id: benhNhanId },
+    select: { id: true, sdt: true },
+  });
+  if (!patient || !patient.sdt || !patient.sdt.trim()) {
+    throw new ApiError(
+      400,
+      'Bệnh nhân chưa có số điện thoại liên hệ. Vui lòng cập nhật số điện thoại trước khi đặt lịch hẹn.'
+    );
+  }
 
   const todayStr = getVietnamTodayDateString();
   if (date < todayStr) {

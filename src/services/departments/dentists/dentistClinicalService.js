@@ -299,6 +299,8 @@ export const getClinicalRecordService = async ({ patientId, slipId }) => {
         patientId: targetLichHen.benhNhanId,
         patientName: bn.hoTen || 'Bệnh nhân',
         patientPhone: bn.sdt || '',
+        patientAvatarUrl: bn.hinhAnhUrl || null,
+        avatarUrl: bn.hinhAnhUrl || null,
         dentistId: ns.id || '',
         dentistName: ns.hoTen || '',
         roomName: phong.tenPhong || 'Phòng khám',

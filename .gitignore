@@ -6,5 +6,6 @@ dist/
 build/
 coverage/
 *.log
+*firebase*.json
 .DS_Store
 DentalApp-Database/

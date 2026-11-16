@@ -105,6 +105,13 @@ export const clientRefreshTokenRequestSchema = Joi.object({
   }),
 });
 
+export const clientGoogleLoginRequestSchema = Joi.object({
+  idToken: Joi.string().trim().required().messages({
+    'any.required': 'idToken từ Firebase là bắt buộc',
+    'string.empty': 'idToken không được để trống',
+  }),
+});
+
 
 // ============================================================================
 // 2. RESPONSE SCHEMAS & FORMATTERS (Sanitized & Standardized Outgoing Data)

@@ -240,6 +240,8 @@ export const clinicalRecordResponseSchema = (record) => {
     patientId: benhNhan.id,
     patientName: benhNhan.hoTen,
     patientPhone: benhNhan.sdt,
+    patientAvatarUrl: benhNhan.hinhAnhUrl || null,
+    avatarUrl: benhNhan.hinhAnhUrl || null,
     dentistId: nhaSi.id,
     dentistName: nhaSi.hoTen,
     chiefComplaint: lichHen.ghiChu || '',

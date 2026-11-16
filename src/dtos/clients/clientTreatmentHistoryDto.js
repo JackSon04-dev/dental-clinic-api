@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { formatDayMonthYear, formatTimeHHmm } from '../../utils/dateFormatter.js';
+import { formatDoctorFullName } from '../../constants/academicDegree.js';
 
 // ============================================================================
 // 1. REQUEST SCHEMAS (Joi Validation)
@@ -91,6 +92,9 @@ export const calculateRecordFinancials = (record) => {
     totalMaterialsAmount += qty * price;
   });
 
+  // Phụ thu học vị chuyên gia (nếu có trên hóa đơn)
+  const surchargeAmount = Number(invoice?.phuThuChuyenGia) || 0;
+
   // 3. Tạm tính (Subtotal)
   const subtotalAmount = totalServicesAmount + totalMaterialsAmount;
 
@@ -106,13 +110,16 @@ export const calculateRecordFinancials = (record) => {
   }
 
   // 5. Thành tiền thực tế phải thanh toán
-  const finalAmount = Math.max(0, subtotalAmount - discountAmount);
+  const finalAmount = Number(invoice?.soTienThanhToan) > 0
+    ? Number(invoice.soTienThanhToan)
+    : Math.max(0, subtotalAmount + surchargeAmount - discountAmount);
 
   return {
     invoice,
     voucher,
     totalServicesAmount,
     totalMaterialsAmount,
+    surchargeAmount,
     subtotalAmount,
     discountAmount,
     finalAmount,
@@ -146,7 +153,7 @@ export const clientTreatmentHistoryListItemResponseSchema = (record) => {
     reExamDate: reExamDateInfo ? reExamDateInfo.formattedDate : null,
     serviceTitle: record.lichHen?.dichVu?.tenDichVu || 'Khám điều trị nha khoa',
     doctor: {
-      name: nhaSi?.hoTen || 'Bác sĩ phụ trách',
+      name: nhaSi ? formatDoctorFullName(nhaSi.hocVi || 'BS', nhaSi.hoTen) : 'Bác sĩ phụ trách',
       specialty: nhaSi?.chuyenKhoa || 'Nha khoa tổng quát',
     },
     room: phong?.tenPhong || 'Phòng điều trị',
@@ -306,8 +313,10 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
         };
       });
     } else {
-      invoiceItems = unifiedLineItems;
+      invoiceItems = [...unifiedLineItems];
     }
+
+    const surchargeAmount = Number(hd.phuThuChuyenGia) || 0;
 
     // Tính toán phân bổ tài chính cho từng hóa đơn
     const servicesSubtotal = invoiceItems
@@ -319,7 +328,9 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
 
     const subtotal = Number(hd.tongTien) > 0 ? Number(hd.tongTien) : (servicesSubtotal + suppliesSubtotal);
     const discountAmount = Number(hd.giamGia) || 0;
-    const finalAmount = Number(hd.soTienThanhToan) > 0 ? Number(hd.soTienThanhToan) : Math.max(0, subtotal - discountAmount);
+    const finalAmount = Number(hd.soTienThanhToan) > 0
+      ? Number(hd.soTienThanhToan)
+      : Math.max(0, subtotal + surchargeAmount - discountAmount);
 
     const voucherData = hd.khuyenMai
       ? {
@@ -340,6 +351,8 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       paymentStatusTitle: formatPaymentStatusTitle(hd.trangThaiThanhToan),
       paymentMethod: hd.phuongThucThanhToan || null,
       paymentMethodTitle: formatPaymentMethodTitle(hd.phuongThucThanhToan),
+      surchargeAmount,
+      phuThuChuyenGia: surchargeAmount,
       subtotal,
       discountAmount,
       finalAmount,
@@ -351,6 +364,7 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       summary: {
         servicesSubtotal,
         suppliesSubtotal,
+        surchargeAmount,
         subtotal,
         discountAmount,
         finalAmount,
@@ -369,6 +383,8 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       paymentStatusTitle: 'Chưa thanh toán',
       paymentMethod: null,
       paymentMethodTitle: 'Chưa chọn',
+      surchargeAmount: financials.surchargeAmount || 0,
+      phuThuChuyenGia: financials.surchargeAmount || 0,
       subtotal: financials.subtotalAmount,
       discountAmount: financials.discountAmount,
       finalAmount: financials.finalAmount,
@@ -388,6 +404,7 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       summary: {
         servicesSubtotal: financials.totalServicesAmount,
         suppliesSubtotal: financials.totalMaterialsAmount,
+        surchargeAmount: financials.surchargeAmount || 0,
         subtotal: financials.subtotalAmount,
         discountAmount: financials.discountAmount,
         finalAmount: financials.finalAmount,
@@ -424,7 +441,7 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       appointmentDate: appointmentDateTime,
       doctor: {
         id: nhaSi?.id || null,
-        name: nhaSi?.hoTen || 'Bác sĩ phụ trách',
+        name: nhaSi ? formatDoctorFullName(nhaSi.hocVi || 'BS', nhaSi.hoTen) : 'Bác sĩ phụ trách',
         specialty: nhaSi?.chuyenKhoa || 'Nha khoa tổng quát',
         licenseNumber: nhaSi?.soGiayPhep || null,
         avatarUrl: nhaSi?.hinhAnhUrl || null,

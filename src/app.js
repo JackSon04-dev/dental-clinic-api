@@ -30,11 +30,16 @@ import clientTreatmentHistoryRoutes from './routes/clients/clientTreatmentHistor
 import clientPrescriptionRoutes from './routes/clients/clientPrescription.js';
 import clientTreatmentPlanRoutes from './routes/clients/clientTreatmentPlan.js';
 import clientAppointmentRoutes from './routes/clients/clientAppointment.js';
+import payosPaymentRoutes from './routes/common/payosPayment.js';
 // [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
 import devDatabaseRoutes from './routes/dev/devDatabase.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
+import { initEventListeners } from './events/index.js';
 
 dotenv.config();
+
+// Khởi tạo Event Listeners cho toàn hệ thống
+initEventListeners();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,6 +101,9 @@ app.use('/api/v1/client/treatment-history', clientTreatmentHistoryRoutes);
 app.use('/api/v1/client/prescriptions', clientPrescriptionRoutes);
 app.use('/api/v1/client/treatment-plans', clientTreatmentPlanRoutes);
 app.use('/api/v1/client/appointments', clientAppointmentRoutes);
+
+// Payment Routes - Cổng thanh toán trực tuyến PayOS (VietQR)
+app.use('/api/v1/payment/payos', payosPaymentRoutes);
 
 // [DEV-ONLY / DEMO TEST TOOL] - Sẽ bị xóa khi dọn dẹp TopDemoBar
 app.use('/api/v1/dev/database', devDatabaseRoutes);
