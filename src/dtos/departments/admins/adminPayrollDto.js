@@ -29,16 +29,6 @@ export const adminLockPayrollBodySchema = Joi.object({
   year: Joi.number().integer().min(2020).max(2050).required(),
 });
 
-export const adminUpdatePayrollAdjustmentBodySchema = Joi.object({
-  phuCapKhac: Joi.number().min(0).optional().messages({
-    'number.min': 'Phụ cấp khác không được là số âm',
-  }),
-  tienPhatVang: Joi.number().min(0).optional().messages({
-    'number.min': 'Tiền phạt trừ không được là số âm',
-  }),
-  ghiChu: Joi.string().trim().allow('', null).optional(),
-});
-
 // ============================================================================
 // 2. RESPONSE FORMATTERS & SANITIZERS
 // ============================================================================
@@ -78,11 +68,8 @@ export const adminPayrollItemResponseSchema = (payroll) => {
     shiftRate: Number(payroll.donGiaCa) || 0,
     shiftSalary: Number(payroll.tienLuongCa) || 0,
     degreeBonus: Number(payroll.tienBonusHocVi) || 0,
-    absencePenalty: Number(payroll.tienPhatVang) || 0,
-    otherAllowance: Number(payroll.phuCapKhac) || 0,
     netSalary: Number(payroll.tongLuongThucNhan) || 0,
     status: payroll.trangThai || 'chua_chot',
-    notes: payroll.ghiChu || null,
     lockedAt: payroll.ngayChot || null,
     paidAt: payroll.ngayChiTra || null,
     createdAt: payroll.createdAt,
@@ -95,7 +82,6 @@ export const adminPayrollListResponseSchema = ({ month, year, payrolls }) => {
 
   const totalBaseSalary = items.reduce((sum, p) => sum + p.baseSalary, 0);
   const totalDegreeBonus = items.reduce((sum, p) => sum + p.degreeBonus, 0);
-  const totalPenalty = items.reduce((sum, p) => sum + p.absencePenalty, 0);
   const totalPayroll = items.reduce((sum, p) => sum + p.netSalary, 0);
   const lockedCount = items.filter((p) => p.status === 'da_chot' || p.status === 'da_chi_tra').length;
 
@@ -109,7 +95,6 @@ export const adminPayrollListResponseSchema = ({ month, year, payrolls }) => {
       lockedCount,
       totalBaseSalary,
       totalDegreeBonus,
-      totalPenalty,
       totalPayroll,
     },
     payrolls: items,

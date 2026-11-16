@@ -87,12 +87,9 @@ const calculateSingleStaffPayroll = async (tx, user, month, year, forceRecalcula
 
   // Tiền công tính theo số ca thực tế
   const tienLuongCa = Math.round(soCaThucTe * donGiaCa);
-  // Tiền phạt trừ vắng ca
-  const tienPhatVang = Math.round(soCaVang * donGiaCa);
-  const phuCapKhac = existing ? Number(existing.phuCapKhac) : 0;
 
-  // Lương thực nhận = Tiền công ca + Bonus học vị + Phụ cấp - Phạt vắng
-  const tongLuongThucNhan = Math.max(0, tienLuongCa + tienBonusHocVi + phuCapKhac - tienPhatVang);
+  // Lương thực nhận = Tiền công ca + Bonus học vị
+  const tongLuongThucNhan = Math.max(0, tienLuongCa + tienBonusHocVi);
 
   // Lưu hoặc cập nhật vào bảng bang_luong
   return await tx.bangLuong.upsert({
@@ -111,8 +108,6 @@ const calculateSingleStaffPayroll = async (tx, user, month, year, forceRecalcula
       donGiaCa,
       tienLuongCa,
       tienBonusHocVi,
-      tienPhatVang,
-      phuCapKhac,
       tongLuongThucNhan,
     },
     create: {
@@ -126,8 +121,6 @@ const calculateSingleStaffPayroll = async (tx, user, month, year, forceRecalcula
       donGiaCa,
       tienLuongCa,
       tienBonusHocVi,
-      tienPhatVang,
-      phuCapKhac: 0,
       tongLuongThucNhan,
       trangThai: 'chua_chot',
     },
@@ -333,48 +326,4 @@ export const lockMonthlyPayrollService = async ({ month, year }) => {
     year: yearNum,
     lockedCount: updated.count,
   };
-};
-
-/**
- * 5. updatePayrollAdjustmentService
- * Điều chỉnh phụ cấp hoặc tiền phạt trừ cho 1 phiếu lương
- */
-export const updatePayrollAdjustmentService = async (payrollId, updateData) => {
-  const payroll = await prisma.bangLuong.findUnique({
-    where: { id: payrollId },
-  });
-
-  if (!payroll) {
-    throw new ApiError(404, 'Không tìm thấy phiếu lương yêu cầu!');
-  }
-
-  if (payroll.trangThai === 'da_chi_tra') {
-    throw new ApiError(400, 'Không thể chỉnh sửa phiếu lương đã chi trả!');
-  }
-
-  const { phuCapKhac, tienPhatVang, ghiChu } = updateData;
-
-  const newPhuCap = phuCapKhac !== undefined ? Number(phuCapKhac) : Number(payroll.phuCapKhac);
-  const newPhat = tienPhatVang !== undefined ? Number(tienPhatVang) : Number(payroll.tienPhatVang);
-  const newNetSalary = Math.max(
-    0,
-    Number(payroll.tienLuongCa) + Number(payroll.tienBonusHocVi) + newPhuCap - newPhat
-  );
-
-  const updated = await prisma.bangLuong.update({
-    where: { id: payrollId },
-    data: {
-      phuCapKhac: newPhuCap,
-      tienPhatVang: newPhat,
-      tongLuongThucNhan: newNetSalary,
-      ...(ghiChu !== undefined && { ghiChu: ghiChu ? ghiChu.trim() : null }),
-    },
-    include: {
-      taiKhoan: {
-        include: { nhaSi: true, nhanVien: true },
-      },
-    },
-  });
-
-  return getPayslipDetailService(updated.id);
 };

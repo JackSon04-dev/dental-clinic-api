@@ -661,15 +661,12 @@ model BangLuong {
   donGiaCa           Decimal    @default(0) @map("don_gia_ca") @db.Decimal(18, 2)
   tienLuongCa        Decimal    @default(0) @map("tien_luong_ca") @db.Decimal(18, 2)
   tienBonusHocVi     Decimal    @default(0) @map("tien_bonus_hoc_vi") @db.Decimal(18, 2)
-  tienPhatVang       Decimal    @default(0) @map("tien_phat_vang") @db.Decimal(18, 2)
-  phuCapKhac         Decimal    @default(0) @map("phu_cap_khac") @db.Decimal(18, 2)
   
   // Kết quả cuối cùng
   tongLuongThucNhan  Decimal    @default(0) @map("tong_luong_thuc_nhan") @db.Decimal(18, 2)
   
   // Vòng đời bảng lương
   trangThai          String     @default("chua_chot") @map("trang_thai") @db.VarChar(20) // 'chua_chot', 'da_chot', 'da_chi_tra'
-  ghiChu             String?    @map("ghi_chu") @db.Text
   ngayChot           DateTime?  @map("ngay_chot") @db.Timestamptz(6)
   ngayChiTra         DateTime?  @map("ngay_chi_tra") @db.Timestamptz(6)
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)

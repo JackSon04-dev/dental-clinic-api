@@ -311,6 +311,7 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
   }
 
   const COMPLETED_STATUSES = new Set(['da_dien_ra', 'co_mat', 'hoan_thanh', 'COMPLETED']);
+  const ABSENT_STATUSES = new Set(['vang_mat', 'da_huy', 'CANCELLED']);
   const monthShiftsByDoctor = new Map();
   for (const s of monthShifts) {
     if (!monthShiftsByDoctor.has(s.nhaSiId)) {
@@ -331,10 +332,14 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
     // Tổng số ca trong tuần
     const weeklyShiftsCount = docShifts.length;
 
-    // Thống kê ca trong tháng dương lịch
+    // Thống kê ca trong tháng dương lịch: Tách 3 trường (Có mặt, Chưa tới, Vắng mặt)
     const monthlyShiftsCount = docMonthShifts.length;
     const monthlyCompletedShiftsCount = docMonthShifts.filter((s) => COMPLETED_STATUSES.has(s.trangThai)).length;
-    const monthlyPendingShiftsCount = monthlyShiftsCount - monthlyCompletedShiftsCount;
+    const monthlyAbsentShiftsCount = docMonthShifts.filter((s) => ABSENT_STATUSES.has(s.trangThai)).length;
+    const monthlyUpcomingShiftsCount = docMonthShifts.filter(
+      (s) => !COMPLETED_STATUSES.has(s.trangThai) && !ABSENT_STATUSES.has(s.trangThai)
+    ).length;
+    const monthlyPendingShiftsCount = monthlyUpcomingShiftsCount;
 
     // Format danh sách ca trực trong tuần
     const formattedShifts = docShifts.map((s) => ({
@@ -361,6 +366,8 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
       weeklyShiftsCount,
       monthlyShiftsCount,
       monthlyCompletedShiftsCount,
+      monthlyUpcomingShiftsCount,
+      monthlyAbsentShiftsCount,
       monthlyPendingShiftsCount,
       month: monthRange.month,
       year: monthRange.year,

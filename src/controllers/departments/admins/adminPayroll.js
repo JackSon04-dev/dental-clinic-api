@@ -68,27 +68,9 @@ export const lockPayroll = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * updatePayrollAdjustment
- * [PATCH] /api/v1/admin/payrolls/:id/adjustment
- * Điều chỉnh phụ cấp hoặc phạt trừ cho 1 phiếu lương
- */
-export const updatePayrollAdjustment = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const data = await adminPayrollService.updatePayrollAdjustmentService(id, req.body);
-
-  return res.status(200).json({
-    success: true,
-    status: 200,
-    message: 'Cập nhật điều chỉnh phiếu lương thành công',
-    data,
-  });
-});
-
 export default {
   getPayrolls,
   calculatePayroll,
   getPayslipDetail,
   lockPayroll,
-  updatePayrollAdjustment,
 };
