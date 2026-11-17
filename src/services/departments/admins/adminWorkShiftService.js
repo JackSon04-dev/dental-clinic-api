@@ -186,7 +186,7 @@ export const generateWorkShiftsFromTemplateService = async ({ startDate }) => {
     );
   }
 
-  // 2. Kiểm tra xem tuần này đã có ca làm việc nào chưa để tránh tạo trùng lặp
+  // 2. Kiểm tra các ca hiện có trong tuần và bảo vệ các ca ĐÃ CÓ LỊCH HẸN
   const existingCount = await prisma.caLamViec.count({
     where: {
       ngay: {
@@ -197,10 +197,43 @@ export const generateWorkShiftsFromTemplateService = async ({ startDate }) => {
   });
 
   if (existingCount > 0) {
-    throw new ApiError(
-      400,
-      `Tuần từ ${week.startDate} đến ${week.endDate} đã tồn tại ${existingCount} ca làm việc. Vui lòng không tạo trùng lặp!`
-    );
+    const shiftsWithAppointments = await prisma.caLamViec.findMany({
+      where: {
+        ngay: {
+          gte: new Date(week.startDate),
+          lte: new Date(week.endDate),
+        },
+        lichHen: {
+          some: {},
+        },
+      },
+      include: {
+        phongDieuTri: {
+          select: { tenPhong: true },
+        },
+        nhaSi: {
+          select: { hoTen: true },
+        },
+        _count: {
+          select: { lichHen: true },
+        },
+      },
+      take: 5,
+    });
+
+    if (shiftsWithAppointments.length > 0) {
+      const details = shiftsWithAppointments
+        .map(
+          (s) =>
+            `${formatDateYYYYMMDD(s.ngay)} (${s.phongDieuTri?.tenPhong || 'Phòng'} - Bác sĩ ${s.nhaSi?.hoTen || 'N/A'}: ${s._count.lichHen} lịch hẹn)`
+        )
+        .join('; ');
+
+      throw new ApiError(
+        400,
+        `Không thể ghi đè vì tuần này đã có ca có lịch hẹn của bệnh nhân: ${details}. Vui lòng dời hoặc hủy lịch hẹn trước khi tạo lại ca!`
+      );
+    }
   }
 
   // 3. Lấy toàn bộ 56 ca mẫu từ Khung ca làm việc (KhungCaLamViec)
@@ -235,15 +268,29 @@ export const generateWorkShiftsFromTemplateService = async ({ startDate }) => {
     };
   });
 
-  // 5. Thực hiện lưu batch vào CSDL
-  await prisma.caLamViec.createMany({
-    data: newShifts,
+  // 5. Thực hiện xóa ca cũ (nếu có) và tạo mới đồng bộ qua transaction
+  await prisma.$transaction(async (tx) => {
+    if (existingCount > 0) {
+      await tx.caLamViec.deleteMany({
+        where: {
+          ngay: {
+            gte: new Date(week.startDate),
+            lte: new Date(week.endDate),
+          },
+        },
+      });
+    }
+
+    await tx.caLamViec.createMany({
+      data: newShifts,
+    });
   });
 
   return adminGenerateWorkShiftsResponseSchema({
     startDate: week.startDate,
     endDate: week.endDate,
     totalCreated: newShifts.length,
+    totalDeleted: existingCount,
   });
 };
 

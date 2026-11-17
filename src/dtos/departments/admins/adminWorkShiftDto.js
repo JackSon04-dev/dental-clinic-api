@@ -349,6 +349,7 @@ export const adminGenerateWorkShiftsResponseSchema = ({
   startDate,
   endDate,
   totalCreated,
+  totalDeleted = 0,
 }) => {
   return {
     week: {
@@ -356,6 +357,10 @@ export const adminGenerateWorkShiftsResponseSchema = ({
       endDate,
     },
     totalCreated,
-    message: `Khởi tạo thành công ${totalCreated} ca làm việc cho tuần từ ${startDate} đến ${endDate} dựa trên Khung mẫu.`,
+    totalDeleted,
+    message:
+      totalDeleted > 0
+        ? `Đã ghi đè thành công ${totalCreated} ca làm việc từ khung mẫu cho tuần ${startDate} - ${endDate} (đã thay thế ${totalDeleted} ca cũ).`
+        : `Khởi tạo thành công ${totalCreated} ca làm việc cho tuần từ ${startDate} đến ${endDate} dựa trên Khung mẫu.`,
   };
 };
