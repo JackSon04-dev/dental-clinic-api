@@ -1,22 +1,85 @@
+import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 import prisma from '../config/prisma.js';
 import { formatDoctorFullName } from '../constants/academicDegree.js';
 
 class EmailService {
   constructor() {
+    this.resendApiKey = process.env.RESEND_API_KEY;
+    this.resendClient = this.resendApiKey ? new Resend(this.resendApiKey) : null;
+
     this.emailUser = process.env.EMAIL_USER;
     this.emailPass = process.env.EMAIL_PASS;
     this.transporter = null;
 
-    if (this.emailUser && this.emailPass) {
+    if (this.resendClient) {
+      console.log('✅ [EmailService] Resend HTTP API đã sẵn sàng (Cổng 443 HTTPS - Hoạt động 100% trên Render).');
+    } else if (this.emailUser && this.emailPass) {
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
           user: this.emailUser,
           pass: this.emailPass,
         },
+        family: 4,
       });
+      console.log(`📧 [EmailService] Đã cấu hình SMTP Gmail: ${this.emailUser}`);
+    } else {
+      console.warn('⚠️ [EmailService] Chưa cấu hình RESEND_API_KEY hoặc EMAIL_USER/EMAIL_PASS. Hệ thống sẽ fallback in OTP ra log.');
     }
+  }
+
+  /**
+   * Phương thức dùng chung để gửi email (Ưu tiên Resend HTTP API -> Nodemailer SMTP)
+   * @param {{ to: string, subject: string, html: string }} params
+   * @returns {Promise<boolean>}
+   */
+  async sendMail({ to, subject, html }) {
+    // 1. Ưu tiên 1: Gửi qua Resend HTTP API (Cổng HTTPS 443 không bao giờ bị chặn trên Render)
+    if (this.resendClient) {
+      try {
+        const sender = process.env.RESEND_FROM || 'Nha Khoa Dental Clinic <onboarding@resend.dev>';
+        const { data, error } = await this.resendClient.emails.send({
+          from: sender,
+          to: [to],
+          subject,
+          html,
+        });
+
+        if (error) {
+          console.error('⚠️ [EmailService - Resend] Lỗi khi gửi email:', error.message || error);
+          return false;
+        }
+
+        console.log(`✅ [EmailService - Resend] Đã gửi email thành công đến: ${to} (ID: ${data?.id})`);
+        return true;
+      } catch (err) {
+        console.error('⚠️ [EmailService - Resend] Ngoại lệ khi gọi API:', err.message);
+        return false;
+      }
+    }
+
+    // 2. Ưu tiên 2: Gửi qua Nodemailer SMTP nếu có cấu hình
+    if (this.transporter) {
+      try {
+        await this.transporter.sendMail({
+          from: `"Nha Khoa Dental Clinic" <${this.emailUser}>`,
+          to,
+          subject,
+          html,
+        });
+        console.log(`✅ [EmailService - SMTP] Đã gửi email thành công đến: ${to}`);
+        return true;
+      } catch (error) {
+        console.error('⚠️ [EmailService - SMTP] Lỗi gửi mail qua SMTP:', error.message);
+        return false;
+      }
+    }
+
+    // 3. Fallback: Không có cấu hình mail
+    return false;
   }
 
   /**
@@ -71,27 +134,16 @@ class EmailService {
       </div>
     `;
 
-    // 1. Chế độ có cấu hình SMTP thật: Gửi qua nodemailer
-    if (this.transporter) {
-      try {
-        await this.transporter.sendMail({
-          from: `"Nha Khoa Dental Clinic" <${this.emailUser}>`,
-          to: toEmail,
-          subject,
-          html: htmlContent,
-        });
-        console.log(`[EmailService] Da gui OTP thanh cong den: ${toEmail}`);
-        return true;
-      } catch (error) {
-        console.error('[EmailService] Loi gui mail qua SMTP:', error.message);
-        // Fallback in ra console để quá trình test không bị ngắt
-        this.logOtpToConsole(toEmail, otp, type);
-        return true;
-      }
-    }
+    // Gửi email qua provider đã cấu hình (Resend -> SMTP -> Console fallback)
+    const isSent = await this.sendMail({
+      to: toEmail,
+      subject,
+      html: htmlContent,
+    });
 
-    // 2. Chế độ Dev (chưa có cấu hình Gmail trong .env): Tự động in OTP ra console
-    this.logOtpToConsole(toEmail, otp, type);
+    if (!isSent) {
+      this.logOtpToConsole(toEmail, otp, type);
+    }
     return true;
   }
 
@@ -461,20 +513,16 @@ class EmailService {
         </html>
       `;
 
-      // 6. Gửi email qua SMTP nếu đã cấu hình, hoặc fallback in ra console nếu ở Dev mode
-      if (this.transporter) {
-        await this.transporter.sendMail({
-          from: `"Nha Khoa Dental Clinic" <${this.emailUser}>`,
-          to: patientEmail,
-          subject,
-          html: htmlContent,
-        });
-        console.log(`✅ [EmailService] Đã gửi biên lai hóa đơn ${invoiceCode} thành công đến: ${patientEmail}`);
-        return true;
-      }
+      // 6. Gửi email qua provider đã cấu hình (Resend -> SMTP -> Console fallback)
+      const isSent = await this.sendMail({
+        to: patientEmail,
+        subject,
+        html: htmlContent,
+      });
 
-      // Dev mode fallback
-      this.logInvoiceReceiptToConsole(patientEmail, invoiceCode, patientName, finalAmount, paymentMethod);
+      if (!isSent) {
+        this.logInvoiceReceiptToConsole(patientEmail, invoiceCode, patientName, finalAmount, paymentMethod);
+      }
       return true;
     } catch (error) {
       console.error('⚠️ [EmailService] Lỗi xử lý gửi hóa đơn qua email:', error.message);

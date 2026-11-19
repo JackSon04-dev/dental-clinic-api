@@ -18,8 +18,10 @@ async function seed() {
     process.exit(1);
   }
 
+  const isCloudDb = databaseUrl.includes('render.com') || databaseUrl.includes('sslmode=require');
   const client = new pg.Client({
     connectionString: databaseUrl,
+    ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
   });
 
   try {
