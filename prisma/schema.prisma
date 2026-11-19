@@ -382,7 +382,6 @@ model PhacDoDieuTri {
 
   // Quan hệ 1-N
   giaiDoanPhacDo        GiaiDoanPhacDo[]
-  hoaDon                HoaDon[]
 
   @@map("phac_do_dieu_tri")
 }
@@ -461,7 +460,6 @@ model HoaDon {
   id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   maHoaDon             String?         @unique @map("ma_hoa_don") @db.VarChar(30)
   lichHenId            String          @map("lich_hen_id") @db.Uuid
-  phacDoDieuTriId      String?         @map("phac_do_dieu_tri_id") @db.Uuid
   nhanVienId           String          @map("nhan_vien_id") @db.Uuid
   khuyenMaiId          String?         @map("khuyen_mai_id") @db.Uuid
   phuongThucThanhToan  String?         @map("phuong_thuc_thanh_toan") @db.VarChar(20)
@@ -481,7 +479,6 @@ model HoaDon {
 
   // Khóa ngoại
   lichHen              LichHen         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  phacDoDieuTri        PhacDoDieuTri?  @relation(fields: [phacDoDieuTriId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   nhanVien             NhanVien        @relation(fields: [nhanVienId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   khuyenMai            KhuyenMai?      @relation(fields: [khuyenMaiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
@@ -495,7 +492,6 @@ model HoaDon {
 model GiaiDoanPhacDo {
   id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phacDoId              String           @map("phac_do_id") @db.Uuid
-  buocChaId             String?          @map("buoc_cha_id") @db.Uuid
   buocSo                Int              @map("buoc_so")
   tenGiaiDoan           String           @map("ten_giai_doan") @db.VarChar(200)
   moTa                  String?          @map("mo_ta") @db.Text
@@ -511,8 +507,6 @@ model GiaiDoanPhacDo {
 
   // Khóa ngoại
   phacDoDieuTri         PhacDoDieuTri    @relation(fields: [phacDoId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  buocCha               GiaiDoanPhacDo?  @relation("GiaiDoanHierarchy", fields: [buocChaId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  cacBuocCon            GiaiDoanPhacDo[] @relation("GiaiDoanHierarchy")
   lichHen               LichHen?         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([phacDoId, buocSo])

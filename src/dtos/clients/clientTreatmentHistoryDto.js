@@ -487,6 +487,8 @@ export const clientTreatmentHistoryDetailResponseSchema = (record) => {
       invoiceCode: invoice?.maHoaDon || null,
       servicesSubtotal: financials.totalServicesAmount,
       suppliesSubtotal: financials.totalMaterialsAmount,
+      surchargeAmount: financials.surchargeAmount || 0,
+      phuThuChuyenGia: financials.surchargeAmount || 0,
       subtotal: financials.subtotalAmount,
       discount: financials.discountAmount,
       voucher: voucher
