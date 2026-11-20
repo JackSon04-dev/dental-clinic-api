@@ -43,7 +43,11 @@ export const getInvoiceDetail = asyncHandler(async (req, res) => {
 export const updateInvoicePayment = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const data = await adminInvoiceService.updateInvoicePaymentService(id, req.body);
+  const data = await adminInvoiceService.updateInvoicePaymentService(
+    id,
+    req.body,
+    req.user
+  );
 
   return res.status(200).json({
     success: true,

@@ -460,7 +460,7 @@ model HoaDon {
   id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   maHoaDon             String?         @unique @map("ma_hoa_don") @db.VarChar(30)
   lichHenId            String          @map("lich_hen_id") @db.Uuid
-  nhanVienId           String          @map("nhan_vien_id") @db.Uuid
+  nhanVienId           String?         @map("nhan_vien_id") @db.Uuid
   khuyenMaiId          String?         @map("khuyen_mai_id") @db.Uuid
   phuongThucThanhToan  String?         @map("phuong_thuc_thanh_toan") @db.VarChar(20)
   trangThaiThanhToan   String          @default("chua_thanh_toan") @map("trang_thai_thanh_toan") @db.VarChar(30)
@@ -479,7 +479,7 @@ model HoaDon {
 
   // Khóa ngoại
   lichHen              LichHen         @relation(fields: [lichHenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  nhanVien             NhanVien        @relation(fields: [nhanVienId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nhanVien             NhanVien?       @relation(fields: [nhanVienId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   khuyenMai            KhuyenMai?      @relation(fields: [khuyenMaiId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   // Quan hệ 1-N

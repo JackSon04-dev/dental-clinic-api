@@ -126,15 +126,25 @@ export const createPayosPaymentService = async ({
     };
   }
 
-  // 9. Lưu orderCode vào ghi chú hóa đơn để phục vụ tra cứu polling & đối chiếu webhook
+  // 9. Lưu orderCode vào ghi chú hóa đơn và cập nhật ID nhân viên tạo/tạo lại QR
   try {
     const updatedNotes = `${invoice.ghiChu || ''} [PAYOS:${orderCode}]`.trim();
+    const updateData = { ghiChu: updatedNotes };
+
+    if (reqUser?.role === 'LE_TAN' && reqUser.profileId) {
+      // Lễ tân tạo hoặc tạo lại mã QR: Ghi đè ID nhân viên thu ngân vào hóa đơn
+      updateData.nhanVienId = reqUser.profileId;
+    } else if (reqUser?.role === 'BENH_NHAN') {
+      // Bệnh nhân tự tạo mã thanh toán từ xa: ID nhân viên là null (tự thanh toán)
+      updateData.nhanVienId = null;
+    }
+
     await prisma.hoaDon.update({
       where: { id: invoice.id },
-      data: { ghiChu: updatedNotes },
+      data: updateData,
     });
   } catch (noteErr) {
-    console.warn('⚠️ [PayOS] Không thể cập nhật ghi chú orderCode vào hóa đơn:', noteErr.message);
+    console.warn('⚠️ [PayOS] Không thể cập nhật thông tin PayOS vào hóa đơn:', noteErr.message);
   }
 
   return {

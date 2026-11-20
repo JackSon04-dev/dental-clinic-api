@@ -40,7 +40,6 @@ const invoiceRelationsInclude = {
       },
     },
   },
-  phacDoDieuTri: true,
   nhanVien: true,
   khuyenMai: true,
   chiTietHoaDon: {
@@ -83,7 +82,11 @@ export const getInvoicesListService = async ({
 
   // Bộ lọc theo phương thức thanh toán
   if (paymentMethod && paymentMethod !== 'ALL') {
-    where.phuongThucThanhToan = paymentMethod;
+    const normalizedMethod =
+      paymentMethod === 'TIEN_MAT' || paymentMethod === 'tien_mat'
+        ? 'tien_mat'
+        : 'chuyen_khoan';
+    where.phuongThucThanhToan = normalizedMethod;
   }
 
   // Bộ lọc theo khoảng ngày lập hóa đơn
@@ -181,7 +184,9 @@ export const updateInvoicePaymentService = async (
     discountAmount,
     soTienThanhToan,
     finalAmount,
-  }
+    staffId,
+  },
+  reqUser = null
 ) => {
   const invoice = await prisma.hoaDon.findUnique({
     where: { id },
@@ -201,16 +206,22 @@ export const updateInvoicePaymentService = async (
   const targetVoucherId = khuyenMaiId || voucherId || invoice.khuyenMaiId || null;
   const targetDiscount = discountAmount !== undefined ? discountAmount : (giamGia !== undefined ? giamGia : undefined);
   const targetFinal = finalAmount !== undefined ? finalAmount : (soTienThanhToan !== undefined ? soTienThanhToan : undefined);
+  const effectiveStaffId = staffId || (reqUser?.role === 'LE_TAN' ? reqUser.profileId : null);
 
   if (invoice.trangThaiThanhToan === 'da_thanh_toan') {
     // Hóa đơn đã thanh toán: cho phép cập nhật lại phương thức thanh toán và ghi chú đối soát
+    const normalizedMethod =
+      paymentMethod === 'TIEN_MAT' || paymentMethod === 'tien_mat'
+        ? 'tien_mat'
+        : 'chuyen_khoan';
     const updateData = {
-      phuongThucThanhToan: paymentMethod,
+      phuongThucThanhToan: normalizedMethod,
       ghiChu: note !== undefined ? note : invoice.ghiChu,
     };
     if (targetVoucherId) updateData.khuyenMaiId = targetVoucherId;
     if (targetDiscount !== undefined) updateData.giamGia = targetDiscount;
     if (targetFinal !== undefined) updateData.soTienThanhToan = targetFinal;
+    if (effectiveStaffId) updateData.nhanVienId = effectiveStaffId;
 
     await prisma.hoaDon.update({
       where: { id },
@@ -228,15 +239,20 @@ export const updateInvoicePaymentService = async (
   // Thực hiện transaction cập nhật hóa đơn và đồng bộ giai đoạn phác đồ nếu có
   await prisma.$transaction(async (tx) => {
     // 1. Cập nhật hóa đơn
+    const normalizedMethod =
+      paymentMethod === 'TIEN_MAT' || paymentMethod === 'tien_mat'
+        ? 'tien_mat'
+        : 'chuyen_khoan';
     const updateData = {
       trangThaiThanhToan: 'da_thanh_toan',
-      phuongThucThanhToan: paymentMethod,
+      phuongThucThanhToan: normalizedMethod,
       ngayThanhToan: paidTimestamp,
       ghiChu: note !== undefined ? note : invoice.ghiChu,
     };
     if (targetVoucherId) updateData.khuyenMaiId = targetVoucherId;
     if (targetDiscount !== undefined) updateData.giamGia = targetDiscount;
     if (targetFinal !== undefined) updateData.soTienThanhToan = targetFinal;
+    if (effectiveStaffId) updateData.nhanVienId = effectiveStaffId;
 
     await tx.hoaDon.update({
       where: { id },

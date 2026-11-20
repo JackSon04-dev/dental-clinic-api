@@ -26,10 +26,10 @@ export const adminGetInvoicesQuerySchema = Joi.object({
       'any.only': 'Tham số status phải là một trong: ALL, chua_thanh_toan, da_thanh_toan',
     }),
   paymentMethod: Joi.string()
-    .valid('ALL', 'tien_mat', 'chuyen_khoan', 'the')
+    .valid('ALL', 'TIEN_MAT', 'CHUYEN_KHOAN', 'tien_mat', 'chuyen_khoan')
     .default('ALL')
     .messages({
-      'any.only': 'Tham số paymentMethod phải là một trong: ALL, tien_mat, chuyen_khoan, the',
+      'any.only': 'Tham số paymentMethod phải là một trong: ALL, TIEN_MAT, CHUYEN_KHOAN',
     }),
   fromDate: Joi.string()
     .isoDate()
@@ -63,14 +63,15 @@ export const adminInvoiceIdParamSchema = Joi.object({
  */
 export const adminUpdateInvoicePaymentRequestSchema = Joi.object({
   paymentMethod: Joi.string()
-    .valid('tien_mat', 'chuyen_khoan', 'the')
+    .valid('tien_mat', 'chuyen_khoan', 'TIEN_MAT', 'CHUYEN_KHOAN')
     .required()
     .messages({
       'any.required': 'Phương thức thanh toán không được để trống',
-      'any.only': 'Phương thức thanh toán phải là: tien_mat, chuyen_khoan hoặc the',
+      'any.only': 'Phương thức thanh toán phải là: TIEN_MAT hoặc CHUYEN_KHOAN',
     }),
   khuyenMaiId: Joi.string().uuid().allow(null, '').optional(),
   voucherId: Joi.string().uuid().allow(null, '').optional(),
+  staffId: Joi.string().uuid().allow(null, '').optional(),
   giamGia: Joi.number().min(0).optional(),
   discountAmount: Joi.number().min(0).optional(),
   soTienThanhToan: Joi.number().min(0).optional(),
@@ -260,7 +261,7 @@ export const adminInvoiceListItemResponseSchema = (invoice) => {
   const nhaSi = invoice.lichHen?.caLamViec?.nhaSi;
   const thuNgan = invoice.nhanVien;
   const giaiDoan = invoice.lichHen?.giaiDoanPhacDo;
-  const phacDo = invoice.phacDoDieuTri || giaiDoan?.phacDoDieuTri;
+  const phacDo = giaiDoan?.phacDoDieuTri;
   const voucher = invoice.khuyenMai;
   const primaryService =
     invoice.lichHen?.dichVu?.tenDichVu ||
@@ -314,7 +315,19 @@ export const adminInvoiceListItemResponseSchema = (invoice) => {
     cashier: thuNgan
       ? {
           id: thuNgan.id,
+          code: thuNgan.maNhanVien,
           fullName: thuNgan.hoTen,
+          role: thuNgan.chucVu,
+          phone: thuNgan.sdt,
+        }
+      : null,
+    receptionist: thuNgan
+      ? {
+          id: thuNgan.id,
+          code: thuNgan.maNhanVien,
+          fullName: thuNgan.hoTen,
+          role: thuNgan.chucVu,
+          phone: thuNgan.sdt,
         }
       : null,
     treatmentPlan: phacDo
@@ -356,13 +369,14 @@ export const adminInvoiceDetailResponseSchema = (invoice) => {
   const lichHen = invoice.lichHen;
   const hoSo = lichHen?.hoSoBenhAn;
   const giaiDoan = lichHen?.giaiDoanPhacDo;
-  const phacDo = invoice.phacDoDieuTri || giaiDoan?.phacDoDieuTri;
+  const phacDo = giaiDoan?.phacDoDieuTri;
   const voucher = invoice.khuyenMai;
 
   return {
     invoice: {
       id: invoice.id,
       code: invoice.maHoaDon,
+      staffId: invoice.nhanVienId,
       createdAt: invoice.ngayLap,
       paidAt: invoice.ngayThanhToan,
       paymentMethod: invoice.phuongThucThanhToan,
@@ -404,6 +418,20 @@ export const adminInvoiceDetailResponseSchema = (invoice) => {
           code: thuNgan.maNhanVien,
           fullName: thuNgan.hoTen,
           role: thuNgan.chucVu,
+          phone: thuNgan.sdt,
+          email: thuNgan.email,
+          avatarUrl: thuNgan.hinhAnhUrl,
+        }
+      : null,
+    receptionist: thuNgan
+      ? {
+          id: thuNgan.id,
+          code: thuNgan.maNhanVien,
+          fullName: thuNgan.hoTen,
+          role: thuNgan.chucVu,
+          phone: thuNgan.sdt,
+          email: thuNgan.email,
+          avatarUrl: thuNgan.hinhAnhUrl,
         }
       : null,
     appointment: lichHen

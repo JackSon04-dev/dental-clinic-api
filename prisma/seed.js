@@ -60,12 +60,13 @@ async function seed() {
     // Nạp các hàm / thủ tục nhúng từ thư mục prisma/sql (nếu có)
     const sqlDir = path.join(__dirname, 'sql');
     if (fs.existsSync(sqlDir)) {
-      const sqlFiles = fs.readdirSync(sqlDir).filter((file) => file.endsWith('.sql'));
+      const sqlFiles = fs.readdirSync(sqlDir).filter((file) => file.endsWith('.sql')).sort();
       for (const file of sqlFiles) {
         console.log(`⚡ Đang nạp mã SQL nhúng: ${file}...`);
         const embeddedSql = fs.readFileSync(path.join(sqlDir, file), 'utf8');
         await client.query(embeddedSql);
       }
+      console.log(`✅ Đã nạp thành công ${sqlFiles.length} file Function & View SQL từ prisma/sql/`);
     }
 
     // Kiểm tra nhanh số lượng bản ghi tài khoản

@@ -154,7 +154,8 @@ const queryInvoiceFinancials = async (startDate, endDate) => {
       LEFT JOIN lich_hen lh ON hd.lich_hen_id = lh.id
       LEFT JOIN ca_lam_viec clv ON lh.ca_lam_viec_id = clv.id
       LEFT JOIN nha_si ns ON clv.nha_si_id = ns.id
-      LEFT JOIN phac_do_dieu_tri pddt ON hd.phac_do_dieu_tri_id = pddt.id
+      LEFT JOIN giai_doan_phac_do gdpd ON gdpd.lich_hen_id = lh.id
+      LEFT JOIN phac_do_dieu_tri pddt ON gdpd.phac_do_id = pddt.id
       LEFT JOIN nha_si ns_pddt ON pddt.nha_si_id = ns_pddt.id
       WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
         AND hd.ngay_thanh_toan >= ${startDate}

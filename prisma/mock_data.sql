@@ -1222,7 +1222,7 @@ ON CONFLICT (ma_ho_so) DO UPDATE SET
 -- ============================================================================
 
 INSERT INTO hoa_don (
-    ma_hoa_don, lich_hen_id, phac_do_dieu_tri_id, nhan_vien_id,
+    ma_hoa_don, lich_hen_id, nhan_vien_id,
     khuyen_mai_id, phuong_thuc_thanh_toan, trang_thai_thanh_toan,
     ngay_lap, ngay_thanh_toan, ghi_chu
 )
@@ -1231,7 +1231,6 @@ VALUES
     (
         'HD_KHAMLE_01',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_01'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_HE2026'),
         'tien_mat',
@@ -1241,11 +1240,10 @@ VALUES
         'Thu phí khám tổng quát + lấy cao răng + trám composite. Áp voucher mùa hè giảm 10%.'
     ),
 
-    -- 2. Hóa đơn Bọc sứ GĐ1 BN002 (LH_BOCSU_01) - 0 VNĐ (Thanh toán theo giai đoạn: phac_do_dieu_tri_id = NULL)
+    -- 2. Hóa đơn Bọc sứ GĐ1 BN002 (LH_BOCSU_01) - 0 VNĐ (Thanh toán theo giai đoạn)
     (
         'HD_BOCSU_01',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_01'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         NULL,
         'chuyen_khoan',
@@ -1255,11 +1253,10 @@ VALUES
         'Giai đoạn 1 mài cùi lấy dấu và gắn răng tạm: Chi phí 0 VNĐ (dịch vụ đi kèm trọn gói bọc răng sứ).'
     ),
 
-    -- 3. Hóa đơn Bọc sứ GĐ2 BN002 (LH_BOCSU_02) - 24.000.000 VNĐ (Thanh toán theo giai đoạn: phac_do_dieu_tri_id = NULL)
+    -- 3. Hóa đơn Bọc sứ GĐ2 BN002 (LH_BOCSU_02) - 24.000.000 VNĐ (Thanh toán theo giai đoạn)
     (
         'HD_BOCSU_02',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_02'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV002'),
         NULL,
         'chuyen_khoan',
@@ -1273,7 +1270,6 @@ VALUES
     (
         'HD_IMPLANT_01',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_01'),
-        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_001'),
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_IMPLANT'),
         'chuyen_khoan',
@@ -1740,59 +1736,6 @@ VALUES
         'Ngậm dung dịch súc đều các kẽ răng trong 1 phút rồi nhổ ra. Không súc lại bằng nước lọc để hoạt chất bảo vệ cổ chân răng tối ưu.',
         'Kháng khuẩn, phòng ngừa viêm nướu và ngăn ngừa mảng bám tái hình thành'
     );
-
--- ============================================================================
--- DATABASE EMBEDDED FUNCTION: fn_calculate_revenue
--- Tính doanh thu thực thu theo kỳ lọc dựa trên hóa đơn ca khám đã thanh toán
--- ============================================================================
-CREATE OR REPLACE FUNCTION fn_calculate_revenue(p_start_date TIMESTAMPTZ, p_end_date TIMESTAMPTZ)
-RETURNS NUMERIC(18, 2)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_total_revenue NUMERIC(18, 2) := 0;
-BEGIN
-    WITH invoice_raw AS (
-        SELECT 
-            hd.id,
-            hd.khuyen_mai_id,
-            km.loai_giam,
-            km.gia_tri_giam,
-            COALESCE(hd.tong_tien, (
-                SELECT 
-                    COALESCE(SUM(dvdt.don_gia * dvdt.so_luong), 0) +
-                    COALESCE((
-                        SELECT COALESCE(SUM(vtsd.don_gia * vtsd.so_luong), 0)
-                        FROM vat_tu_su_dung vtsd
-                        WHERE vtsd.ho_so_id = hsba.id
-                    ), 0)
-                FROM ho_so_benh_an hsba
-                LEFT JOIN dich_vu_dieu_tri dvdt ON dvdt.ho_so_id = hsba.id
-                WHERE hsba.lich_hen_id = hd.lich_hen_id
-                GROUP BY hsba.id
-            ), 0) AS tien_goc
-        FROM hoa_don hd
-        LEFT JOIN khuyen_mai km ON hd.khuyen_mai_id = km.id
-        WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
-          AND hd.ngay_thanh_toan >= p_start_date
-          AND hd.ngay_thanh_toan <= p_end_date
-    )
-    SELECT COALESCE(SUM(
-        CASE 
-            WHEN loai_giam = 'phan_tram' THEN 
-                tien_goc * (1 - COALESCE(gia_tri_giam, 0) / 100.0)
-            WHEN loai_giam = 'so_tien' THEN 
-                GREATEST(0, tien_goc - COALESCE(gia_tri_giam, 0))
-            ELSE 
-                COALESCE(tien_goc, 0)
-        END
-    ), 0)::NUMERIC(18, 2)
-    INTO v_total_revenue
-    FROM invoice_raw;
-
-    RETURN v_total_revenue;
-END;
-$$;
 
 -- ============================================================================
 -- DỮ LIỆU MẪU MỞ RỘNG: THÁNG 08/2026 & THÁNG 09/2026
@@ -2384,7 +2327,7 @@ VALUES
 
 -- 10. BẢNG HÓA ĐƠN (Level 4)
 INSERT INTO hoa_don (
-    ma_hoa_don, lich_hen_id, phac_do_dieu_tri_id, nhan_vien_id,
+    ma_hoa_don, lich_hen_id, nhan_vien_id,
     khuyen_mai_id, phuong_thuc_thanh_toan, trang_thai_thanh_toan,
     ngay_lap, ngay_thanh_toan, ghi_chu
 )
@@ -2393,7 +2336,6 @@ VALUES
     (
         'HD_KHAMLE_0810',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0810'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         NULL,
         'chuyen_khoan',
@@ -2403,25 +2345,23 @@ VALUES
         'Thu phí tiểu phẫu nhổ răng 38 và lấy cao răng 2 hàm qua chuyển khoản VietQR.'
     ),
 
-    -- 2. BN006 (18/08/2026): Phác đồ Implant Straumann trả trọn gói 44tr - giảm 2tr voucher = 42.000.000 VNĐ, Thẻ POS
+    -- 2. BN006 (18/08/2026): Phác đồ Implant Straumann trả trọn gói 44tr - giảm 2tr voucher = 42.000.000 VNĐ, Chuyển khoản
     (
         'HD_IMPLANT_0818',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_IMPLANT_0818'),
-        (SELECT id FROM phac_do_dieu_tri WHERE ma_phac_do = 'PDT_IMPLANT_002'),
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV002'),
         (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_IMPLANT'),
         'chuyen_khoan',
         'da_thanh_toan',
         '2026-08-18 11:15:00+07',
         '2026-08-18 11:20:00+07',
-        'Thanh toán trọn gói phác đồ Implant Thụy Sĩ qua quẹt thẻ POS, áp voucher giảm 2 triệu.'
+        'Thanh toán trọn gói phác đồ Implant Thụy Sĩ qua chuyển khoản, áp voucher giảm 2 triệu.'
     ),
 
     -- 3. BN007 (25/08/2026): Tẩy trắng Laser + trám răng 3.250.000đ - giảm 10% = 2.925.000 VNĐ, Tiền mặt
     (
         'HD_KHAMLE_0825',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0825'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         (SELECT id FROM khuyen_mai WHERE ma_khuyen_mai = 'KM_HE2026'),
         'tien_mat',
@@ -2435,7 +2375,6 @@ VALUES
     (
         'HD_BOCSU_0908',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0908'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         NULL,
         'chuyen_khoan',
@@ -2449,7 +2388,6 @@ VALUES
     (
         'HD_BOCSU_0912',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_BOCSU_0912'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         NULL,
         'chuyen_khoan',
@@ -2459,25 +2397,23 @@ VALUES
         'Thanh toán đợt 2 gắn 6 mão toàn sứ Cercon HT qua chuyển khoản ngân hàng.'
     ),
 
-    -- 6. BN009 (18/09/2026): Niềng răng GĐ1 gắn mắc cài sứ 2 hàm -> 18.000.000 VNĐ, Thẻ POS
+    -- 6. BN009 (18/09/2026): Niềng răng GĐ1 gắn mắc cài sứ 2 hàm -> 18.000.000 VNĐ, Chuyển khoản
     (
         'HD_NIENGRANG_0918',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_NIENGRANG_0918'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV002'),
         NULL,
         'chuyen_khoan',
         'da_thanh_toan',
         '2026-09-18 10:30:00+07',
         '2026-09-18 10:35:00+07',
-        'Thanh toán đợt 1 gắn mắc cài sứ Damon Clear 2 hai hàm qua thẻ POS.'
+        'Thanh toán đợt 1 gắn mắc cài sứ Damon Clear 2 hai hàm qua chuyển khoản VietQR.'
     ),
 
     -- 7. BN010 (24/09/2026): Điều trị tủy răng cối + trám composite -> 5.500.000 VNĐ, Tiền mặt
     (
         'HD_KHAMLE_0924',
         (SELECT id FROM lich_hen WHERE ma_lich_hen = 'LH_KHAMLE_0924'),
-        NULL,
         (SELECT id FROM nhan_vien WHERE ma_nhan_vien = 'NV001'),
         NULL,
         'tien_mat',
@@ -2487,43 +2423,6 @@ VALUES
         'Thu tiền mặt điều trị tủy răng cối lớn 46 và trám composite lớn.'
     )
 ON CONFLICT (ma_hoa_don) DO NOTHING;
-
--- ============================================================================
--- VIEW: v_dich_vu_da_thanh_toan
--- Dùng cho API: GET /api/v1/admin/top-services
--- ============================================================================
-CREATE OR REPLACE VIEW v_dich_vu_da_thanh_toan AS
-SELECT 
-    dv.id AS dich_vu_id,
-    dv.ma_dich_vu,
-    dv.ten_dich_vu,
-    dvdt.so_luong,
-    (dvdt.don_gia * dvdt.so_luong)::NUMERIC(18, 2) AS thanh_tien,
-    hd.ngay_thanh_toan,
-    hd.id AS hoa_don_id
-FROM dich_vu_dieu_tri dvdt
-JOIN dich_vu dv ON dvdt.dich_vu_id = dv.id
-JOIN ho_so_benh_an hsba ON dvdt.ho_so_id = hsba.id
-JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
-WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
-
-UNION ALL
-
-SELECT 
-    dv.id AS dich_vu_id,
-    dv.ma_dich_vu,
-    dv.ten_dich_vu,
-    vtsd.so_luong,
-    (vtsd.don_gia * vtsd.so_luong)::NUMERIC(18, 2) AS thanh_tien,
-    hd.ngay_thanh_toan,
-    hd.id AS hoa_don_id
-FROM vat_tu_su_dung vtsd
-JOIN san_pham sp ON vtsd.san_pham_id = sp.id
-JOIN dich_vu dv ON sp.dich_vu_id = dv.id
-JOIN ho_so_benh_an hsba ON vtsd.ho_so_id = hsba.id
-JOIN hoa_don hd ON hsba.lich_hen_id = hd.lich_hen_id
-WHERE hd.trang_thai_thanh_toan = 'da_thanh_toan'
-  AND sp.dich_vu_id IS NOT NULL;
 
 COMMIT;
 
