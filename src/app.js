@@ -31,6 +31,7 @@ import clientPrescriptionRoutes from './routes/clients/clientPrescription.js';
 import clientTreatmentPlanRoutes from './routes/clients/clientTreatmentPlan.js';
 import clientAppointmentRoutes from './routes/clients/clientAppointment.js';
 import payosPaymentRoutes from './routes/common/payosPayment.js';
+import publicAiChatRoutes from './routes/common/publicAiChat.js';
 import { errorHandler, ApiError } from './common/errorMiddleware.js';
 import { initEventListeners } from './events/index.js';
 
@@ -102,6 +103,9 @@ app.use('/api/v1/client/appointments', clientAppointmentRoutes);
 
 // Payment Routes - Cổng thanh toán trực tuyến PayOS (VietQR)
 app.use('/api/v1/payment/payos', payosPaymentRoutes);
+
+// Public AI Assistant Routes - Trợ lý AI tư vấn phòng khám
+app.use('/api/v1/public/ai', publicAiChatRoutes);
 
 // 404 Not Found Handler (bắt các đường dẫn không tồn tại)
 app.use((req, res, next) => {
