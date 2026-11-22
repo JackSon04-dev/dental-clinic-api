@@ -409,6 +409,7 @@ export const getDoctorsWorkShiftsOverviewService = async ({ date = null } = {}) 
       email: doc.email,
       phone: doc.sdt,
       specialty: doc.chuyenKhoa,
+      avatarUrl: doc.hinhAnhUrl || null,
       dailyShiftsCount,
       weeklyShiftsCount,
       monthlyShiftsCount,
